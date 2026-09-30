@@ -1,0 +1,2323 @@
+{
+  "users": [
+    [
+      "usr_123456789",
+      {
+        "id": "usr_123456789",
+        "uid": "87456802",
+        "telegramId": 123456789,
+        "firstName": "E4F User",
+        "lastName": "",
+        "username": "user_123",
+        "referralCode": "E4F256926",
+        "createdAt": 1726880000000,
+        "status": "ACTIVE",
+        "claimedWelcomeBonus": true,
+        "isDemoUser": false,
+        "isVerified": true,
+        "depositBalance": 2,
+        "depositAddress": "0x187c938bbdfedf58c688b8699a909bd262ed6f20"
+      }
+    ],
+    [
+      "usr_987654321",
+      {
+        "id": "usr_987654321",
+        "uid": "87654430",
+        "telegramId": 987654321,
+        "firstName": "E4F User",
+        "lastName": "",
+        "username": "user_123",
+        "referralCode": "E4F455418",
+        "createdAt": 1790333084772,
+        "status": "ACTIVE",
+        "claimedWelcomeBonus": true,
+        "isDemoUser": false,
+        "isVerified": true,
+        "depositBalance": 0,
+        "depositAddress": "0xe15484333e23debb248b6fd9cff946f328c2c16d"
+      }
+    ],
+    [
+      "usr_789456123",
+      {
+        "id": "usr_789456123",
+        "uid": "87456210",
+        "telegramId": 789456123,
+        "firstName": "E4F User",
+        "lastName": "",
+        "username": "user_123",
+        "referralCode": "E4F257000",
+        "createdAt": 1790338687104,
+        "status": "ACTIVE",
+        "claimedWelcomeBonus": true,
+        "isDemoUser": false,
+        "isVerified": false,
+        "depositBalance": 0,
+        "depositAddress": "0xf060f7a00901edd6866503d7587321776c29d6f4"
+      }
+    ]
+  ],
+  "balances": [
+    [
+      "usr_123456789",
+      {
+        "usdt": 7.7657,
+        "e4f": 48.9,
+        "btc": 0.001299999999999999,
+        "eth": 0.0814,
+        "sol": 0.0407,
+        "bnb": 0.138
+      }
+    ],
+    [
+      "usr_987654321",
+      {
+        "usdt": 42,
+        "e4f": 10,
+        "btc": 0.0024,
+        "eth": 0.0456,
+        "sol": 0.85,
+        "bnb": 0.12
+      }
+    ],
+    [
+      "usr_789456123",
+      {
+        "usdt": 25,
+        "e4f": 10,
+        "btc": 0.0024,
+        "eth": 0.0456,
+        "sol": 0.85,
+        "bnb": 0.12
+      }
+    ]
+  ],
+  "transactions": [
+    {
+      "id": "tx_1790766125836_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.01,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790766125836,
+      "note": "Day 1 Check-in Reward (+0.01 USDT)"
+    },
+    {
+      "id": "tx_1790765958396_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.07,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765958396,
+      "note": "Day 7 Check-in Reward (+0.07 USDT)"
+    },
+    {
+      "id": "tx_1790765958387_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.05,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765958387,
+      "note": "Day 6 Check-in Reward (+0.05 USDT)"
+    },
+    {
+      "id": "tx_1790765958377_checkin",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 5,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765958377,
+      "note": "Day 5 Check-in Reward (+5 E4F)"
+    },
+    {
+      "id": "tx_1790765958366_checkin",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 3,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765958366,
+      "note": "Day 4 Check-in Reward (+3 E4F)"
+    },
+    {
+      "id": "tx_1790765958356_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.03,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765958356,
+      "note": "Day 3 Check-in Reward (+0.03 USDT)"
+    },
+    {
+      "id": "tx_1790765958346_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.02,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765958346,
+      "note": "Day 2 Check-in Reward (+0.02 USDT)"
+    },
+    {
+      "id": "tx_1790765958334_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.01,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765958334,
+      "note": "Day 1 Check-in Reward (+0.01 USDT)"
+    },
+    {
+      "id": "tx_1790765627512_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.01,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765627512,
+      "note": "Day 1 Check-in Reward (+0.01 USDT)"
+    },
+    {
+      "id": "tx_1790765382685_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.01,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765382685,
+      "note": "Day 1 Check-in Reward (+0.01 USDT)"
+    },
+    {
+      "id": "tx_1790765382676_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.07,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765382676,
+      "note": "Day 7 Check-in Reward (+0.07 USDT)"
+    },
+    {
+      "id": "tx_1790765382668_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.05,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765382668,
+      "note": "Day 6 Check-in Reward (+0.05 USDT)"
+    },
+    {
+      "id": "tx_1790765382660_checkin",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 5,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765382660,
+      "note": "Day 5 Check-in Reward (+5 E4F)"
+    },
+    {
+      "id": "tx_1790765382651_checkin",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 3,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765382651,
+      "note": "Day 4 Check-in Reward (+3 E4F)"
+    },
+    {
+      "id": "tx_1790765382639_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.03,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765382639,
+      "note": "Day 3 Check-in Reward (+0.03 USDT)"
+    },
+    {
+      "id": "tx_1790765382617_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.02,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765382617,
+      "note": "Day 2 Check-in Reward (+0.02 USDT)"
+    },
+    {
+      "id": "tx_1790765382601_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.01,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790765382601,
+      "note": "Day 1 Check-in Reward (+0.01 USDT)"
+    },
+    {
+      "id": "tx_1790515541702_spin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.05,
+      "direction": "IN",
+      "source": "SPIN_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790515541702,
+      "note": "Spin & Win Prize: 0.05 USDT (1/5)"
+    },
+    {
+      "id": "tx_1790515478844_box",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 0.1,
+      "direction": "IN",
+      "source": "GIFT_BOX_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790515478844,
+      "note": "Diamond Relic Opened (+0.1 E4F) [1/5]"
+    },
+    {
+      "id": "tx_1790515275977_wd",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 100,
+      "direction": "OUT",
+      "source": "WITHDRAWAL",
+      "status": "COMPLETED",
+      "timestamp": 1790515275977,
+      "address": "0x63562945F7845AA1130A5B1499720b29788C82Db",
+      "network": "BEP20",
+      "fee": 0.5,
+      "userDepositTotal": 0,
+      "note": "Approved by Admin: Paid to 0x635629... (BEP20)"
+    },
+    {
+      "id": "tx_1790513733208_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 107.89254000000001,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1790513733208,
+      "referenceId": "ord_1790513733208_4h2m",
+      "note": "BUY 0.138 BNB/USDT @ 781.83"
+    },
+    {
+      "id": "tx_1790513729672_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 5.040288,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1790513729672,
+      "referenceId": "ord_1790513729672_k2jp",
+      "note": "BUY 0.0407 SOL/USDT @ 123.84"
+    },
+    {
+      "id": "tx_1790513721853_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 220.819478,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1790513721853,
+      "referenceId": "ord_1790513721853_ur0x",
+      "note": "BUY 0.0814 ETH/USDT @ 2712.77"
+    },
+    {
+      "id": "tx_1790513684763_trade",
+      "userId": "usr_123456789",
+      "asset": "BTC",
+      "amount": 0.004,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1790513684763,
+      "referenceId": "ord_1790513684763_ez27",
+      "note": "SELL 0.004 BTC/USDT @ 84950.00"
+    },
+    {
+      "id": "tx_1790513662414_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 288.83,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1790513662414,
+      "referenceId": "ord_1790513662414_tu0f",
+      "note": "BUY 0.0034 BTC/USDT @ 84950.00"
+    },
+    {
+      "id": "tx_1790513561704_trade",
+      "userId": "usr_123456789",
+      "asset": "BNB",
+      "amount": 0.2292,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1790513561704,
+      "referenceId": "ord_1790513561704_3cfw",
+      "note": "SELL 0.2292 BNB/USDT @ 782.20"
+    },
+    {
+      "id": "tx_1790513556759_trade",
+      "userId": "usr_123456789",
+      "asset": "SOL",
+      "amount": 0.85,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1790513556759,
+      "referenceId": "ord_1790513556759_psgq",
+      "note": "SELL 0.85 SOL/USDT @ 123.92"
+    },
+    {
+      "id": "tx_1790513550863_trade",
+      "userId": "usr_123456789",
+      "asset": "ETH",
+      "amount": 0.0228,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1790513550863,
+      "referenceId": "ord_1790513550863_xkv4",
+      "note": "SELL 0.0228 ETH/USDT @ 2713.61"
+    },
+    {
+      "id": "tx_1790513468465_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 132.361776,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1790513468465,
+      "referenceId": "ord_1790513468465_bt58",
+      "note": "BUY 0.1692 BNB/USDT @ 782.28"
+    },
+    {
+      "id": "tx_1790513464820_trade",
+      "userId": "usr_123456789",
+      "asset": "BNB",
+      "amount": 0.06,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1790513464820,
+      "referenceId": "ord_1790513464820_0rij",
+      "note": "SELL 0.06 BNB/USDT @ 782.28"
+    },
+    {
+      "id": "tx_1790513455101_trade",
+      "userId": "usr_123456789",
+      "asset": "ETH",
+      "amount": 0.0228,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1790513455101,
+      "referenceId": "ord_1790513455101_3g2a",
+      "note": "SELL 0.0228 ETH/USDT @ 2713.61"
+    },
+    {
+      "id": "tx_1790513445082_trade",
+      "userId": "usr_123456789",
+      "asset": "BTC",
+      "amount": 0.0006,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1790513445082,
+      "referenceId": "ord_1790513445082_zzqa",
+      "note": "SELL 0.0006 BTC/USDT @ 84963.88"
+    },
+    {
+      "id": "tx_1790513243775_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 8.498201,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1790513243775,
+      "referenceId": "ord_1790513243775_sz70",
+      "note": "BUY 0.0001 BTC/USDT @ 84982.01"
+    },
+    {
+      "id": "tx_1790513232874_wd",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 2,
+      "direction": "OUT",
+      "source": "WITHDRAWAL",
+      "status": "COMPLETED",
+      "timestamp": 1790513232874,
+      "address": "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7",
+      "network": "BEP20",
+      "fee": 0.5,
+      "userDepositTotal": 0,
+      "note": "Security verified & sent on BSC"
+    },
+    {
+      "id": "tx_1790509565964_checkin",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 0.5,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790509565964,
+      "note": "Day 1 Check-in Reward"
+    },
+    {
+      "id": "tx_1790338687105_l7u5p",
+      "userId": "usr_789456123",
+      "asset": "E4F",
+      "amount": 10,
+      "direction": "IN",
+      "source": "WELCOME_BONUS_E4F",
+      "status": "COMPLETED",
+      "timestamp": 1790338687104,
+      "note": "Official Pre-Listing E4F Welcome Allocation"
+    },
+    {
+      "id": "tx_1790338687104_4s6qw",
+      "userId": "usr_789456123",
+      "asset": "USDT",
+      "amount": 25,
+      "direction": "IN",
+      "source": "WELCOME_BONUS_USDT",
+      "status": "COMPLETED",
+      "timestamp": 1790338687104,
+      "note": "Initial Verified Telegram Welcome Bonus (Spot Available)"
+    },
+    {
+      "id": "tx_verify_reward_1790333090217",
+      "userId": "usr_987654321",
+      "asset": "USDT",
+      "amount": 5,
+      "direction": "IN",
+      "source": "DEPOSIT",
+      "status": "COMPLETED",
+      "timestamp": 1790333090217,
+      "note": "If You are Human: Instant back 5 USDT bonus credited (+5.00 USDT Spot)"
+    },
+    {
+      "id": "tx_verify_1790333090216",
+      "userId": "usr_987654321",
+      "asset": "USDT",
+      "amount": 2,
+      "direction": "OUT",
+      "source": "DEPOSIT",
+      "status": "COMPLETED",
+      "timestamp": 1790333090216,
+      "note": "If You are Human: 2 USDT sent to official address 0x63562945f7845aa1130a5b1499720b29788c82db - Account Verified"
+    },
+    {
+      "id": "tx_1790333090202_depbonus",
+      "userId": "usr_987654321",
+      "asset": "USDT",
+      "amount": 10,
+      "direction": "IN",
+      "source": "DEPOSIT",
+      "status": "COMPLETED",
+      "timestamp": 1790333090201,
+      "note": "Qualifying BSC Deposit Welcome Bonus (+10 USDT Spot)"
+    },
+    {
+      "id": "tx_1790333090201_dep",
+      "userId": "usr_987654321",
+      "asset": "USDT",
+      "amount": 2,
+      "direction": "IN",
+      "source": "DEPOSIT",
+      "status": "COMPLETED",
+      "timestamp": 1790333090201,
+      "note": "Deposit via BEP20 (2 USDT) to 0xe1548433..."
+    },
+    {
+      "id": "tx_1790333084773_5sa9l",
+      "userId": "usr_987654321",
+      "asset": "E4F",
+      "amount": 10,
+      "direction": "IN",
+      "source": "WELCOME_BONUS_E4F",
+      "status": "COMPLETED",
+      "timestamp": 1790333084772,
+      "note": "Official Pre-Listing E4F Welcome Allocation"
+    },
+    {
+      "id": "tx_1790333084772_eweck",
+      "userId": "usr_987654321",
+      "asset": "USDT",
+      "amount": 25,
+      "direction": "IN",
+      "source": "WELCOME_BONUS_USDT",
+      "status": "COMPLETED",
+      "timestamp": 1790333084772,
+      "note": "Initial Verified Telegram Welcome Bonus (Spot Available)"
+    },
+    {
+      "id": "tx_1790107883072_spin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.1,
+      "direction": "IN",
+      "source": "SPIN_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790107883072,
+      "note": "Spin & Win Prize: 0.10 USDT (3/5)"
+    },
+    {
+      "id": "tx_1790107186624_box",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 10,
+      "direction": "IN",
+      "source": "GIFT_BOX_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790107186624,
+      "note": "Diamond Relic Opened (+10 E4F) [4/5]"
+    },
+    {
+      "id": "tx_1790106722459_box",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 5,
+      "direction": "IN",
+      "source": "GIFT_BOX_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790106722459,
+      "note": "Gold Vault Opened (+5 E4F) [3/5]"
+    },
+    {
+      "id": "tx_1790106686010_box",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 1.5,
+      "direction": "IN",
+      "source": "GIFT_BOX_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790106686010,
+      "note": "Silver Cache Opened (+1.5 USDT) [2/5]"
+    },
+    {
+      "id": "tx_1790106604848_tasksub",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 1,
+      "direction": "IN",
+      "source": "TASK_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790106604848,
+      "note": "Proof Approved: Follow "
+    },
+    {
+      "id": "tx_1790106067092_task",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.5,
+      "direction": "IN",
+      "source": "TASK_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790106067092,
+      "note": "Task Reward: Join E4F Global Traders Group"
+    },
+    {
+      "id": "tx_1790106065431_task",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 0.75,
+      "direction": "IN",
+      "source": "TASK_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790106065431,
+      "note": "Task Reward: Subscribe to E4F YouTube Channel"
+    },
+    {
+      "id": "tx_1790105968926_tasksub",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 1,
+      "direction": "IN",
+      "source": "TASK_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790105968926,
+      "note": "Proof Approved: Follow E4F Exchange on X (Twitter)"
+    },
+    {
+      "id": "tx_1790105945804_task",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 0.5,
+      "direction": "IN",
+      "source": "TASK_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790105945804,
+      "note": "Task Reward: Join E4F Official Telegram Channel"
+    },
+    {
+      "id": "tx_1790104919355_box",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 2.5,
+      "direction": "IN",
+      "source": "GIFT_BOX_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790104919355,
+      "note": "Bronze Treasure Opened (+2.5 E4F) [1/5]"
+    },
+    {
+      "id": "tx_1790104875754_spin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.1,
+      "direction": "IN",
+      "source": "SPIN_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790104875754,
+      "note": "Spin & Win Prize: 0.10 USDT (2/5)"
+    },
+    {
+      "id": "tx_1790104859638_spin",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 0.25,
+      "direction": "IN",
+      "source": "SPIN_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1790104859638,
+      "note": "Spin & Win Prize: 0.25 E4F (1/5)"
+    },
+    {
+      "id": "tx_1790104823508_checkin",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 0.5,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1790104823508,
+      "note": "Day 1 Check-in Reward"
+    }
+  ],
+  "referralHistory": [],
+  "miningSessions": [
+    {
+      "id": "mine_1790515381390_alyhy",
+      "userId": "usr_123456789",
+      "startTime": 1790515381390,
+      "endTime": 1790544181390,
+      "durationSeconds": 28800,
+      "miningRatePerHour": 0.375,
+      "estimatedReward": 3,
+      "status": "COMPLETED",
+      "adVerified": true,
+      "adSessionId": "ad_1790515292019_ov1xqw6"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "audit_1790515714336",
+      "adminId": "ADMIN_SUPER",
+      "action": "APPROVE_WITHDRAWAL",
+      "target": "tx_1790515275977_wd",
+      "details": "Approved withdrawal of 100 USDT to address 0x63562945F7845AA1130A5B1499720b29788C82Db (BEP20) for user 87456802",
+      "timestamp": 1790515714336
+    },
+    {
+      "id": "audit_1790515648948",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"depositsEnabled\":false,\"depositMinUSDT\":2,\"depositFirstBonusUSDT\":5,\"bscDepositAddress\":\"0x63562945f7845aa1130a5b1499720b29788c82db\"}",
+      "timestamp": 1790515648948
+    },
+    {
+      "id": "audit_1790515647820",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"depositsEnabled\":false,\"depositMinUSDT\":2,\"depositFirstBonusUSDT\":5,\"bscDepositAddress\":\"0x63562945f7845aa1130a5b1499720b29788c82db\"}",
+      "timestamp": 1790515647820
+    },
+    {
+      "id": "audit_1790515637787",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"withdrawalsEnabled\":false,\"maxWithdrawalLimit\":1000,\"minWithdrawalLimit\":1,\"withdrawalFee\":1,\"networkWithdrawSettings\":{\"TRC20\":{\"enabled\":true,\"minAmount\":1,\"maxAmount\":1000,\"fee\":1},\"BEP20\":{\"enabled\":true,\"minAmount\":1,\"maxAmount\":1000,\"fee\":0.5},\"TON\":{\"enabled\":true,\"minAmount\":1,\"maxAmount\":1000,\"fee\":0.5}}}",
+      "timestamp": 1790515637787
+    },
+    {
+      "id": "audit_1790514578633",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"withdrawalsEnabled\":true,\"maxWithdrawalLimit\":1000,\"minWithdrawalLimit\":1,\"withdrawalFee\":1,\"networkWithdrawSettings\":{\"TRC20\":{\"enabled\":true,\"minAmount\":1,\"maxAmount\":1000,\"fee\":1},\"BEP20\":{\"enabled\":true,\"minAmount\":1,\"maxAmount\":1000,\"fee\":0.5},\"TON\":{\"enabled\":true,\"minAmount\":1,\"maxAmount\":1000,\"fee\":0.5}}}",
+      "timestamp": 1790514578633
+    },
+    {
+      "id": "audit_1790514553437",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"depositsEnabled\":true,\"depositMinUSDT\":2,\"depositFirstBonusUSDT\":5,\"bscDepositAddress\":\"0x63562945f7845aa1130a5b1499720b29788c82db\"}",
+      "timestamp": 1790514553437
+    },
+    {
+      "id": "audit_1790514453719",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"monetagZoneId\":\"11442658\",\"monetagTelegramSdkEnabled\":true,\"rewardSpinMaxDaily\":5,\"rewardSpinAdRequired\":true,\"spinWheelPrizes\":[{\"id\":0,\"label\":\"0.03 USDT\",\"asset\":\"USDT\",\"amount\":0.03,\"color\":\"#3B82F6\"},{\"id\":1,\"label\":\"5 E4F\",\"asset\":\"E4F\",\"amount\":5,\"color\":\"#10B981\"},{\"id\":2,\"label\":\"8 E4F\",\"asset\":\"E4F\",\"amount\":8,\"color\":\"#EAB308\"},{\"id\":3,\"label\":\"0.05 USDT\",\"asset\":\"USDT\",\"amount\":0.05,\"color\":\"#6366F1\"},{\"id\":4,\"label\":\"2.50 E4F\",\"asset\":\"E4F\",\"amount\":2.5,\"color\":\"#EC4899\"},{\"id\":5,\"label\":\"0.03 USDT\",\"asset\":\"USDT\",\"amount\":0.03,\"color\":\"#14B8A6\"},{\"id\":6,\"label\":\"0.01 USDT\",\"asset\":\"USDT\",\"amount\":0.01,\"color\":\"#F97316\"},{\"id\":7,\"label\":\"0.1 USDT\",\"asset\":\"USDT\",\"amount\":0.1,\"color\":\"#8B5CF6\"}],\"giftBoxMaxDaily\":5,\"giftBoxAdRequired\":true,\"giftBoxesConfig\":[{\"id\":1,\"boxNumber\":1,\"name\":\"Bronze Treasure\",\"rewardAsset\":\"E4F\",\"rewardAmount\":0.02,\"color\":\"#38BDF8\"},{\"id\":2,\"boxNumber\":2,\"name\":\"Silver Cache\",\"rewardAsset\":\"USDT\",\"rewardAmount\":0.03,\"color\":\"#A855F7\"},{\"id\":3,\"boxNumber\":3,\"name\":\"Gold Vault\",\"rewardAsset\":\"E4F\",\"rewardAmount\":0.04,\"color\":\"#EAB308\"},{\"id\":4,\"boxNumber\":4,\"name\":\"Ruby Chest\",\"rewardAsset\":\"USDT\",\"rewardAmount\":0.05,\"color\":\"#EF4444\"},{\"id\":5,\"boxNumber\":5,\"name\":\"Diamond Relic\",\"rewardAsset\":\"E4F\",\"rewardAmount\":0.1,\"color\":\"#10B981\"}],\"dailyCheckInRewards\":[{\"day\":1,\"asset\":\"USDT\",\"amount\":0.01},{\"day\":2,\"asset\":\"USDT\",\"amount\":0.02},{\"day\":3,\"asset\":\"USDT\",\"amount\":0.03},{\"day\":4,\"asset\":\"E4F\",\"amount\":3},{\"day\":5,\"asset\":\"E4F\",\"amount\":5},{\"day\":6,\"asset\":\"USDT\",\"amount\":0.05},{\"day\":7,\"asset\":\"USDT\",\"amount\":0.07}]}",
+      "timestamp": 1790514453720
+    },
+    {
+      "id": "audit_1790514322811",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"monetagZoneId\":\"11442658\",\"monetagTelegramSdkEnabled\":true,\"rewardSpinMaxDaily\":5,\"rewardSpinAdRequired\":true,\"spinWheelPrizes\":[{\"id\":0,\"label\":\"0.03 USDT\",\"asset\":\"USDT\",\"amount\":0.03,\"color\":\"#3B82F6\"},{\"id\":1,\"label\":\"5 E4F\",\"asset\":\"E4F\",\"amount\":5,\"color\":\"#10B981\"},{\"id\":2,\"label\":\"8 E4F\",\"asset\":\"E4F\",\"amount\":8,\"color\":\"#EAB308\"},{\"id\":3,\"label\":\"0.05 USDT\",\"asset\":\"USDT\",\"amount\":0.05,\"color\":\"#6366F1\"},{\"id\":4,\"label\":\"2.50 E4F\",\"asset\":\"E4F\",\"amount\":2.5,\"color\":\"#EC4899\"},{\"id\":5,\"label\":\"0.03 USDT\",\"asset\":\"USDT\",\"amount\":0.03,\"color\":\"#14B8A6\"},{\"id\":6,\"label\":\"0.01 USDT\",\"asset\":\"USDT\",\"amount\":0.01,\"color\":\"#F97316\"},{\"id\":7,\"label\":\"0.1 USDT\",\"asset\":\"USDT\",\"amount\":0.1,\"color\":\"#8B5CF6\"}],\"giftBoxMaxDaily\":5,\"giftBoxAdRequired\":true,\"giftBoxesConfig\":[{\"id\":1,\"boxNumber\":1,\"name\":\"Bronze Treasure\",\"rewardAsset\":\"E4F\",\"rewardAmount\":2,\"color\":\"#38BDF8\"},{\"id\":2,\"boxNumber\":2,\"name\":\"Silver Cache\",\"rewardAsset\":\"USDT\",\"rewardAmount\":0.001,\"color\":\"#A855F7\"},{\"id\":3,\"boxNumber\":3,\"name\":\"Gold Vault\",\"rewardAsset\":\"E4F\",\"rewardAmount\":1,\"color\":\"#EAB308\"},{\"id\":4,\"boxNumber\":4,\"name\":\"Ruby Chest\",\"rewardAsset\":\"USDT\",\"rewardAmount\":6,\"color\":\"#EF4444\"},{\"id\":5,\"boxNumber\":5,\"name\":\"Diamond Relic\",\"rewardAsset\":\"E4F\",\"rewardAmount\":15,\"color\":\"#10B981\"}],\"dailyCheckInRewards\":[{\"day\":1,\"asset\":\"USDT\",\"amount\":0.01},{\"day\":2,\"asset\":\"USDT\",\"amount\":0.02},{\"day\":3,\"asset\":\"USDT\",\"amount\":0.03},{\"day\":4,\"asset\":\"E4F\",\"amount\":3},{\"day\":5,\"asset\":\"E4F\",\"amount\":5},{\"day\":6,\"asset\":\"USDT\",\"amount\":0.05},{\"day\":7,\"asset\":\"USDT\",\"amount\":0.07}]}",
+      "timestamp": 1790514322811
+    },
+    {
+      "id": "audit_1790514321002",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"monetagZoneId\":\"11442658\",\"monetagTelegramSdkEnabled\":true,\"rewardSpinMaxDaily\":5,\"rewardSpinAdRequired\":true,\"spinWheelPrizes\":[{\"id\":0,\"label\":\"0.03 USDT\",\"asset\":\"USDT\",\"amount\":0.03,\"color\":\"#3B82F6\"},{\"id\":1,\"label\":\"5 E4F\",\"asset\":\"E4F\",\"amount\":5,\"color\":\"#10B981\"},{\"id\":2,\"label\":\"8 E4F\",\"asset\":\"E4F\",\"amount\":8,\"color\":\"#EAB308\"},{\"id\":3,\"label\":\"0.05 USDT\",\"asset\":\"USDT\",\"amount\":0.05,\"color\":\"#6366F1\"},{\"id\":4,\"label\":\"2.50 E4F\",\"asset\":\"E4F\",\"amount\":2.5,\"color\":\"#EC4899\"},{\"id\":5,\"label\":\"0.03 USDT\",\"asset\":\"USDT\",\"amount\":0.03,\"color\":\"#14B8A6\"},{\"id\":6,\"label\":\"0.01 USDT\",\"asset\":\"USDT\",\"amount\":0.01,\"color\":\"#F97316\"},{\"id\":7,\"label\":\"0.1 USDT\",\"asset\":\"USDT\",\"amount\":0.1,\"color\":\"#8B5CF6\"}],\"giftBoxMaxDaily\":5,\"giftBoxAdRequired\":true,\"giftBoxesConfig\":[{\"id\":1,\"boxNumber\":1,\"name\":\"Bronze Treasure\",\"rewardAsset\":\"E4F\",\"rewardAmount\":2,\"color\":\"#38BDF8\"},{\"id\":2,\"boxNumber\":2,\"name\":\"Silver Cache\",\"rewardAsset\":\"USDT\",\"rewardAmount\":0.001,\"color\":\"#A855F7\"},{\"id\":3,\"boxNumber\":3,\"name\":\"Gold Vault\",\"rewardAsset\":\"E4F\",\"rewardAmount\":1,\"color\":\"#EAB308\"},{\"id\":4,\"boxNumber\":4,\"name\":\"Ruby Chest\",\"rewardAsset\":\"USDT\",\"rewardAmount\":6,\"color\":\"#EF4444\"},{\"id\":5,\"boxNumber\":5,\"name\":\"Diamond Relic\",\"rewardAsset\":\"E4F\",\"rewardAmount\":15,\"color\":\"#10B981\"}],\"dailyCheckInRewards\":[{\"day\":1,\"asset\":\"USDT\",\"amount\":0.01},{\"day\":2,\"asset\":\"USDT\",\"amount\":0.02},{\"day\":3,\"asset\":\"USDT\",\"amount\":0.03},{\"day\":4,\"asset\":\"E4F\",\"amount\":3},{\"day\":5,\"asset\":\"E4F\",\"amount\":5},{\"day\":6,\"asset\":\"USDT\",\"amount\":0.05},{\"day\":7,\"asset\":\"USDT\",\"amount\":0.07}]}",
+      "timestamp": 1790514321002
+    },
+    {
+      "id": "audit_1790514138247",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"monetagZoneId\":\"11442658\",\"monetagTelegramSdkEnabled\":true,\"rewardSpinMaxDaily\":5,\"rewardSpinAdRequired\":true,\"spinWheelPrizes\":[{\"id\":0,\"label\":\"0.25 E4F\",\"asset\":\"E4F\",\"amount\":0.25,\"color\":\"#3B82F6\"},{\"id\":1,\"label\":\"0.50 USDT\",\"asset\":\"USDT\",\"amount\":0.5,\"color\":\"#10B981\"},{\"id\":2,\"label\":\"1.00 E4F\",\"asset\":\"E4F\",\"amount\":1,\"color\":\"#EAB308\"},{\"id\":3,\"label\":\"0.10 USDT\",\"asset\":\"USDT\",\"amount\":0.1,\"color\":\"#6366F1\"},{\"id\":4,\"label\":\"2.50 E4F\",\"asset\":\"E4F\",\"amount\":2.5,\"color\":\"#EC4899\"},{\"id\":5,\"label\":\"1.00 USDT\",\"asset\":\"USDT\",\"amount\":1,\"color\":\"#14B8A6\"},{\"id\":6,\"label\":\"5.00 E4F\",\"asset\":\"E4F\",\"amount\":5,\"color\":\"#F97316\"},{\"id\":7,\"label\":\"2.00 USDT\",\"asset\":\"USDT\",\"amount\":2,\"color\":\"#8B5CF6\"}],\"giftBoxMaxDaily\":5,\"giftBoxAdRequired\":true,\"giftBoxesConfig\":[{\"id\":1,\"boxNumber\":1,\"name\":\"Bronze Treasure\",\"rewardAsset\":\"E4F\",\"rewardAmount\":2,\"color\":\"#38BDF8\"},{\"id\":2,\"boxNumber\":2,\"name\":\"Silver Cache\",\"rewardAsset\":\"USDT\",\"rewardAmount\":0.001,\"color\":\"#A855F7\"},{\"id\":3,\"boxNumber\":3,\"name\":\"Gold Vault\",\"rewardAsset\":\"E4F\",\"rewardAmount\":1,\"color\":\"#EAB308\"},{\"id\":4,\"boxNumber\":4,\"name\":\"Ruby Chest\",\"rewardAsset\":\"USDT\",\"rewardAmount\":6,\"color\":\"#EF4444\"},{\"id\":5,\"boxNumber\":5,\"name\":\"Diamond Relic\",\"rewardAsset\":\"E4F\",\"rewardAmount\":15,\"color\":\"#10B981\"}],\"dailyCheckInRewards\":[{\"day\":1,\"asset\":\"USDT\",\"amount\":0.01},{\"day\":2,\"asset\":\"USDT\",\"amount\":0.02},{\"day\":3,\"asset\":\"USDT\",\"amount\":0.03},{\"day\":4,\"asset\":\"E4F\",\"amount\":3},{\"day\":5,\"asset\":\"E4F\",\"amount\":5},{\"day\":6,\"asset\":\"USDT\",\"amount\":0.05},{\"day\":7,\"asset\":\"USDT\",\"amount\":0.07}]}",
+      "timestamp": 1790514138247
+    },
+    {
+      "id": "audit_1790513248353",
+      "adminId": "ADMIN_SUPER",
+      "action": "PURGE_EXPIRED_RECORDS_90_DAYS",
+      "target": "DATABASE",
+      "details": "Cleaned up records older than 90 days (0 transactions, 0 trade orders, 0 referrals, 0 logs, 0 task submissions). All history under 90 days strictly preserved.",
+      "timestamp": 1790513248353
+    },
+    {
+      "id": "audit_1790513232883",
+      "adminId": "ADMIN_SUPER",
+      "action": "APPROVE_WITHDRAWAL",
+      "target": "tx_1790513232874_wd",
+      "details": "Approved withdrawal of 2 USDT to address 0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7 (BEP20) for user 87456802",
+      "timestamp": 1790513232883
+    },
+    {
+      "id": "audit_1790513232854",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"withdrawalsEnabled\":true}",
+      "timestamp": 1790513232854
+    },
+    {
+      "id": "audit_1790509720956",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"monetagZoneId\":\"11442658\",\"monetagTelegramSdkEnabled\":true,\"rewardSpinMaxDaily\":5,\"rewardSpinAdRequired\":true,\"spinWheelPrizes\":[{\"id\":0,\"label\":\"0.25 E4F\",\"asset\":\"E4F\",\"amount\":0.25,\"color\":\"#3B82F6\"},{\"id\":1,\"label\":\"0.50 USDT\",\"asset\":\"USDT\",\"amount\":0.5,\"color\":\"#10B981\"},{\"id\":2,\"label\":\"1.00 E4F\",\"asset\":\"E4F\",\"amount\":1,\"color\":\"#EAB308\"},{\"id\":3,\"label\":\"0.10 USDT\",\"asset\":\"USDT\",\"amount\":0.1,\"color\":\"#6366F1\"},{\"id\":4,\"label\":\"2.50 E4F\",\"asset\":\"E4F\",\"amount\":2.5,\"color\":\"#EC4899\"},{\"id\":5,\"label\":\"1.00 USDT\",\"asset\":\"USDT\",\"amount\":1,\"color\":\"#14B8A6\"},{\"id\":6,\"label\":\"5.00 E4F\",\"asset\":\"E4F\",\"amount\":5,\"color\":\"#F97316\"},{\"id\":7,\"label\":\"2.00 USDT\",\"asset\":\"USDT\",\"amount\":2,\"color\":\"#8B5CF6\"}],\"giftBoxMaxDaily\":5,\"giftBoxAdRequired\":true,\"giftBoxesConfig\":[{\"id\":1,\"boxNumber\":1,\"name\":\"Bronze Treasure\",\"rewardAsset\":\"E4F\",\"rewardAmount\":2,\"color\":\"#38BDF8\"},{\"id\":2,\"boxNumber\":2,\"name\":\"Silver Cache\",\"rewardAsset\":\"USDT\",\"rewardAmount\":0.001,\"color\":\"#A855F7\"},{\"id\":3,\"boxNumber\":3,\"name\":\"Gold Vault\",\"rewardAsset\":\"E4F\",\"rewardAmount\":1,\"color\":\"#EAB308\"},{\"id\":4,\"boxNumber\":4,\"name\":\"Ruby Chest\",\"rewardAsset\":\"USDT\",\"rewardAmount\":6,\"color\":\"#EF4444\"},{\"id\":5,\"boxNumber\":5,\"name\":\"Diamond Relic\",\"rewardAsset\":\"E4F\",\"rewardAmount\":15,\"color\":\"#10B981\"}],\"dailyCheckInRewards\":[{\"day\":1,\"asset\":\"USDT\",\"amount\":0.001},{\"day\":2,\"asset\":\"USDT\",\"amount\":0.2},{\"day\":3,\"asset\":\"E4F\",\"amount\":1},{\"day\":4,\"asset\":\"USDT\",\"amount\":0.5},{\"day\":5,\"asset\":\"E4F\",\"amount\":1.5},{\"day\":6,\"asset\":\"USDT\",\"amount\":1},{\"day\":7,\"asset\":\"E4F\",\"amount\":3}]}",
+      "timestamp": 1790509720956
+    },
+    {
+      "id": "audit_1790509716128",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"monetagZoneId\":\"11442658\",\"monetagTelegramSdkEnabled\":true,\"rewardSpinMaxDaily\":5,\"rewardSpinAdRequired\":true,\"spinWheelPrizes\":[{\"id\":0,\"label\":\"0.25 E4F\",\"asset\":\"E4F\",\"amount\":0.25,\"color\":\"#3B82F6\"},{\"id\":1,\"label\":\"0.50 USDT\",\"asset\":\"USDT\",\"amount\":0.5,\"color\":\"#10B981\"},{\"id\":2,\"label\":\"1.00 E4F\",\"asset\":\"E4F\",\"amount\":1,\"color\":\"#EAB308\"},{\"id\":3,\"label\":\"0.10 USDT\",\"asset\":\"USDT\",\"amount\":0.1,\"color\":\"#6366F1\"},{\"id\":4,\"label\":\"2.50 E4F\",\"asset\":\"E4F\",\"amount\":2.5,\"color\":\"#EC4899\"},{\"id\":5,\"label\":\"1.00 USDT\",\"asset\":\"USDT\",\"amount\":1,\"color\":\"#14B8A6\"},{\"id\":6,\"label\":\"5.00 E4F\",\"asset\":\"E4F\",\"amount\":5,\"color\":\"#F97316\"},{\"id\":7,\"label\":\"2.00 USDT\",\"asset\":\"USDT\",\"amount\":2,\"color\":\"#8B5CF6\"}],\"giftBoxMaxDaily\":5,\"giftBoxAdRequired\":true,\"giftBoxesConfig\":[{\"id\":1,\"boxNumber\":1,\"name\":\"Bronze Treasure\",\"rewardAsset\":\"E4F\",\"rewardAmount\":2,\"color\":\"#38BDF8\"},{\"id\":2,\"boxNumber\":2,\"name\":\"Silver Cache\",\"rewardAsset\":\"USDT\",\"rewardAmount\":0.001,\"color\":\"#A855F7\"},{\"id\":3,\"boxNumber\":3,\"name\":\"Gold Vault\",\"rewardAsset\":\"E4F\",\"rewardAmount\":1,\"color\":\"#EAB308\"},{\"id\":4,\"boxNumber\":4,\"name\":\"Ruby Chest\",\"rewardAsset\":\"USDT\",\"rewardAmount\":6,\"color\":\"#EF4444\"},{\"id\":5,\"boxNumber\":5,\"name\":\"Diamond Relic\",\"rewardAsset\":\"E4F\",\"rewardAmount\":15,\"color\":\"#10B981\"}],\"dailyCheckInRewards\":[{\"day\":1,\"asset\":\"USDT\",\"amount\":0.001},{\"day\":2,\"asset\":\"USDT\",\"amount\":0.2},{\"day\":3,\"asset\":\"E4F\",\"amount\":1},{\"day\":4,\"asset\":\"USDT\",\"amount\":0.5},{\"day\":5,\"asset\":\"E4F\",\"amount\":1.5},{\"day\":6,\"asset\":\"USDT\",\"amount\":1},{\"day\":7,\"asset\":\"E4F\",\"amount\":3}]}",
+      "timestamp": 1790509716128
+    },
+    {
+      "id": "audit_1790509622425",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"depositsEnabled\":true,\"depositMinUSDT\":2,\"depositFirstBonusUSDT\":5,\"bscDepositAddress\":\"0x63562945f7845aa1130a5b1499720b29788c82db\"}",
+      "timestamp": 1790509622425
+    },
+    {
+      "id": "audit_1790509490679",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"depositMinUSDT\":2,\"depositFirstBonusUSDT\":10}",
+      "timestamp": 1790509490679
+    },
+    {
+      "id": "audit_1790509486288",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"depositMinUSDT\":3,\"depositFirstBonusUSDT\":15}",
+      "timestamp": 1790509486288
+    },
+    {
+      "id": "audit_1790425286583",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_USER_STATUS",
+      "target": "usr_789456123",
+      "details": "Status set to ACTIVE",
+      "timestamp": 1790425286583
+    },
+    {
+      "id": "audit_1790425285871",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_USER_STATUS",
+      "target": "usr_789456123",
+      "details": "Status set to SUSPENDED",
+      "timestamp": 1790425285871
+    },
+    {
+      "id": "audit_1790425217725",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"withdrawalsEnabled\":false,\"maxWithdrawalLimit\":1000}",
+      "timestamp": 1790425217725
+    },
+    {
+      "id": "audit_1790425213432",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"withdrawalsEnabled\":false,\"maxWithdrawalLimit\":1000}",
+      "timestamp": 1790425213432
+    },
+    {
+      "id": "audit_1790425211537",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"withdrawalsEnabled\":false,\"maxWithdrawalLimit\":1000}",
+      "timestamp": 1790425211538
+    },
+    {
+      "id": "audit_1790425207334",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"depositsEnabled\":false,\"depositMinUSDT\":2,\"depositFirstBonusUSDT\":10,\"bscDepositAddress\":\"0x63562945f7845aa1130a5b1499720b29788c82db\"}",
+      "timestamp": 1790425207334
+    },
+    {
+      "id": "audit_1790338687104",
+      "adminId": "SYSTEM",
+      "action": "WELCOME_BONUS_GRANTED",
+      "target": "usr_789456123",
+      "details": "Granted 25 USDT + 10 E4F",
+      "timestamp": 1790338687104
+    },
+    {
+      "id": "audit_1790333922173",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"spin_01_adsgram\":\"spin_01_adsgram\"}",
+      "timestamp": 1790333922173
+    },
+    {
+      "id": "audit_1790333922161",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"spin_01_adsgram\":\"spin_01_adsgram_custom_block_123\"}",
+      "timestamp": 1790333922161
+    },
+    {
+      "id": "audit_1790333090216",
+      "adminId": "SYSTEM_VERIFY",
+      "action": "USER_VERIFIED_DEPOSIT",
+      "target": "usr_987654321",
+      "details": "User UID 87654430 verified account with 2 USDT sent to official address 0x63562945f7845aa1130a5b1499720b29788c82db. Instant 5 USDT returned.",
+      "timestamp": 1790333090216
+    },
+    {
+      "id": "audit_1790333084772",
+      "adminId": "SYSTEM",
+      "action": "WELCOME_BONUS_GRANTED",
+      "target": "usr_987654321",
+      "details": "Granted 25 USDT + 10 E4F",
+      "timestamp": 1790333084772
+    },
+    {
+      "id": "audit_1790106604848",
+      "adminId": "ADMIN_SUPER",
+      "action": "APPROVE_TASK_PROOF",
+      "target": "sub_1790106499569_sc79",
+      "details": "Awarded 1 USDT to user 87456802",
+      "timestamp": 1790106604848
+    },
+    {
+      "id": "audit_1790106412615",
+      "adminId": "ADMIN_SUPER",
+      "action": "CREATE_TASK",
+      "target": "task_1790106412615",
+      "details": "Task created: Follow ",
+      "timestamp": 1790106412615
+    },
+    {
+      "id": "audit_1790105968926",
+      "adminId": "ADMIN_SUPER",
+      "action": "APPROVE_TASK_PROOF",
+      "target": "sub_1790105950885_l2dh",
+      "details": "Awarded 1 USDT to user 87456802",
+      "timestamp": 1790105968926
+    }
+  ],
+  "dynamicTasks": [
+    {
+      "id": "task-tg-channel",
+      "title": "Join E4F Official Telegram Channel",
+      "description": "Subscribe to our official announcement channel for daily updates.",
+      "platform": "TELEGRAM",
+      "url": "https://t.me/E4F_Exchange_Official",
+      "rewardAsset": "E4F",
+      "rewardAmount": 0.5,
+      "status": "AVAILABLE",
+      "verificationMethod": "AUTO"
+    },
+    {
+      "id": "task-x-follow",
+      "title": "Follow E4F Exchange on X (Twitter)",
+      "description": "Follow our official X handle and retweet the pinned listing roadmap.",
+      "platform": "TWITTER",
+      "url": "https://x.com/E4FExchange",
+      "rewardAsset": "USDT",
+      "rewardAmount": 1,
+      "status": "AVAILABLE",
+      "verificationMethod": "MANUAL"
+    },
+    {
+      "id": "task-yt-subscribe",
+      "title": "Subscribe to E4F YouTube Channel",
+      "description": "Watch the Web3 Mining Ecosystem guide and subscribe.",
+      "platform": "YOUTUBE",
+      "url": "https://youtube.com/@E4FWeb3Exchange",
+      "rewardAsset": "E4F",
+      "rewardAmount": 0.75,
+      "status": "AVAILABLE",
+      "verificationMethod": "AUTO"
+    },
+    {
+      "id": "task-community-join",
+      "title": "Join E4F Global Traders Group",
+      "description": "Connect with over 250,000 miners and crypto traders globally.",
+      "platform": "COMMUNITY",
+      "url": "https://t.me/E4F_Global_Traders",
+      "rewardAsset": "USDT",
+      "rewardAmount": 0.5,
+      "status": "AVAILABLE",
+      "verificationMethod": "AUTO"
+    },
+    {
+      "id": "task-web-whitepaper",
+      "title": "Review E4F Tokenomics & Whitepaper",
+      "description": "Browse the 2028 Mainnet Roadmap and token distribution model. (30s verification timer)",
+      "platform": "WEBSITE",
+      "url": "https://e4f-exchange.org/whitepaper",
+      "rewardAsset": "USDT",
+      "rewardAmount": 1,
+      "status": "AVAILABLE",
+      "verificationMethod": "TIMER",
+      "durationSeconds": 30
+    },
+    {
+      "id": "task-web-explorer",
+      "title": "Inspect E4F Pre-Listing Blockchain Explorer",
+      "description": "Visit the live testnet explorer and monitor node consensus blocks for at least 30 seconds.",
+      "platform": "WEBSITE",
+      "url": "https://e4f-exchange.org/explorer",
+      "rewardAsset": "E4F",
+      "rewardAmount": 1.5,
+      "status": "AVAILABLE",
+      "verificationMethod": "TIMER",
+      "durationSeconds": 30
+    }
+  ],
+  "announcements": [
+    {
+      "id": "ann-1",
+      "title": "E4F Web3 Exchange Mining Season is Live!",
+      "description": "Start your 8-hour mining session now and accumulate official E4F tokens before the planned listing milestone on 28 February 2028.",
+      "ctaText": "Start Mining",
+      "ctaUrl": "#mining",
+      "imageUrl": "/web3_banner.jpg",
+      "priority": 1,
+      "isActive": true
+    },
+    {
+      "id": "ann-2",
+      "title": "Instant 25 USDT + 10 E4F Welcome Bonus",
+      "description": "All verified Telegram accounts receive immediate spot wallet funding. Explore live BTC/USDT and spot order books.",
+      "ctaText": "View Wallet",
+      "ctaUrl": "#wallet",
+      "imageUrl": "/e4f_coin.jpg",
+      "priority": 2,
+      "isActive": true
+    },
+    {
+      "id": "ann-3",
+      "title": "Invite & Earn 5 USDT per Qualified Referral",
+      "description": "Share your personal referral link. When your friend mines actively for 30 days, receive 5 USDT directly into your Spot Available balance.",
+      "ctaText": "Invite Friends",
+      "ctaUrl": "#referral",
+      "imageUrl": "/web3_banner.jpg",
+      "priority": 3,
+      "isActive": true
+    }
+  ],
+  "supportTickets": [],
+  "spotOrders": [
+    {
+      "id": "ord_1790513733208_4h2m",
+      "userId": "usr_123456789",
+      "pair": "BNB/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 781.83,
+      "amount": 0.138,
+      "totalUSDT": 107.89254000000001,
+      "filledAmount": 0.138,
+      "status": "FILLED",
+      "timestamp": 1790513733208
+    },
+    {
+      "id": "ord_1790513729672_k2jp",
+      "userId": "usr_123456789",
+      "pair": "SOL/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 123.84,
+      "amount": 0.0407,
+      "totalUSDT": 5.040288,
+      "filledAmount": 0.0407,
+      "status": "FILLED",
+      "timestamp": 1790513729672
+    },
+    {
+      "id": "ord_1790513721853_ur0x",
+      "userId": "usr_123456789",
+      "pair": "ETH/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 2712.77,
+      "amount": 0.0814,
+      "totalUSDT": 220.819478,
+      "filledAmount": 0.0814,
+      "status": "FILLED",
+      "timestamp": 1790513721853
+    },
+    {
+      "id": "ord_1790513684763_ez27",
+      "userId": "usr_123456789",
+      "pair": "BTC/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 84950,
+      "amount": 0.004,
+      "totalUSDT": 339.8,
+      "filledAmount": 0.004,
+      "status": "FILLED",
+      "timestamp": 1790513684763
+    },
+    {
+      "id": "ord_1790513662414_tu0f",
+      "userId": "usr_123456789",
+      "pair": "BTC/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 84950,
+      "amount": 0.0034,
+      "totalUSDT": 288.83,
+      "filledAmount": 0.0034,
+      "status": "FILLED",
+      "timestamp": 1790513662414
+    },
+    {
+      "id": "ord_1790513561704_3cfw",
+      "userId": "usr_123456789",
+      "pair": "BNB/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 782.2,
+      "amount": 0.2292,
+      "totalUSDT": 179.28024,
+      "filledAmount": 0.2292,
+      "status": "FILLED",
+      "timestamp": 1790513561704
+    },
+    {
+      "id": "ord_1790513556759_psgq",
+      "userId": "usr_123456789",
+      "pair": "SOL/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 123.92,
+      "amount": 0.85,
+      "totalUSDT": 105.332,
+      "filledAmount": 0.85,
+      "status": "FILLED",
+      "timestamp": 1790513556759
+    },
+    {
+      "id": "ord_1790513550863_xkv4",
+      "userId": "usr_123456789",
+      "pair": "ETH/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 2713.61,
+      "amount": 0.0228,
+      "totalUSDT": 61.87030800000001,
+      "filledAmount": 0.0228,
+      "status": "FILLED",
+      "timestamp": 1790513550863
+    },
+    {
+      "id": "ord_1790513468465_bt58",
+      "userId": "usr_123456789",
+      "pair": "BNB/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 782.28,
+      "amount": 0.1692,
+      "totalUSDT": 132.361776,
+      "filledAmount": 0.1692,
+      "status": "FILLED",
+      "timestamp": 1790513468465
+    },
+    {
+      "id": "ord_1790513464820_0rij",
+      "userId": "usr_123456789",
+      "pair": "BNB/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 782.28,
+      "amount": 0.06,
+      "totalUSDT": 46.9368,
+      "filledAmount": 0.06,
+      "status": "FILLED",
+      "timestamp": 1790513464820
+    },
+    {
+      "id": "ord_1790513455101_3g2a",
+      "userId": "usr_123456789",
+      "pair": "ETH/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 2713.61,
+      "amount": 0.0228,
+      "totalUSDT": 61.87030800000001,
+      "filledAmount": 0.0228,
+      "status": "FILLED",
+      "timestamp": 1790513455101
+    },
+    {
+      "id": "ord_1790513445082_zzqa",
+      "userId": "usr_123456789",
+      "pair": "BTC/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 84963.88,
+      "amount": 0.0006,
+      "totalUSDT": 50.978328,
+      "filledAmount": 0.0006,
+      "status": "FILLED",
+      "timestamp": 1790513445082
+    },
+    {
+      "id": "ord_1790513243775_sz70",
+      "userId": "usr_123456789",
+      "pair": "BTC/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 84982.01,
+      "amount": 0.0001,
+      "totalUSDT": 8.498201,
+      "filledAmount": 0.0001,
+      "status": "FILLED",
+      "timestamp": 1790513243775
+    }
+  ],
+  "userTaskSubmissions": [
+    [
+      "usr_123456789",
+      [
+        {
+          "taskId": "task-tg-channel",
+          "status": "APPROVED",
+          "proof": "@crypto_fan",
+          "timestamp": 1790105945804
+        },
+        {
+          "taskId": "task-x-follow",
+          "status": "APPROVED",
+          "proof": "https://x.com/crypto_fan",
+          "timestamp": 1790105950885
+        },
+        {
+          "taskId": "task-yt-subscribe",
+          "status": "APPROVED",
+          "proof": "auto_verified",
+          "timestamp": 1790106065431
+        },
+        {
+          "taskId": "task-community-join",
+          "status": "APPROVED",
+          "proof": "auto_verified",
+          "timestamp": 1790106067092
+        },
+        {
+          "taskId": "task_1790106412615",
+          "status": "APPROVED",
+          "proof": "@rifa",
+          "timestamp": 1790106499569
+        }
+      ]
+    ]
+  ],
+  "taskSubmissionsQueue": [
+    {
+      "id": "sub_1790106499569_sc79",
+      "userId": "usr_123456789",
+      "userUid": "87456802",
+      "taskId": "task_1790106412615",
+      "taskTitle": "Follow ",
+      "proof": "@rifa",
+      "usernameOrLink": "@rifa",
+      "screenshot": "data:image/jpeg;base64,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FNXkEEl7N48hXP1v/Bj8Vr/rs9RXncKf4ar9v5fUexv92w/pV/tlGp4RpIKiWLoGE6jy3O0dvwfqq31y5e8IfSu9ladcflCp+1f6yvOpp4Oy0xE6PnO9GL7V8K011RGN7591O5vPXLl7wh9K72U65cveEPpXeytGRW5ty3U853uf4s4W7byp3N565cveEPpXeynXLl7wh9K72VoyJzblup5zvPxZwt23lTubz1y5e8IfSu9lOuXL3hD6V3srRkTm3LdTznefizhbtvKnc3nrly94Q+ld7KdcuXvCH0rvZWjInNuW6nnO8/FnC3beVO5vPXLl7wh9K72U65cveEPpXeytGRObct1POd5+LOFu28qdzeeuXL3hD6V3sp1y5e8IfSu9laMic25bqec7z8WcLdt5U7m89cuXvCH0rvZTrly94Q+ld7K0ZE5ty3U853n4s4W7byp3N565cveEPpXeynXLl7wh9K72VoyJzblup5zvPxZwt23lTubz1y5e8IfSu9lOuXL3hD6V3srRkTm3LdTznefizhbtvKnc3nrly94Q+ld7KdcuXvCH0rvZWjInNuW6nnO8/FnC3beVO5vPXLl7wh9K72U65cveEPpXeytGRObct1POd5+LOFu28qdzeeuXL3hD6V3sp1y5e8IfSu9laMic25bqec7z8WcLdt5U7m89cuXvCH0rvZTrly94Q+ld7K0ZE5ty3U853n4s4W7byp3N565cveEPpXeynXLl7wh9K72VoyJzblup5zvPxZwt23lTubz1y5e8IfSu9lOuXL3hD6V3srRkTm3LdTznefizhbtvKnc3nrly94Q+ld7KdcuXvCH0rvZWjInNuW6nnO8/FnC3beVO51K81nTTQqarc1rNtCH4zkDsguX6jf8AmN/1/RdGl/8ALkf9M3/cFzdceC6YppriNmlLd7Y4lWJiZfErm8zh0zPmlqN/5jf9f0VHNA4nA+TKoi9R8cIiIIVnye/7VvqKxSytZ8nP+0b6isUsVfTl2jZDo3A/87/g/nROB/53/B/OiqlzlSi+FZ5QoqUXwrPKEGaqvjU313etW1cqvjU313etW1to6MOM7RERWQLf+DH4rX/XZ6itAW/8GPxWv+uz1Fedwp/hqv2/l9T7G/3bD+lX+2WkXH5QqftX+srzr0XH5QqftX+srzrfR0YfN4/9Sr6yz7rPabYI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AAcwrTurLSDwvVc5OrLSDwvVc5L5zrx3ehyr2f8Al6/F6un3iidbNB5qN72vdDCGFw3A9kFy5QqNKb3VM1JrrWObx4EhHqXm6cXHwhV+md+q6ZSmvApmKtczN/vUw8PcJYPCGLh1YNM000UxTF/0u9iAZ4l4unFx7/q/TO/VDd7if/z6v0zv1Wzj6vh5+jwtCPiyLaaVw1izUb3TzqtH3leapuEcDHR0rteQ7nTcQA7Tf1WPkmkmdrSSPee24kqC51V1VapTERGwVCioqpdH4H/nf8H86JwP/O/4P50Qc4REQVTKoiCSKKrlBVFTKZQVRUymUFUVMplBVFTKZQVRUymUFUVMplBVFTKZQVRUymUFUVMplBVFTKZQVRUymUFUVMplBVFTKZQVRUymUFUVMplBVFTKZQVRUymUFUVMplBVFTKZQVRUyqIJKmVREBERB0fgf+d/wfzonA/87/g/nRBzhERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERB0fgf+d/wfzonA/8AO/4P50Qc4REQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQdH4H/nf8H86JwP8Azv8Ag/nRBzhERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERB0fgf8Anf8AB/OicD/zv+D+dEHOEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREHR+B/53/B/OicD/zv+D+dEHOEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREHR+B/53/B/OicD/wA7/g/nRBzhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kHz4RfQf3NXBV9E4PTy+0nuauCr6Jwenl9pB8+EX0H9zVwVfROD08vtJ7mrgq+icHp5faQfPhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kHz4RfQf3NXBV9E4PTy+0nuauCr6Jwenl9pB8+EX0H9zVwVfROD08vtJ7mrgq+icHp5faQfPhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kHz4RfQf3NXBV9E4PTy+0nuauCr6Jwenl9pB8+EX0H9zVwVfROD08vtJ7mrgq+icHp5faQfPhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kHz4RfQf3NXBV9E4PTy+0nuauCr6Jwenl9pB8+EX0H9zVwVfROD08vtJ7mrgq+icHp5faQfPhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kHz4RfQf3NXBV9E4PTy+0nuauCr6Jwenl9pB8+EX0H9zVwVfROD08vtJ7mrgq+icHp5faQfPhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kHz4RfQf3NXBV9E4PTy+0nuauCr6Jwenl9pB8+EX0H9zVwVfROD08vtJ7mrgq+icHp5faQfPhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kHz4RfQf3NXBV9E4PTy+0nuauCr6Jwenl9pB8+EX0H9zVwVfROD08vtJ7mrgq+icHp5faQfPhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kHz4RfQf3NXBV9E4PTy+0nuauCr6Jwenl9pB8+EX0H9zVwVfROD08vtJ7mrgq+icHp5faQfPhF9B/c1cFX0Tg9PL7Se5q4KvonB6eX2kH4/4H/nf8H86L9oWngJ4PLHtel+jkMG2xr4lkOcZxxu8ZRBvqIiAiIgIiICIiAhIAyThRkeI255eReVzy85JQekzsHKqbdnj8y8yIi707dnj8ybdnj8y8yIXenbs8fmTbs8fmXmRC707dnj8ybdnj8y8yIXenbs8fmTbs8fmXmRC707dnj8ybdnj8y8yIXenbs8fmTbs8fmXmRC707dnj8ybdnj8y8yIXenbs8fmTbs8fmVuOAuGTuCuiFg/yoKbdnj8ybdnj8ylsmdyE2TO5CJR27PH5k27PH5lLZM7kJsmdyEEduzx+ZNuzx+ZS2TO5CbJnchBHbs8fmTbs8fmUtkzuQmyZ3IQR27PH5k27PH5lLZM7kJsmdyEEduzx+ZNuzx+ZS2TO5CbJnchAbKx3EfOpK26Bh4tyg1zoXart7UF9ERAREQEREBERAREQEREBeK5XqhtDqZlXNqSVcrYYI2tL3yOPaaATgcZPEACSvauY11uv1r4QqituF/jpoLkW09rqn0bZY4RjJpjkjUcSCQf8+4ZyAEHTkWNs1DdqPbdM7uy462rs9WlbDs8ZzxE5zu8yySAiIg807tZ5HINytqT/AH7vKoogREQEREBYup0nstHVGkqLlTRzNIa5pd7wniDjxA+VZRaRa75ZLPZ6y13l8YrmzTCopHtzJUl73EFreN+sCMYypQ3GKsp5qmamjla6aENdIwcbQ7Or58FXlodVaYa24aQvzWUvQ1vpnwMindGY3COTBOqd5GBx5CxWlN6fLRGR1QYK6C2RzxyS18kJc8tJ1oomDs3Z4yTjxYSw6a2phfPJA2VjpowHPYD2TQc4JHjwfMri0rRyClbptW1Mx1Kyqt9LMwOkI2mQ/XLWk4IBA5N3iyt1UJEREBERAU4m67wDxcagrtP78+RB6ERESIiIPBe79bdG6Ho661TaWm12xh7mk5c44aAACSSVCyaSWnSKOR9qroqrZECRrch0ZPFrNOCM+MLWOF7ovpDajQshfVC90BibMSGF22GNYgEgZ48BYHTSw36lsV+0kutbTU9zq4qGijjtTnhsMbapp1td2C5x1zvwMAY35QdXRce03pHWW+U1qddIaCzRUJmpn3O71VOJJzI4yOErCS+QZaQ1x3A7h2pT3O9aN2u21slfPXVmkNqZbo5NV4Dq0OxDJquALS5kji4kD4PKDq0VypprhPb2OeainYySQGNwaGvzq4cRqn3p3Akjl4wvSuO6SdOLAdJbfZ6urDKK3WWF0rpXl0UO0mbNJrDLgdQZc5o1t2eMKzbH1sNmv9bbrzSV9LaxS18cFtrqisYx8bi+Rolk7uMYLATjtDKDtCLjFJVXi4XqkoY6qrdR6XVcd0ZJrOGwp4ZHve1vch0baZuP5yuzoCIiAoys12Ht8ikiC3A7LMdpXFZpv8yvICIiAiw01qvb4J2R6QbOR9a2eOToRp2UAIJgxnfkAjX49/FuXtpKWthuFdPUXDoimmcw09PsQ3oYBuHDWBy7J37+LiQexERAREQEREBRkjZK3VkY17cg4cMjIOQfOpIgIiICIiDzzsw7W5CrS9jmhwwV5nxOYe2O2iEEREBERAUTGxzw8saXN4nEbwpIgpqNyTqjLtx3cai6GN2NaNhwMDI4gpogjs2ZDtVuWjAOOJSREBERAREQFKN+o4FRRB7QQRkIvKyVzOLeO0roqRytKJXUVrohvaKdEN7RQXHsZIAHta4AgjIzg9tHsbI3Ve0OaeQjIVvohvaKdEN7RQTfGyUASMa8A5AcM4Kq6Nj9XXa12qcjIzg9tW+iG9op0Q3tFBcDGhxcGt1nAAnG8gKjYY2MMbI2NYf8oGB5lDohvaKdEN7RQTEUbdXDGjUGq3A96O0FJWuiG9op0Q3tFBdRWuiG9op0Q3tFBdVuZ4a3HKVE1BO5rd6RxEnWfx9pBOFmqzfxnepoiAiIgIiICIiAiIgIo5f3Led+yZf3Led+yCSKOX9y3nfsmX9y3nfsgkijl/ct537Jl/ct537IJIo5f3Led+yZf3Led+yCSKOX9y3nfsmX9y3nfsgqWtPG0H7k1Gdy3zKmX9y3nfsmX9y3nfsgrqM7lvmTUZ3LfMqZf3Led+yZf3Led+yCuozuW+ZNRnct8ypl/ct537Jl/ct537IK6jO5b5k1Gdy3zKmX9y3nfsmX9y3nfsgrqM7lvmTUZ3LfMqZf3Led+yZf3Led+yCuozuW+ZNRnct8ypl/ct537Jl/ct537IK6jO5b5k1Gdy3zKmX9y3nfsmX9y3nfsgrqM7lvmTUZ3LfMqZf3Led+yZf3Led+yCuozuW+ZNRnct8ypl/ct537Jl/ct537IK6jO5b5k1Gdy3zKmX9y3nfsmX9y3nfsgrqM7lvmTUZ3LfMqZf3Led+yZf3Led+yCuozuW+ZNRnct8ypl/ct537Jl/ct537IK6jO5b5k1Gdy3zKmX9y3nfsmX9y3nfsgrqM7lvmTUZ3LfMqZf3Led+yZf3Led+yCuozuW+ZNRnct8ypl/ct537Jl/ct537IJAAcQARRy/uW879ky/uW879kEkUcv7lvO/ZMv7lvO/ZBJFHL+5bzv2TL+5bzv2QSRRy/uW879ky/uW879kEkUcv7lvO/ZMv7lvO/ZBJFHL+5bzv2RBJERAREQEREBERARFCdpfBI0SmIlpAkGMt8e9BNFq3Syf6aT+eJZayU0lOyXXvElzyRhztXsPF2KDJoiICIiAiIgIiICIiAiIgIsJpDdaynmpLZbGxmurS7VfJvbExoy5xHKvDW0mkVkpn3CK8G5CEa81NNC1oe0ceqRvBwg2lFYoayO4UUFXFnZzMbI3PaIyr6AiIgIiICIiAiIgIiICi+RjC0Pe1pccNBOMnxKS1i5aEvuV2FydeqxkjHa0TdVpbF9UFBs6LW6KpudmvtParhWdH09Yx7oJnMDXtc3BLTjcdxWyICIiAiIgIiICIiAiIgIiICIiAiIgIiICtVey6Fm2zDJFqHXYG62sMbxjlV1EGia+hv0eqv/AGT1sGjBtBin6U2+WjbrDXD4XR6x5OPjWbRAREQEREBERAREQEREBERBgNJKOtiraG82+DomWj12yQA4Mkbhvx4xjK8lw0jqrvRyUFqtNwFTUNMZfUwmNkIIwSSeMjxLakQeW10LbZbaaia7WEEbY89vA416kRAREQEREBERAREQEREBYKtq9J2VUraS2UMsAd2D3zkEjxhZ1EGvW603Ssu8d2vRp4307HMp6aAlwZrcbiTyrYURAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQf//Z",
+      "description": "Follow",
+      "status": "APPROVED",
+      "rewardAmount": 1,
+      "rewardAsset": "USDT",
+      "timestamp": 1790106499569,
+      "adminNote": "Verified by Admin"
+    },
+    {
+      "id": "sub_1790105950885_l2dh",
+      "userId": "usr_123456789",
+      "userUid": "87456802",
+      "taskId": "task-x-follow",
+      "taskTitle": "Follow E4F Exchange on X (Twitter)",
+      "proof": "https://x.com/crypto_fan",
+      "usernameOrLink": "https://x.com/crypto_fan",
+      "screenshot": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "description": "Followed and reposted the latest post",
+      "status": "APPROVED",
+      "rewardAmount": 1,
+      "rewardAsset": "USDT",
+      "timestamp": 1790105950885,
+      "adminNote": "Approved by Administrator"
+    }
+  ],
+  "userDailySpins": [
+    [
+      "usr_123456789",
+      {
+        "date": "2026-09-27",
+        "count": 1
+      }
+    ]
+  ],
+  "userDailyGiftBoxOpens": [
+    [
+      "usr_123456789",
+      {
+        "date": "2026-09-27",
+        "count": 1,
+        "openedBoxIds": [
+          5
+        ]
+      }
+    ]
+  ],
+  "userFirstDepositClaimed": [
+    "usr_987654321"
+  ],
+  "userGiftBoxes": [
+    [
+      "usr_123456789",
+      [
+        {
+          "id": 1,
+          "boxNumber": 1,
+          "name": "Bronze Treasure",
+          "rewardAsset": "E4F",
+          "rewardAmount": 0.02,
+          "color": "#38BDF8",
+          "isOpened": false
+        },
+        {
+          "id": 2,
+          "boxNumber": 2,
+          "name": "Silver Cache",
+          "rewardAsset": "USDT",
+          "rewardAmount": 0.03,
+          "color": "#A855F7",
+          "isOpened": false
+        },
+        {
+          "id": 3,
+          "boxNumber": 3,
+          "name": "Gold Vault",
+          "rewardAsset": "E4F",
+          "rewardAmount": 0.04,
+          "color": "#EAB308",
+          "isOpened": false
+        },
+        {
+          "id": 4,
+          "boxNumber": 4,
+          "name": "Ruby Chest",
+          "rewardAsset": "USDT",
+          "rewardAmount": 0.05,
+          "color": "#EF4444",
+          "isOpened": false
+        },
+        {
+          "id": 5,
+          "boxNumber": 5,
+          "name": "Diamond Relic",
+          "rewardAsset": "E4F",
+          "rewardAmount": 0.1,
+          "color": "#10B981",
+          "isOpened": true
+        }
+      ]
+    ],
+    [
+      "usr_987654321",
+      [
+        {
+          "id": 1,
+          "boxNumber": 1,
+          "name": "Bronze Treasure",
+          "rewardAsset": "E4F",
+          "rewardAmount": 2.5,
+          "color": "#38BDF8",
+          "isOpened": false
+        },
+        {
+          "id": 2,
+          "boxNumber": 2,
+          "name": "Silver Cache",
+          "rewardAsset": "USDT",
+          "rewardAmount": 1.5,
+          "color": "#A855F7",
+          "isOpened": false
+        },
+        {
+          "id": 3,
+          "boxNumber": 3,
+          "name": "Gold Vault",
+          "rewardAsset": "E4F",
+          "rewardAmount": 5,
+          "color": "#EAB308",
+          "isOpened": false
+        },
+        {
+          "id": 4,
+          "boxNumber": 4,
+          "name": "Ruby Chest",
+          "rewardAsset": "USDT",
+          "rewardAmount": 3,
+          "color": "#EF4444",
+          "isOpened": false
+        },
+        {
+          "id": 5,
+          "boxNumber": 5,
+          "name": "Diamond Relic",
+          "rewardAsset": "E4F",
+          "rewardAmount": 10,
+          "color": "#10B981",
+          "isOpened": false
+        }
+      ]
+    ],
+    [
+      "usr_789456123",
+      [
+        {
+          "id": 1,
+          "boxNumber": 1,
+          "name": "Bronze Treasure",
+          "rewardAsset": "E4F",
+          "rewardAmount": 2.5,
+          "color": "#38BDF8",
+          "isOpened": false
+        },
+        {
+          "id": 2,
+          "boxNumber": 2,
+          "name": "Silver Cache",
+          "rewardAsset": "USDT",
+          "rewardAmount": 1.5,
+          "color": "#A855F7",
+          "isOpened": false
+        },
+        {
+          "id": 3,
+          "boxNumber": 3,
+          "name": "Gold Vault",
+          "rewardAsset": "E4F",
+          "rewardAmount": 5,
+          "color": "#EAB308",
+          "isOpened": false
+        },
+        {
+          "id": 4,
+          "boxNumber": 4,
+          "name": "Ruby Chest",
+          "rewardAsset": "USDT",
+          "rewardAmount": 3,
+          "color": "#EF4444",
+          "isOpened": false
+        },
+        {
+          "id": 5,
+          "boxNumber": 5,
+          "name": "Diamond Relic",
+          "rewardAsset": "E4F",
+          "rewardAmount": 10,
+          "color": "#10B981",
+          "isOpened": false
+        }
+      ]
+    ]
+  ],
+  "userDailyCheckIns": [
+    [
+      "usr_123456789",
+      {
+        "currentStreak": 1,
+        "lastDate": "2026-09-30",
+        "claimedDays": [
+          1
+        ]
+      }
+    ],
+    [
+      "usr_987654321",
+      {
+        "currentStreak": 0,
+        "lastDate": "",
+        "claimedDays": []
+      }
+    ],
+    [
+      "usr_789456123",
+      {
+        "currentStreak": 0,
+        "lastDate": "",
+        "claimedDays": []
+      }
+    ]
+  ],
+  "miningAdSessions": [
+    [
+      "ad_1790104854771_3bkynjt",
+      {
+        "sessionId": "ad_1790104854771_3bkynjt",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790104854771,
+        "endsAt": 1790105754771,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "d8bfbb47ec309ff97d01bb62899e44423e8a479b7a481eab",
+        "createdAt": 1790104854771,
+        "adOpenedAt": 1790104854771
+      }
+    ],
+    [
+      "ad_1790104854772_ue7je1b",
+      {
+        "sessionId": "ad_1790104854772_ue7je1b",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790104854772,
+        "endsAt": 1790105754772,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "46c1de7b9ae67c5bbfc48d6441832f89ce55c1dbfab5e7b6",
+        "createdAt": 1790104854772,
+        "adOpenedAt": 1790104854772,
+        "sdkCompleted": true,
+        "verifiedAt": 1790104858243,
+        "claimToken": "6b78d00ca546ae79e4c4103c1e5dc03a125dc8c4cba22b9e",
+        "consumedAt": 1790104859638
+      }
+    ],
+    [
+      "ad_1790104871007_ryyw45q",
+      {
+        "sessionId": "ad_1790104871007_ryyw45q",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790104871007,
+        "endsAt": 1790105771007,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "ef0bb7422c7d1901f9b785758526f9b23577d97bf34ff999",
+        "createdAt": 1790104871007,
+        "adOpenedAt": 1790104871007
+      }
+    ],
+    [
+      "ad_1790104871008_tjkn2a4",
+      {
+        "sessionId": "ad_1790104871008_tjkn2a4",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790104871008,
+        "endsAt": 1790105771008,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "2f5210069b19786dedeaae8c8133204ef5b99c637ba38fe6",
+        "createdAt": 1790104871008,
+        "adOpenedAt": 1790104871008,
+        "sdkCompleted": true,
+        "verifiedAt": 1790104874441,
+        "claimToken": "0a9d5705e6a2934768bd3f46e66c8d52a94d85c0b261a18a",
+        "consumedAt": 1790104875754
+      }
+    ],
+    [
+      "ad_1790104914641_wnncxzl",
+      {
+        "sessionId": "ad_1790104914641_wnncxzl",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 1790104914641,
+        "endsAt": 1790105814641,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "85a0641e3f35642048122c6943280c1a840375b2a3b3f50f",
+        "createdAt": 1790104914641,
+        "adOpenedAt": 1790104914641
+      }
+    ],
+    [
+      "ad_1790104914642_leeycv9",
+      {
+        "sessionId": "ad_1790104914642_leeycv9",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 1790104914642,
+        "endsAt": 1790105814642,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "c55b833157a5ffe7774d47c53b9553825d7950a8f9cfcd98",
+        "createdAt": 1790104914642,
+        "adOpenedAt": 1790104914642,
+        "sdkCompleted": true,
+        "verifiedAt": 1790104918173,
+        "claimToken": "f3294c42fd24a8b9ebb3f22ee015317c9857c82660c18f79",
+        "consumedAt": 1790104919355
+      }
+    ],
+    [
+      "ad_1790105938504_f49pogw",
+      {
+        "sessionId": "ad_1790105938504_f49pogw",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790105938504,
+        "endsAt": 1790106838504,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": false,
+        "token": "e1bd8ac0f28064bfbcd5d29134a08f7dc4eef038134ede63",
+        "createdAt": 1790105938504,
+        "adOpenedAt": 1790105938504,
+        "verifiedAt": 1790106198062,
+        "claimToken": "d63403e5b9a936fe3aaa15a9e00fab9f12acec5e882ee2c3"
+      }
+    ],
+    [
+      "ad_1790106654135_q77z5mr",
+      {
+        "sessionId": "ad_1790106654135_q77z5mr",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 2,
+        "startedAt": 1790106654135,
+        "endsAt": 1790107554135,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "6477a1f13af46c72f4041bdf56a9e6e656943b6292a7a8a5",
+        "createdAt": 1790106654135,
+        "adOpenedAt": 1790106654135,
+        "sdkCompleted": true,
+        "verifiedAt": 1790106684582,
+        "claimToken": "53be962462e1bbd063a94e4ee67b48d96c4c878f41e216f2",
+        "consumedAt": 1790106686010
+      }
+    ],
+    [
+      "ad_1790106654148_1svkwtn",
+      {
+        "sessionId": "ad_1790106654148_1svkwtn",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 2,
+        "startedAt": 1790106654148,
+        "endsAt": 1790107554148,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": false,
+        "token": "ff2dd9579d1f1fc9bae72a0f87845b279c410dd7acb3b16b",
+        "createdAt": 1790106654148,
+        "adOpenedAt": 1790106654148,
+        "verifiedAt": 1790107329591,
+        "claimToken": "8bdb3c8de5bd1aba309554057dc40790a352367948ae2bd7"
+      }
+    ],
+    [
+      "ad_1790106690881_mo0leva",
+      {
+        "sessionId": "ad_1790106690881_mo0leva",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 3,
+        "startedAt": 1790106690881,
+        "endsAt": 1790107590881,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "d491990141ea956b6f7b9d4ad5e809161b31a70c5475933e",
+        "createdAt": 1790106690881,
+        "adOpenedAt": 1790106690881,
+        "sdkCompleted": true,
+        "verifiedAt": 1790106721270,
+        "claimToken": "1994a129b469f77d2d78898bf528afdad1e39563c17fed00",
+        "consumedAt": 1790106722459
+      }
+    ],
+    [
+      "ad_1790106690882_dt0gnrj",
+      {
+        "sessionId": "ad_1790106690882_dt0gnrj",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 3,
+        "startedAt": 1790106690882,
+        "endsAt": 1790107590882,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "be9b00f2bd117aa60c65d12e0b027a04261131a07228b8ad",
+        "createdAt": 1790106690882,
+        "adOpenedAt": 1790106690882
+      }
+    ],
+    [
+      "ad_1790106746895_bqly1x1",
+      {
+        "sessionId": "ad_1790106746895_bqly1x1",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790106746895,
+        "endsAt": 1790107646895,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "91cbd059d4b6b5c3b4393adab1b568a2f03f6cbe6b92fae3",
+        "createdAt": 1790106746895,
+        "adOpenedAt": 1790106746895
+      }
+    ],
+    [
+      "ad_1790106746896_sdyfm7m",
+      {
+        "sessionId": "ad_1790106746896_sdyfm7m",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790106746896,
+        "endsAt": 1790107646896,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "ce75053507ae188409405415cf13d565ddc504482da57c28",
+        "createdAt": 1790106746896,
+        "adOpenedAt": 1790106746896
+      }
+    ],
+    [
+      "ad_1790107151669_5v4i2uf",
+      {
+        "sessionId": "ad_1790107151669_5v4i2uf",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 5,
+        "startedAt": 1790107151669,
+        "endsAt": 1790108051669,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "9757e4aa8b413cf1b1dc23adf652688000e7c9b6cb59fc71",
+        "createdAt": 1790107151669,
+        "adOpenedAt": 1790107151669
+      }
+    ],
+    [
+      "ad_1790107151671_5mgnhcl",
+      {
+        "sessionId": "ad_1790107151671_5mgnhcl",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 5,
+        "startedAt": 1790107151671,
+        "endsAt": 1790108051671,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "85fd585b25a1aa7f09fe6c67bab2969b8d0976ae80d8b40b",
+        "createdAt": 1790107151671,
+        "adOpenedAt": 1790107151671,
+        "sdkCompleted": true,
+        "verifiedAt": 1790107185421,
+        "claimToken": "6e4cd9cb1db28c16184bf6f4ac95800eda73e8455f1ed043",
+        "consumedAt": 1790107186624
+      }
+    ],
+    [
+      "ad_1790107837041_1jb50ya",
+      {
+        "sessionId": "ad_1790107837041_1jb50ya",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790108737041,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "373ddc64ed27c734cc83e171acd880a97dfcbe8e1dc5bd00",
+        "createdAt": 1790107837041,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790107837049_zyu3dgj",
+      {
+        "sessionId": "ad_1790107837049_zyu3dgj",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790107838820,
+        "endsAt": 1790108737049,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "f7f3f378785c67c2f9e48de18ecb0acda9dc179990c14a6d",
+        "createdAt": 1790107837049,
+        "adOpenedAt": 1790107838820,
+        "watchStarted": true,
+        "sdkCompleted": true,
+        "verifiedAt": 1790107882689,
+        "claimToken": "ef13cfb10f817cf1faa00018931670344371524f52932f00",
+        "consumedAt": 1790107883072
+      }
+    ],
+    [
+      "ad_1790107891097_vjtcc80",
+      {
+        "sessionId": "ad_1790107891097_vjtcc80",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790108791097,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "e54a690c1db8727bbd7c248bd0b6826de2b9170f0a61853c",
+        "createdAt": 1790107891097,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790108812929_4wr1mn4",
+      {
+        "sessionId": "ad_1790108812929_4wr1mn4",
+        "userId": "usr_123456789",
+        "actionType": "MINING",
+        "startedAt": 1790108816551,
+        "endsAt": 1790108872929,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "4fb4a9a4f37388b86dff50163c4e0587c108b39f8e57145b",
+        "createdAt": 1790108812929,
+        "adOpenedAt": 1790108816551,
+        "watchStarted": true
+      }
+    ],
+    [
+      "ad_1790333144133_1p0pire",
+      {
+        "sessionId": "ad_1790333144133_1p0pire",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790334044133,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "96d9089d005f8631d8dbe8083f82610eb2e8a63b18dfda8e",
+        "createdAt": 1790333144133,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425320258_iuzprzi",
+      {
+        "sessionId": "ad_1790425320258_iuzprzi",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1790426220258,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "abdc2a4b449e6a04adbcacd8e70d6d0e306e3e84bca46f53",
+        "createdAt": 1790425320258,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425338190_zcdnvck",
+      {
+        "sessionId": "ad_1790425338190_zcdnvck",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1790426238190,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "b8fe406ecd024935ab1b56df0ee759b07cccf25544251014",
+        "createdAt": 1790425338190,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425496341_n92bnct",
+      {
+        "sessionId": "ad_1790425496341_n92bnct",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790426396341,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "5fee315c989265d256ce763d818938227d969e778e9ff084",
+        "createdAt": 1790425496341,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425689850_8xpchoy",
+      {
+        "sessionId": "ad_1790425689850_8xpchoy",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1790426589850,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "3e4a70776830b2c5c37dc32e3e34d3aa6895f66583518c64",
+        "createdAt": 1790425689850,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425693710_fo149cp",
+      {
+        "sessionId": "ad_1790425693710_fo149cp",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1790426593710,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "2e209cb68515c74744fdefc94c4fa79e07bc48345835748f",
+        "createdAt": 1790425693710,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425799742_qosjwoo",
+      {
+        "sessionId": "ad_1790425799742_qosjwoo",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1790426699742,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "b8852e81cd6b820d0f7d344f1547f36cb473287f5fcf3bda",
+        "createdAt": 1790425799742,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425826099_wpwjzu2",
+      {
+        "sessionId": "ad_1790425826099_wpwjzu2",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790426726099,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "86da7aebd504d3a5d2c48e1b7693f5e5f742c45aaa279492",
+        "createdAt": 1790425826099,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425829627_z18wfy0",
+      {
+        "sessionId": "ad_1790425829627_z18wfy0",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790426729627,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "15f91fe149059730d1bef66c00e4921e260a4a1051de79e7",
+        "createdAt": 1790425829627,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790425832184_bw6mqqy",
+      {
+        "sessionId": "ad_1790425832184_bw6mqqy",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790426732184,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "f2fcd3541b52db9e2739f95e689f0e27fbd99521c207bebb",
+        "createdAt": 1790425832184,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515292019_ov1xqw6",
+      {
+        "sessionId": "ad_1790515292019_ov1xqw6",
+        "userId": "usr_123456789",
+        "actionType": "MINING",
+        "startedAt": 1790515293778,
+        "endsAt": 1790515352019,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "454dcca1b0f3e209e430dd0a2fe9ffe2e23858650ba4b8cb",
+        "createdAt": 1790515292019,
+        "adOpenedAt": 1790515293778,
+        "watchStarted": true,
+        "verifiedAt": 1790515380391,
+        "claimToken": "92c6f240d3c70689d4643dc6bb55de87775f7789a1fca1d2",
+        "consumedAt": 1790515381390
+      }
+    ],
+    [
+      "ad_1790515401981_9dzkzpv",
+      {
+        "sessionId": "ad_1790515401981_9dzkzpv",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 5,
+        "startedAt": 0,
+        "endsAt": 1790516301981,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "ba4571a1a6a4b42ad5026136e572a1c614ec1ce13082ed45",
+        "createdAt": 1790515401981,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515413754_9ohoehs",
+      {
+        "sessionId": "ad_1790515413754_9ohoehs",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1790516313754,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "70717dca991f6d10ca3c0bf3463da8cc514012b6702ce656",
+        "createdAt": 1790515413754,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515416897_g4aey2w",
+      {
+        "sessionId": "ad_1790515416897_g4aey2w",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 2,
+        "startedAt": 0,
+        "endsAt": 1790516316897,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "3789c298cab6adcc87587ced483a1ffe24708d93dbaec13b",
+        "createdAt": 1790515416897,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515419819_j19lfvo",
+      {
+        "sessionId": "ad_1790515419819_j19lfvo",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 4,
+        "startedAt": 0,
+        "endsAt": 1790516319819,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "f50a3adde53f038a0498e61474378ed64cac1ef4ae474e37",
+        "createdAt": 1790515419819,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515423415_ck9jm6a",
+      {
+        "sessionId": "ad_1790515423415_ck9jm6a",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 3,
+        "startedAt": 0,
+        "endsAt": 1790516323415,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "3e9e90345c88b0c4aa4d5c455dc3ebc412a60fb0ef391b58",
+        "createdAt": 1790515423415,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515429211_8al7qds",
+      {
+        "sessionId": "ad_1790515429211_8al7qds",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1790516329211,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "a3caf6c77a63d9ec699b50fc868a087c45f1155dbf4cf886",
+        "createdAt": 1790515429211,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515433683_37y2d3o",
+      {
+        "sessionId": "ad_1790515433683_37y2d3o",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 5,
+        "startedAt": 0,
+        "endsAt": 1790516333683,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "4437f41c9a5d091f145072c435ff3fbde2034b919e0b40d2",
+        "createdAt": 1790515433683,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515434070_kfi92ay",
+      {
+        "sessionId": "ad_1790515434070_kfi92ay",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 5,
+        "startedAt": 1790515445040,
+        "endsAt": 1790516334070,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "336b625537c0851bb3d2dde4d445e38b23b34dccfc445508",
+        "createdAt": 1790515434070,
+        "adOpenedAt": 1790515445040,
+        "watchStarted": true,
+        "sdkCompleted": true,
+        "verifiedAt": 1790515478324,
+        "claimToken": "ece63e7273ca3ccb90dff8c34a3f6f6226345ab7460b58ff",
+        "consumedAt": 1790515478844
+      }
+    ],
+    [
+      "ad_1790515502778_9e1mon9",
+      {
+        "sessionId": "ad_1790515502778_9e1mon9",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790516402778,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "1a85c63cb1645147e584ab85d712984cf4365627359ecdc0",
+        "createdAt": 1790515502778,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790515503177_b618dy5",
+      {
+        "sessionId": "ad_1790515503177_b618dy5",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1790515511026,
+        "endsAt": 1790516403177,
+        "durationSeconds": 60,
+        "verified": true,
+        "consumed": true,
+        "token": "26b7a51e159e471236395c8cdec2286f38286ca433843bd7",
+        "createdAt": 1790515503177,
+        "adOpenedAt": 1790515511026,
+        "watchStarted": true,
+        "sdkCompleted": true,
+        "verifiedAt": 1790515541328,
+        "claimToken": "9230a9fa98eb1891a8fc8d2b7ea922be40c01c1dfdabf2b5",
+        "consumedAt": 1790515541702
+      }
+    ],
+    [
+      "ad_1790764984422_ez272w7",
+      {
+        "sessionId": "ad_1790764984422_ez272w7",
+        "userId": "usr_123456789",
+        "actionType": "MINING",
+        "startedAt": 0,
+        "endsAt": 1790765884422,
+        "durationSeconds": 60,
+        "verified": false,
+        "consumed": false,
+        "token": "bd8d2085cd2236fb7c49db08a77a19666cd9d14c0259a53e",
+        "createdAt": 1790764984422,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1790765637512_cjvwzlv",
+      {
+        "sessionId": "ad_1790765637512_cjvwzlv",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1790766537512,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "082fbc19b62dad4b9f67396eb7ab19223e98f22fbaa2ec4d",
+        "createdAt": 1790765637512,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ]
+  ],
+  "lastSaved": 1790767210070
+}

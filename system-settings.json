@@ -1,0 +1,229 @@
+{
+  "miningRatePerHour": 0.25,
+  "miningDurationHours": 8,
+  "rewardedAdRequired": true,
+  "adMiningDurationSeconds": 60,
+  "miningAdDurationSeconds": 60,
+  "spinAdDurationSeconds": 30,
+  "giftBoxAdDurationSeconds": 30,
+  "adProvider": "AdsGram",
+  "adsterraDirectLink": "https://beta.publishers.adsterra.com/direct-link-demo",
+  "monetagDirectLink": "https://omg10.com/4/11442658",
+  "monetagZoneId": "11442658",
+  "monetagTelegramSdkEnabled": true,
+  "welcomeBonusUSDT": 25,
+  "welcomeBonusE4F": 10,
+  "referralBonusUSDT": 5,
+  "e4fListingStatus": "PENDING_LISTING",
+  "e4fPlannedListingDate": "2028-02-28",
+  "e4fPlannedTargetPriceRange": "3–5 USDT",
+  "depositsEnabled": true,
+  "withdrawalsEnabled": true,
+  "minWithdrawalLimit": 1,
+  "maxWithdrawalLimit": 1000,
+  "withdrawalFee": 1,
+  "networkWithdrawSettings": {
+    "TRC20": {
+      "enabled": true,
+      "minAmount": 1,
+      "maxAmount": 1000,
+      "fee": 1
+    },
+    "BEP20": {
+      "enabled": true,
+      "minAmount": 1,
+      "maxAmount": 1000,
+      "fee": 0.5
+    },
+    "TON": {
+      "enabled": true,
+      "minAmount": 1,
+      "maxAmount": 1000,
+      "fee": 0.5
+    }
+  },
+  "depositMinUSDT": 2,
+  "depositFirstBonusUSDT": 5,
+  "bscDepositAddress": "0x63562945f7845aa1130a5b1499720b29788c82db",
+  "referralMiningBoostTiers": [
+    {
+      "minReferrals": 1,
+      "boostPercent": 5
+    },
+    {
+      "minReferrals": 3,
+      "boostPercent": 15
+    },
+    {
+      "minReferrals": 5,
+      "boostPercent": 25
+    },
+    {
+      "minReferrals": 10,
+      "boostPercent": 50
+    },
+    {
+      "minReferrals": 20,
+      "boostPercent": 100
+    }
+  ],
+  "rewardSpinMaxDaily": 5,
+  "rewardSpinAdRequired": true,
+  "giftBoxMaxDaily": 5,
+  "giftBoxAdRequired": true,
+  "spinWheelPrizes": [
+    {
+      "id": 0,
+      "label": "0.03 USDT",
+      "asset": "USDT",
+      "amount": 0.03,
+      "color": "#3B82F6"
+    },
+    {
+      "id": 1,
+      "label": "5 E4F",
+      "asset": "E4F",
+      "amount": 5,
+      "color": "#10B981"
+    },
+    {
+      "id": 2,
+      "label": "8 E4F",
+      "asset": "E4F",
+      "amount": 8,
+      "color": "#EAB308"
+    },
+    {
+      "id": 3,
+      "label": "0.05 USDT",
+      "asset": "USDT",
+      "amount": 0.05,
+      "color": "#6366F1"
+    },
+    {
+      "id": 4,
+      "label": "2.50 E4F",
+      "asset": "E4F",
+      "amount": 2.5,
+      "color": "#EC4899"
+    },
+    {
+      "id": 5,
+      "label": "0.03 USDT",
+      "asset": "USDT",
+      "amount": 0.03,
+      "color": "#14B8A6"
+    },
+    {
+      "id": 6,
+      "label": "0.01 USDT",
+      "asset": "USDT",
+      "amount": 0.01,
+      "color": "#F97316"
+    },
+    {
+      "id": 7,
+      "label": "0.1 USDT",
+      "asset": "USDT",
+      "amount": 0.1,
+      "color": "#8B5CF6"
+    }
+  ],
+  "giftBoxesConfig": [
+    {
+      "id": 1,
+      "boxNumber": 1,
+      "name": "Bronze Treasure",
+      "rewardAsset": "E4F",
+      "rewardAmount": 0.02,
+      "color": "#38BDF8"
+    },
+    {
+      "id": 2,
+      "boxNumber": 2,
+      "name": "Silver Cache",
+      "rewardAsset": "USDT",
+      "rewardAmount": 0.03,
+      "color": "#A855F7"
+    },
+    {
+      "id": 3,
+      "boxNumber": 3,
+      "name": "Gold Vault",
+      "rewardAsset": "E4F",
+      "rewardAmount": 0.04,
+      "color": "#EAB308"
+    },
+    {
+      "id": 4,
+      "boxNumber": 4,
+      "name": "Ruby Chest",
+      "rewardAsset": "USDT",
+      "rewardAmount": 0.05,
+      "color": "#EF4444"
+    },
+    {
+      "id": 5,
+      "boxNumber": 5,
+      "name": "Diamond Relic",
+      "rewardAsset": "E4F",
+      "rewardAmount": 0.1,
+      "color": "#10B981"
+    }
+  ],
+  "dailyCheckInRewards": [
+    {
+      "day": 1,
+      "asset": "USDT",
+      "amount": 0.01
+    },
+    {
+      "day": 2,
+      "asset": "USDT",
+      "amount": 0.02
+    },
+    {
+      "day": 3,
+      "asset": "USDT",
+      "amount": 0.03
+    },
+    {
+      "day": 4,
+      "asset": "E4F",
+      "amount": 3
+    },
+    {
+      "day": 5,
+      "asset": "E4F",
+      "amount": 5
+    },
+    {
+      "day": 6,
+      "asset": "USDT",
+      "amount": 0.05
+    },
+    {
+      "day": 7,
+      "asset": "USDT",
+      "amount": 0.07
+    }
+  ],
+  "spin_01_adsgram": "spin_01_adsgram",
+  "spin_02_monetag": "spin_02_monetag",
+  "spin_03_onclicka": "spin_03_onclicka",
+  "spin_04_richads": "spin_04_richads",
+  "spin_05_adexora": "spin_05_adexora",
+  "box_01_adsgram": "box_01_adsgram",
+  "box_02_monetag": "box_02_monetag",
+  "box_03_onclicka": "box_03_onclicka",
+  "box_04_richads": "box_04_richads",
+  "box_05_adexora": "box_05_adexora",
+  "miningPrimaryNetwork": "AdsGram",
+  "miningSecondaryNetwork": "OnClickA",
+  "miningWaterfallEnabled": true,
+  "mining_01_adsgram": "mining_01_adsgram",
+  "mining_02_monetag": "11442658",
+  "mining_03_onclicka": "mining_03_onclicka",
+  "mining_04_richads": "mining_04_richads",
+  "mining_05_adexora": "mining_05_adexora"
+}
