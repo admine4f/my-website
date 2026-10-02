@@ -74,7 +74,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   onComplete,
   onCancel,
 }) => {
-  const initialDuration = durationSeconds || (actionType === 'MINING' ? 60 : DEFAULT_WATCH_SECONDS);
+  const initialDuration = durationSeconds || DEFAULT_WATCH_SECONDS;
   const [requiredWatchSeconds, setRequiredWatchSeconds] = useState<number>(initialDuration);
   const requiredWatchSecondsRef = useRef<number>(initialDuration);
   const [step, setStep] = useState<
@@ -143,7 +143,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
             let dur = 30;
             if (actionType === 'MINING') {
-              dur = Number((pub as any).miningAdDurationSeconds || (pub as any).adMiningDurationSeconds || 60);
+              dur = Number((pub as any).miningAdDurationSeconds || (pub as any).adMiningDurationSeconds || 30);
             } else if (actionType === 'SPIN') {
               dur = Number((pub as any).spinAdDurationSeconds || 30);
             } else if (actionType === 'GIFT_BOX') {
@@ -158,23 +158,37 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
           console.warn('Could not sync dynamic waterfall settings, using defaults:', e);
         }
 
+        const isTg = typeof window !== 'undefined' && Boolean((window as any).Telegram?.WebApp?.initData);
+
         // Construct 5 Waterfall Tiers
         let computedTiers: WaterfallTier[] = [];
         if (actionType === 'SPIN') {
-          computedTiers = [
+          computedTiers = isTg ? [
             { index: 1, provider: 'AdsGram', id: SPIN_01_ADSGRAM, label: 'AdsGram' },
             { index: 2, provider: 'Monetag', id: SPIN_02_MONETAG, label: 'Monetag' },
             { index: 3, provider: 'OnClickA', id: SPIN_03_ONCLICKA, label: 'OnClickA' },
             { index: 4, provider: 'RichAds', id: SPIN_04_RICHADS, label: 'RichAds' },
             { index: 5, provider: 'Adexora', id: SPIN_05_ADEXORA, label: 'Adexora' },
+          ] : [
+            { index: 1, provider: 'Monetag', id: SPIN_02_MONETAG, label: 'Monetag' },
+            { index: 2, provider: 'OnClickA', id: SPIN_03_ONCLICKA, label: 'OnClickA' },
+            { index: 3, provider: 'RichAds', id: SPIN_04_RICHADS, label: 'RichAds' },
+            { index: 4, provider: 'Adexora', id: SPIN_05_ADEXORA, label: 'Adexora' },
+            { index: 5, provider: 'AdsGram', id: SPIN_01_ADSGRAM, label: 'AdsGram' },
           ];
         } else if (actionType === 'GIFT_BOX') {
-          computedTiers = [
+          computedTiers = isTg ? [
             { index: 1, provider: 'AdsGram', id: BOX_01_ADSGRAM, label: 'AdsGram' },
             { index: 2, provider: 'Monetag', id: BOX_02_MONETAG, label: 'Monetag' },
             { index: 3, provider: 'OnClickA', id: BOX_03_ONCLICKA, label: 'OnClickA' },
             { index: 4, provider: 'RichAds', id: BOX_04_RICHADS, label: 'RichAds' },
             { index: 5, provider: 'Adexora', id: BOX_05_ADEXORA, label: 'Adexora' },
+          ] : [
+            { index: 1, provider: 'Monetag', id: BOX_02_MONETAG, label: 'Monetag' },
+            { index: 2, provider: 'OnClickA', id: BOX_03_ONCLICKA, label: 'OnClickA' },
+            { index: 3, provider: 'RichAds', id: BOX_04_RICHADS, label: 'RichAds' },
+            { index: 4, provider: 'Adexora', id: BOX_05_ADEXORA, label: 'Adexora' },
+            { index: 5, provider: 'AdsGram', id: BOX_01_ADSGRAM, label: 'AdsGram' },
           ];
         } else if (actionType === 'MINING') {
           const miningMap: Record<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora', { provider: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'; id: string; label: string }> = {
@@ -185,18 +199,23 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
             'Adexora': { provider: 'Adexora', id: MINING_05_ADEXORA, label: 'Adexora' },
           };
 
-          const pNet = MINING_PRIMARY_NETWORK || 'AdsGram';
+          let pNet = MINING_PRIMARY_NETWORK || 'AdsGram';
+          if (!isTg && pNet === 'AdsGram') {
+            pNet = 'Monetag'; // On web browsers / Netlify, Monetag works reliably
+          }
           const sNet = (MINING_SECONDARY_NETWORK && MINING_SECONDARY_NETWORK !== pNet)
             ? MINING_SECONDARY_NETWORK
             : (pNet === 'Monetag' ? 'AdsGram' : 'Monetag');
 
           const tierSequence: Array<{ provider: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'; id: string; label: string }> = [];
-          tierSequence.push(miningMap[pNet] || miningMap['AdsGram']);
+          tierSequence.push(miningMap[pNet] || miningMap['Monetag']);
 
           if (MINING_WATERFALL_ENABLED) {
-            tierSequence.push(miningMap[sNet] || miningMap['Monetag']);
+            tierSequence.push(miningMap[sNet] || miningMap['OnClickA']);
             const used = new Set(tierSequence.map(t => t.provider));
-            const allOrder: Array<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'> = ['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora'];
+            const allOrder: Array<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'> = isTg
+              ? ['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora']
+              : ['Monetag', 'OnClickA', 'RichAds', 'Adexora', 'AdsGram'];
             for (const n of allOrder) {
               if (!used.has(n)) {
                 tierSequence.push(miningMap[n]);
@@ -214,8 +233,8 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         } else {
           // Default fallback
           computedTiers = [
-            { index: 1, provider: 'AdsGram', id: 'adsgram_default', label: 'AdsGram' },
-            { index: 2, provider: 'Monetag', id: DEFAULT_ZONE_ID, label: 'Monetag' },
+            { index: 1, provider: 'Monetag', id: DEFAULT_ZONE_ID, label: 'Monetag' },
+            { index: 2, provider: 'AdsGram', id: 'adsgram_default', label: 'AdsGram' },
           ];
         }
 
@@ -311,35 +330,79 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   const currentBurstStartTimeRef = useRef<number | null>(null);
   const isVerifyingRef = useRef<boolean>(false);
   const triggerAutoClaimRef = useRef<() => void>(() => {});
+  const stepRef = useRef(step);
+  stepRef.current = step;
+
+  // Pause watching if user leaves tab, switches window, or minimizes
+  const pauseAdWatching = useCallback(() => {
+    if (stepRef.current !== 'WATCHING' || !currentBurstStartTimeRef.current) return;
+    const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
+    const burstElapsed = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
+    const accumulated = Math.min(targetSec, totalWatchedSecondsRef.current + burstElapsed);
+
+    totalWatchedSecondsRef.current = accumulated;
+    setSecondsWatched(accumulated);
+    currentBurstStartTimeRef.current = null;
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (accumulated >= targetSec) {
+      setStep('COMPLETED');
+      triggerAutoClaimRef.current();
+    } else {
+      // User switched tabs or left before 30s: pause timer at watched seconds and show remaining seconds!
+      setStep('EARLY_EXIT');
+    }
+  }, []);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!hasStartedRef.current || !currentBurstStartTimeRef.current) return;
+      if (document.visibilityState === 'hidden') {
+        pauseAdWatching();
+      } else if (document.visibilityState === 'visible') {
+        if (stepRef.current === 'WATCHING' && currentBurstStartTimeRef.current) {
+          const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
+          const burstElapsed = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
+          const accumulated = Math.min(targetSec, totalWatchedSecondsRef.current + burstElapsed);
+          totalWatchedSecondsRef.current = accumulated;
+          setSecondsWatched(accumulated);
 
-      if (document.visibilityState === 'visible') {
-        const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
-        const burstElapsed = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
-        const accumulated = Math.min(targetSec, totalWatchedSecondsRef.current + burstElapsed);
-        setSecondsWatched(accumulated);
-
-        if (accumulated >= targetSec) {
-          totalWatchedSecondsRef.current = targetSec;
-          currentBurstStartTimeRef.current = null;
-          if (timerRef.current) clearInterval(timerRef.current);
-          setStep('COMPLETED');
-          triggerAutoClaimRef.current();
+          if (accumulated >= targetSec) {
+            currentBurstStartTimeRef.current = null;
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            setStep('COMPLETED');
+            triggerAutoClaimRef.current();
+          } else {
+            // User returned before completing full duration -> pause at watched time!
+            currentBurstStartTimeRef.current = null;
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            setStep('EARLY_EXIT');
+          }
         }
       }
     };
 
+    const handleWindowBlur = () => {
+      pauseAdWatching();
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
     };
-  }, []);
+  }, [pauseAdWatching]);
 
   // 4. User Clicks "Watch Ad Now"
   const handleWatchAdClick = async (e?: React.MouseEvent) => {
@@ -408,12 +471,16 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // Open ad window
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openLink) {
-      if (e) e.preventDefault();
-      try {
-        window.Telegram.WebApp.openLink(targetUrl);
-      } catch {
-        // Fallback
+    if (typeof window !== 'undefined') {
+      if ((window as any).Telegram?.WebApp?.openLink) {
+        if (e) e.preventDefault();
+        try {
+          (window as any).Telegram.WebApp.openLink(targetUrl);
+        } catch {
+          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        }
+      } else {
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
       }
     }
 

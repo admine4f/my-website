@@ -176,7 +176,7 @@ export const MiningView: React.FC = () => {
         <UnifiedRewardedAdModal
           userId={user.id}
           actionType="MINING"
-          durationSeconds={miningStats?.miningAdDurationSeconds || miningStats?.adDurationSeconds || 60}
+          durationSeconds={miningStats?.miningAdDurationSeconds || miningStats?.adDurationSeconds || 30}
           title="Start 8-Hour Mining Session"
           description="Complete the rewarded ad to activate your 8-hour continuous E4F cloud mining."
           rewardHint="Active 8-Hour E4F Mining"

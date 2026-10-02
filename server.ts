@@ -172,8 +172,8 @@ const systemSettings = {
   miningRatePerHour: 0.25,
   miningDurationHours: 8,
   rewardedAdRequired: true,
-  adMiningDurationSeconds: 60,
-  miningAdDurationSeconds: 60,
+  adMiningDurationSeconds: 30,
+  miningAdDurationSeconds: 30,
   spinAdDurationSeconds: 30,
   giftBoxAdDurationSeconds: 30,
   adProvider: 'MONETAG' as 'ADSTERRA' | 'MONETAG' | 'SIMULATOR',
@@ -1119,8 +1119,8 @@ app.get('/api/system/public-settings', (_req: Request, res: Response) => {
     adProvider: systemSettings.adProvider || 'MONETAG',
     rewardedAdRequired: systemSettings.rewardedAdRequired !== false,
     adRequired: systemSettings.rewardedAdRequired !== false,
-    adDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60,
-    miningAdDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60,
+    adDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30,
+    miningAdDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30,
     spinAdDurationSeconds: systemSettings.spinAdDurationSeconds || 30,
     giftBoxAdDurationSeconds: systemSettings.giftBoxAdDurationSeconds || 30,
     miningRatePerHour: systemSettings.miningRatePerHour || 0.25,
@@ -1326,8 +1326,8 @@ app.get('/api/mining/:userId/status', (req: Request, res: Response) => {
     boostedMiningRatePerHour: boostedRate,
     durationHours: systemSettings.miningDurationHours,
     adRequired: systemSettings.rewardedAdRequired !== false,
-    adDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60,
-    miningAdDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60,
+    adDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30,
+    miningAdDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30,
     spinAdDurationSeconds: systemSettings.spinAdDurationSeconds || 30,
     giftBoxAdDurationSeconds: systemSettings.giftBoxAdDurationSeconds || 30,
     adProvider: systemSettings.adProvider,
@@ -1394,7 +1394,7 @@ app.post('/api/ads/session/create', (req: Request, res: Response) => {
 
   const sessionId = `ad_${now}_${Math.random().toString(36).substring(2, 9)}`;
   const token = crypto.randomBytes(24).toString('hex');
-  const miningSec = systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60;
+  const miningSec = systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30;
   const spinSec = systemSettings.spinAdDurationSeconds || 30;
   const giftBoxSec = systemSettings.giftBoxAdDurationSeconds || 30;
   const sessionDuration = actionType === 'MINING' ? miningSec : actionType === 'SPIN' ? spinSec : giftBoxSec;
@@ -1562,7 +1562,7 @@ app.post('/api/ads/session/complete', (req: Request, res: Response) => {
   const isSpin = session.actionType === 'SPIN';
   const requiredSeconds = session.durationSeconds || (
     isMining
-      ? (systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60)
+      ? (systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30)
       : isSpin
       ? (systemSettings.spinAdDurationSeconds || 30)
       : (systemSettings.giftBoxAdDurationSeconds || 30)
@@ -1629,7 +1629,7 @@ app.get('/api/mining/:userId/ad-session', (req: Request, res: Response) => {
     return res.json({ success: true, hasActiveSession: false, session: null, serverTime: now });
   }
 
-  const miningSec = session.durationSeconds || systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60;
+  const miningSec = session.durationSeconds || systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30;
   const elapsedMs = now - session.startedAt;
   const remainingSeconds = Math.max(0, Math.ceil((session.endsAt - now) / 1000));
   const canVerify = elapsedMs >= (miningSec * 1000) || session.verified;
@@ -1672,7 +1672,7 @@ app.post('/api/mining/ad-session', (req: Request, res: Response) => {
   if (!session) {
     const sessionId = `ad_${now}_${Math.random().toString(36).substring(2, 9)}`;
     const token = crypto.randomBytes(24).toString('hex');
-    const DURATION_SECONDS = systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60;
+    const DURATION_SECONDS = systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30;
     session = {
       sessionId,
       userId,
@@ -1697,7 +1697,7 @@ app.post('/api/mining/ad-session', (req: Request, res: Response) => {
     scheduleSaveDatabase();
   }
 
-  const targetDurationSec = session.durationSeconds || systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60;
+  const targetDurationSec = session.durationSeconds || systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30;
   const remainingSeconds = session.startedAt > 0
     ? Math.max(0, Math.ceil((targetDurationSec * 1000 - (now - session.startedAt)) / 1000))
     : targetDurationSec;
@@ -1753,7 +1753,7 @@ app.post('/api/mining/verify-ad', (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Ad session has already been used' });
   }
 
-  const miningSec = session.durationSeconds || systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 60;
+  const miningSec = session.durationSeconds || systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30;
 
   // Must have actually started watching real ad
   if (!session.watchStarted || !session.startedAt || session.startedAt === 0) {

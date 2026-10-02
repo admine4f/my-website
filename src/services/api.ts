@@ -326,22 +326,38 @@ export const api = {
     } catch {}
 
     const now = Date.now();
-    const canMine = !localSession || now >= localSession.endsAt;
+    const endTime = localSession ? (localSession.endTime || localSession.endsAt || 0) : 0;
+    const isActive = localSession && now < endTime && localSession.status !== 'COMPLETED' && localSession.status !== 'CLAIMED';
+    const canMine = !isActive;
     const seasonEndDate = new Date('2028-02-28T00:00:00Z').getTime();
+
+    const activeSession: MiningSession | null = isActive ? {
+      id: localSession.id || `mine_${now}`,
+      userId,
+      startTime: localSession.startTime || localSession.startedAt || now,
+      endTime,
+      durationSeconds: localSession.durationSeconds || (8 * 3600),
+      miningRatePerHour: localSession.miningRatePerHour || 0.25,
+      estimatedReward: localSession.estimatedReward || localSession.rewardAmount || 2.0,
+      status: 'ACTIVE',
+      adVerified: true,
+      adSessionId: localSession.adSessionId,
+    } : null;
+
     return {
       todayMiningE4F: localSession ? 2.0 : 0,
       totalMiningE4F: 10.0,
       totalSessionsCompleted: 5,
-      activeSession: localSession && now < localSession.endsAt ? localSession : null,
+      activeSession,
       serverTime: now,
       seasonEndDate,
       seasonDaysRemaining: Math.max(0, Math.ceil((seasonEndDate - now) / 86400000)),
       canMine,
-      timeRemainingMs: localSession ? Math.max(0, localSession.endsAt - now) : 0,
-      minedSoFar: localSession ? Number((((now - localSession.startedAt) / 3600000) * 0.25).toFixed(4)) : 0,
+      timeRemainingMs: isActive ? Math.max(0, endTime - now) : 0,
+      minedSoFar: isActive ? Number((((now - (localSession.startTime || localSession.startedAt || now)) / 3600000) * 0.25).toFixed(4)) : 0,
       miningRatePerHour: 0.25,
       durationHours: 8,
-      adRequired: false,
+      adRequired: true,
       adProvider: 'MONETAG',
       plannedTargetPriceRange: '3–5 USDT',
     };
@@ -537,7 +553,14 @@ export const api = {
       });
       const data = await parseResponseJson(res);
       if (res.ok && data && data.verified) return data;
-    } catch {}
+      if (data && data.error && !res.ok) {
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      if (err.message && (err.message.includes('remaining') || err.message.includes('Minimum'))) {
+        throw err;
+      }
+    }
     return {
       success: true,
       verified: true,
@@ -559,14 +582,18 @@ export const api = {
     } catch {}
 
     const now = Date.now();
+    const durationSeconds = 8 * 3600;
     const session = {
       id: `mine_${now}`,
       userId,
-      startedAt: now,
-      endsAt: now + 8 * 3600 * 1000,
+      startTime: now,
+      endTime: now + durationSeconds * 1000,
+      durationSeconds,
       miningRatePerHour: 0.25,
-      rewardAmount: 2.0,
-      claimed: false,
+      estimatedReward: 2.0,
+      status: 'ACTIVE' as const,
+      adVerified: true,
+      adSessionId,
     };
     try {
       if (typeof window !== 'undefined') {
@@ -589,6 +616,11 @@ export const api = {
         const balances = getLocalBalances();
         balances.e4f = Number((data.newBalance || balances.e4f + 2.0).toFixed(4));
         saveLocalBalances(balances);
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(`e4f_mining_${userId}`);
+          }
+        } catch {}
         return data;
       }
     } catch {}
