@@ -51,12 +51,12 @@ interface AppContextType {
 }
 
 const defaultBalances: WalletBalances = {
-  usdt: 25.0,
-  e4f: 10.0,
-  btc: 0.0024,
-  eth: 0.0456,
-  sol: 0.85,
-  bnb: 0.12,
+  usdt: 0,
+  e4f: 0,
+  btc: 0,
+  eth: 0,
+  sol: 0,
+  bnb: 0,
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -91,7 +91,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     {
       id: 'notif-1',
       title: 'Welcome to E4F Web3 Exchange',
-      message: '25 USDT (Spot) + 10 E4F welcome balance has been deposited to your account.',
+      message: 'Official welcome bonus has been credited to your account.',
       type: 'WALLET',
       read: false,
       timestamp: Date.now() - 3600000,

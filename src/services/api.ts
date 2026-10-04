@@ -38,7 +38,7 @@ export function getLocalBalances(): WalletBalances {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('e4f_cached_balances') : null;
     if (raw) return cleanWalletBalances(JSON.parse(raw));
   } catch {}
-  return { usdt: 25, e4f: 10, btc: 0.0024, eth: 0.0456, sol: 0.85, bnb: 0.12, depositBalance: 0 };
+  return { usdt: 0, e4f: 0, btc: 0, eth: 0, sol: 0, bnb: 0, depositBalance: 0 };
 }
 
 export function saveLocalBalances(b: WalletBalances) {
@@ -321,13 +321,24 @@ export const api = {
       depositAddress: '0x187c938bbdfedf58c688b8699a909bd262ed6f20',
     };
 
+    let welcomeUSDT = 25.0;
+    let welcomeE4F = 10.0;
+    try {
+      const cachedSettings = localStorage.getItem('e4f_cached_public_settings');
+      if (cachedSettings) {
+        const s = JSON.parse(cachedSettings);
+        if (typeof s.welcomeBonusUSDT === 'number') welcomeUSDT = s.welcomeBonusUSDT;
+        if (typeof s.welcomeBonusE4F === 'number') welcomeE4F = s.welcomeBonusE4F;
+      }
+    } catch {}
+
     const cleanBalances: WalletBalances = {
-      usdt: 25.0,
-      e4f: 10.0,
-      btc: 0.0024,
-      eth: 0.0456,
-      sol: 0.85,
-      bnb: 0.12,
+      usdt: welcomeUSDT,
+      e4f: welcomeE4F,
+      btc: 0,
+      eth: 0,
+      sol: 0,
+      bnb: 0,
     };
 
     return { user: cleanUser, balances: cleanBalances, serverTime: Date.now() };

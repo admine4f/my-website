@@ -3,7 +3,7 @@ import { Gift, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const WelcomeBonusModal: React.FC = () => {
-  const { showWelcomeBonus, setShowWelcomeBonus, setActiveTab } = useApp();
+  const { showWelcomeBonus, setShowWelcomeBonus, setActiveTab, balances } = useApp();
 
   if (!showWelcomeBonus) return null;
 
@@ -31,23 +31,23 @@ export const WelcomeBonusModal: React.FC = () => {
 
         {/* Dual Reward Cards */}
         <div className="grid grid-cols-2 gap-3 mb-5 text-left">
-          {/* 25 USDT */}
+          {/* USDT */}
           <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-emerald-500/30">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-semibold text-emerald-400">SPOT WALLET</span>
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
             </div>
-            <div className="text-xl font-extrabold text-white">25.00</div>
+            <div className="text-xl font-extrabold text-white">{balances.usdt.toFixed(2)}</div>
             <div className="text-[10px] text-slate-400">USDT Available</div>
           </div>
 
-          {/* 10 E4F */}
+          {/* E4F */}
           <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-amber-500/30">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-semibold text-amber-400">PRE-LISTING</span>
               <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
             </div>
-            <div className="text-xl font-extrabold text-white">10.00</div>
+            <div className="text-xl font-extrabold text-white">{balances.e4f.toFixed(2)}</div>
             <div className="text-[10px] text-slate-400">E4F Balance</div>
           </div>
         </div>

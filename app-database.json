@@ -62,10 +62,10 @@
     [
       "usr_123456789",
       {
-        "usdt": 77.9149,
-        "e4f": 48.9,
-        "btc": 0.0003,
-        "eth": 0,
+        "usdt": 34.8243,
+        "e4f": 50.42,
+        "btc": 0.0004,
+        "eth": 0.0128,
         "sol": 0.0407,
         "bnb": 0.4422
       }
@@ -94,6 +94,74 @@
     ]
   ],
   "transactions": [
+    {
+      "id": "tx_1791108384952_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 34.603264,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1791108384952,
+      "referenceId": "ord_1791108384952_pf22",
+      "note": "BUY 0.0128 ETH/USDT @ 2703.38"
+    },
+    {
+      "id": "tx_1791108375261_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 8.52725,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1791108375261,
+      "referenceId": "ord_1791108375261_35pc",
+      "note": "BUY 0.0001 BTC/USDT @ 85272.50"
+    },
+    {
+      "id": "tx_1791108363306_task",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 1.5,
+      "direction": "IN",
+      "source": "TASK_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1791108363306,
+      "note": "Website Visit Completed: Inspect E4F Pre-Listing Blockchain Explorer (30s verified)"
+    },
+    {
+      "id": "tx_1791108309206_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.03,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1791108309206,
+      "note": "Day 3 Check-in Reward (+0.03 USDT)"
+    },
+    {
+      "id": "tx_1791108288600_spin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.01,
+      "direction": "IN",
+      "source": "SPIN_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1791108288600,
+      "note": "Spin & Win Prize: 0.01 USDT (1/5)"
+    },
+    {
+      "id": "tx_1791108236593_box",
+      "userId": "usr_123456789",
+      "asset": "E4F",
+      "amount": 0.02,
+      "direction": "IN",
+      "source": "GIFT_BOX_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1791108236593,
+      "note": "Bronze Treasure Opened (+0.02 E4F) [1/5]"
+    },
     {
       "id": "tx_1791022546637_trade",
       "userId": "usr_123456789",
@@ -819,6 +887,14 @@
   ],
   "auditLogs": [
     {
+      "id": "audit_1791112451320",
+      "adminId": "ADMIN_SUPER",
+      "action": "UPDATE_SYSTEM_SETTINGS",
+      "target": "SYSTEM",
+      "details": "{\"welcomeBonusUSDT\":5,\"welcomeBonusE4F\":2}",
+      "timestamp": 1791112451320
+    },
+    {
       "id": "audit_1790515714336",
       "adminId": "ADMIN_SUPER",
       "action": "APPROVE_WITHDRAWAL",
@@ -1180,6 +1256,32 @@
   "supportTickets": [],
   "spotOrders": [
     {
+      "id": "ord_1791108384952_pf22",
+      "userId": "usr_123456789",
+      "pair": "ETH/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 2703.38,
+      "amount": 0.0128,
+      "totalUSDT": 34.603264,
+      "filledAmount": 0.0128,
+      "status": "FILLED",
+      "timestamp": 1791108384952
+    },
+    {
+      "id": "ord_1791108375261_35pc",
+      "userId": "usr_123456789",
+      "pair": "BTC/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 85272.5,
+      "amount": 0.0001,
+      "totalUSDT": 8.52725,
+      "filledAmount": 0.0001,
+      "status": "FILLED",
+      "timestamp": 1791108375261
+    },
+    {
       "id": "ord_1791022546637_dvad",
       "userId": "usr_123456789",
       "pair": "BNB/USDT",
@@ -1439,6 +1541,11 @@
           "taskId": "task-web-whitepaper",
           "status": "APPROVED",
           "timestamp": 1791022324239
+        },
+        {
+          "taskId": "task-web-explorer",
+          "status": "APPROVED",
+          "timestamp": 1791108363306
         }
       ]
     ]
@@ -1481,7 +1588,7 @@
     [
       "usr_123456789",
       {
-        "date": "2026-09-27",
+        "date": "2026-10-04",
         "count": 1
       }
     ]
@@ -1490,9 +1597,11 @@
     [
       "usr_123456789",
       {
-        "date": "2026-10-03",
-        "count": 0,
-        "openedBoxIds": []
+        "date": "2026-10-04",
+        "count": 1,
+        "openedBoxIds": [
+          1
+        ]
       }
     ]
   ],
@@ -1510,7 +1619,7 @@
           "rewardAsset": "E4F",
           "rewardAmount": 0.02,
           "color": "#38BDF8",
-          "isOpened": false
+          "isOpened": true
         },
         {
           "id": 2,
@@ -1649,17 +1758,168 @@
           "isOpened": false
         }
       ]
+    ],
+    [
+      "usr_999111222",
+      [
+        {
+          "id": 1,
+          "boxNumber": 1,
+          "name": "Bronze Treasure",
+          "rewardAsset": "E4F",
+          "rewardAmount": 2.5,
+          "color": "#38BDF8",
+          "isOpened": false
+        },
+        {
+          "id": 2,
+          "boxNumber": 2,
+          "name": "Silver Cache",
+          "rewardAsset": "USDT",
+          "rewardAmount": 1.5,
+          "color": "#A855F7",
+          "isOpened": false
+        },
+        {
+          "id": 3,
+          "boxNumber": 3,
+          "name": "Gold Vault",
+          "rewardAsset": "E4F",
+          "rewardAmount": 5,
+          "color": "#EAB308",
+          "isOpened": false
+        },
+        {
+          "id": 4,
+          "boxNumber": 4,
+          "name": "Ruby Chest",
+          "rewardAsset": "USDT",
+          "rewardAmount": 3,
+          "color": "#EF4444",
+          "isOpened": false
+        },
+        {
+          "id": 5,
+          "boxNumber": 5,
+          "name": "Diamond Relic",
+          "rewardAsset": "E4F",
+          "rewardAmount": 10,
+          "color": "#10B981",
+          "isOpened": false
+        }
+      ]
+    ],
+    [
+      "usr_888777666",
+      [
+        {
+          "id": 1,
+          "boxNumber": 1,
+          "name": "Bronze Treasure",
+          "rewardAsset": "E4F",
+          "rewardAmount": 2.5,
+          "color": "#38BDF8",
+          "isOpened": false
+        },
+        {
+          "id": 2,
+          "boxNumber": 2,
+          "name": "Silver Cache",
+          "rewardAsset": "USDT",
+          "rewardAmount": 1.5,
+          "color": "#A855F7",
+          "isOpened": false
+        },
+        {
+          "id": 3,
+          "boxNumber": 3,
+          "name": "Gold Vault",
+          "rewardAsset": "E4F",
+          "rewardAmount": 5,
+          "color": "#EAB308",
+          "isOpened": false
+        },
+        {
+          "id": 4,
+          "boxNumber": 4,
+          "name": "Ruby Chest",
+          "rewardAsset": "USDT",
+          "rewardAmount": 3,
+          "color": "#EF4444",
+          "isOpened": false
+        },
+        {
+          "id": 5,
+          "boxNumber": 5,
+          "name": "Diamond Relic",
+          "rewardAsset": "E4F",
+          "rewardAmount": 10,
+          "color": "#10B981",
+          "isOpened": false
+        }
+      ]
+    ],
+    [
+      "usr_777666555",
+      [
+        {
+          "id": 1,
+          "boxNumber": 1,
+          "name": "Bronze Treasure",
+          "rewardAsset": "E4F",
+          "rewardAmount": 2.5,
+          "color": "#38BDF8",
+          "isOpened": false
+        },
+        {
+          "id": 2,
+          "boxNumber": 2,
+          "name": "Silver Cache",
+          "rewardAsset": "USDT",
+          "rewardAmount": 1.5,
+          "color": "#A855F7",
+          "isOpened": false
+        },
+        {
+          "id": 3,
+          "boxNumber": 3,
+          "name": "Gold Vault",
+          "rewardAsset": "E4F",
+          "rewardAmount": 5,
+          "color": "#EAB308",
+          "isOpened": false
+        },
+        {
+          "id": 4,
+          "boxNumber": 4,
+          "name": "Ruby Chest",
+          "rewardAsset": "USDT",
+          "rewardAmount": 3,
+          "color": "#EF4444",
+          "isOpened": false
+        },
+        {
+          "id": 5,
+          "boxNumber": 5,
+          "name": "Diamond Relic",
+          "rewardAsset": "E4F",
+          "rewardAmount": 10,
+          "color": "#10B981",
+          "isOpened": false
+        }
+      ]
     ]
   ],
   "userDailyCheckIns": [
     [
       "usr_123456789",
       {
-        "currentStreak": 2,
-        "lastDate": "2026-10-03",
+        "currentStreak": 3,
+        "lastDate": "2026-10-04",
         "claimedDays": [
           1,
-          2
+          2,
+          3
         ]
       }
     ],
@@ -1673,6 +1933,30 @@
     ],
     [
       "usr_789456123",
+      {
+        "currentStreak": 0,
+        "lastDate": "",
+        "claimedDays": []
+      }
+    ],
+    [
+      "usr_999111222",
+      {
+        "currentStreak": 0,
+        "lastDate": "",
+        "claimedDays": []
+      }
+    ],
+    [
+      "usr_888777666",
+      {
+        "currentStreak": 0,
+        "lastDate": "",
+        "claimedDays": []
+      }
+    ],
+    [
+      "usr_777666555",
       {
         "currentStreak": 0,
         "lastDate": "",
@@ -2512,7 +2796,171 @@
         "adOpenedAt": 0,
         "watchStarted": false
       }
+    ],
+    [
+      "ad_1791108186601_zoydrax",
+      {
+        "sessionId": "ad_1791108186601_zoydrax",
+        "userId": "usr_123456789",
+        "actionType": "MINING",
+        "startedAt": 0,
+        "endsAt": 1791109086601,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "fb471ba44539ece2fb88bccaa09bc66afa07dc046a8ad9ed",
+        "createdAt": 1791108186601,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791108198692_tgsy0ra",
+      {
+        "sessionId": "ad_1791108198692_tgsy0ra",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1791109098692,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "e46cc3bd9a87436e7797a4bfd88d5a5987f3d8dd97fbdb66",
+        "createdAt": 1791108198692,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791108198878_6dc26ck",
+      {
+        "sessionId": "ad_1791108198878_6dc26ck",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 1791108200434,
+        "endsAt": 1791109098878,
+        "durationSeconds": 30,
+        "verified": true,
+        "consumed": true,
+        "token": "fce73b1e041e918639f2f47f83634bdee6143e92b695ceac",
+        "createdAt": 1791108198878,
+        "adOpenedAt": 1791108200434,
+        "watchStarted": true,
+        "sdkCompleted": true,
+        "verifiedAt": 1791108236393,
+        "claimToken": "a5f8ff915e29520b9abb71c80dc3a6b22fc80517a8f071e5",
+        "consumedAt": 1791108236593
+      }
+    ],
+    [
+      "ad_1791108251282_mnqcuof",
+      {
+        "sessionId": "ad_1791108251282_mnqcuof",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1791109151282,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "f901159e5caba9d19a2689bc59d3c6df4c82f123dcf2aa8b",
+        "createdAt": 1791108251282,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791108251482_fu3741y",
+      {
+        "sessionId": "ad_1791108251482_fu3741y",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 1791108252392,
+        "endsAt": 1791109151482,
+        "durationSeconds": 30,
+        "verified": true,
+        "consumed": true,
+        "token": "eed4ed1faad2648a07b0cdb9e14068cd8eb6535abef40b80",
+        "createdAt": 1791108251482,
+        "adOpenedAt": 1791108252392,
+        "watchStarted": true,
+        "sdkCompleted": true,
+        "verifiedAt": 1791108288396,
+        "claimToken": "fc65c978a6a57c765e4cb91828aa33909d04c172a9097a12",
+        "consumedAt": 1791108288600
+      }
+    ],
+    [
+      "ad_1791108647397_frhaanh",
+      {
+        "sessionId": "ad_1791108647397_frhaanh",
+        "userId": "usr_123456789",
+        "actionType": "MINING",
+        "startedAt": 0,
+        "endsAt": 1791109547397,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "8cc2d6d70c68dfdf9917dbdf6e0b2b3d66720cf4c7efa38e",
+        "createdAt": 1791108647397,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791108655967_vuim5v8",
+      {
+        "sessionId": "ad_1791108655967_vuim5v8",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 3,
+        "startedAt": 0,
+        "endsAt": 1791109555967,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "4cd55e9ac97ef1ce39c793006ac8a96dfeda3817960791f7",
+        "createdAt": 1791108655967,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791108667001_r0sa57b",
+      {
+        "sessionId": "ad_1791108667001_r0sa57b",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1791109567001,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "9a0ac5c08b92718ec5a51ed995f9de1a2cb94390dafab105",
+        "createdAt": 1791108667001,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791109097581_x1khlt6",
+      {
+        "sessionId": "ad_1791109097581_x1khlt6",
+        "userId": "usr_123456789",
+        "actionType": "MINING",
+        "startedAt": 0,
+        "endsAt": 1791109997581,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "3b30efd2c093612718d7072fd4dfc5e7fb4b7c3808838a25",
+        "createdAt": 1791109097581,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
     ]
   ],
-  "lastSaved": 1791023084184
+  "lastSaved": 1791112451342
 }

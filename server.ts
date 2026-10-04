@@ -801,17 +801,17 @@ function getOrCreateUser(telegramId: number, firstName: string, lastName = '', u
       });
     }
 
-    // Initial zero balances
+    // Initial zero balances - strictly 0 for all assets (BTC, ETH, SOL, BNB, USDT, E4F)
     balances.set(userId, {
       usdt: 0,
       e4f: 0,
-      btc: 0.0024,
-      eth: 0.0456,
-      sol: 0.85,
-      bnb: 0.12,
+      btc: 0,
+      eth: 0,
+      sol: 0,
+      bnb: 0,
     });
 
-    // Award Welcome Bonus: 25 USDT + 10 E4F (Section 5)
+    // Award Welcome Bonus ONLY (strictly what the admin configured)
     creditWelcomeBonus(userId);
 
     // Initialize 5 Gift Boxes
@@ -863,33 +863,46 @@ function creditWelcomeBonus(userId: string) {
   const userBalance = balances.get(userId);
   if (!user || !userBalance || user.claimedWelcomeBonus) return;
 
-  // 1. Credit 25 USDT
-  userBalance.usdt += systemSettings.welcomeBonusUSDT;
-  transactions.unshift({
-    id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    userId,
-    asset: 'USDT',
-    amount: systemSettings.welcomeBonusUSDT,
-    direction: 'IN',
-    source: 'WELCOME_BONUS_USDT',
-    status: 'COMPLETED',
-    timestamp: Date.now(),
-    note: 'Initial Verified Telegram Welcome Bonus (Spot Available)',
-  });
+  const bonusUSDT = Number(systemSettings.welcomeBonusUSDT !== undefined ? systemSettings.welcomeBonusUSDT : 25);
+  const bonusE4F = Number(systemSettings.welcomeBonusE4F !== undefined ? systemSettings.welcomeBonusE4F : 10);
 
-  // 2. Credit 10 E4F
-  userBalance.e4f += systemSettings.welcomeBonusE4F;
-  transactions.unshift({
-    id: `tx_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}`,
-    userId,
-    asset: 'E4F',
-    amount: systemSettings.welcomeBonusE4F,
-    direction: 'IN',
-    source: 'WELCOME_BONUS_E4F',
-    status: 'COMPLETED',
-    timestamp: Date.now(),
-    note: 'Official Pre-Listing E4F Welcome Allocation',
-  });
+  // 1. Credit Admin-configured USDT Welcome Bonus (only if > 0)
+  if (bonusUSDT > 0) {
+    userBalance.usdt = Number((userBalance.usdt + bonusUSDT).toFixed(4));
+    transactions.unshift({
+      id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userId,
+      asset: 'USDT',
+      amount: bonusUSDT,
+      direction: 'IN',
+      source: 'WELCOME_BONUS_USDT',
+      status: 'COMPLETED',
+      timestamp: Date.now(),
+      note: 'Initial Verified Welcome Bonus (Spot Available)',
+    });
+  }
+
+  // 2. Credit Admin-configured E4F Welcome Bonus (only if > 0)
+  if (bonusE4F > 0) {
+    userBalance.e4f = Number((userBalance.e4f + bonusE4F).toFixed(4));
+    transactions.unshift({
+      id: `tx_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}`,
+      userId,
+      asset: 'E4F',
+      amount: bonusE4F,
+      direction: 'IN',
+      source: 'WELCOME_BONUS_E4F',
+      status: 'COMPLETED',
+      timestamp: Date.now(),
+      note: 'Official Pre-Listing E4F Welcome Allocation',
+    });
+  }
+
+  // Strictly ensure all non-bonus assets are 0% extra
+  userBalance.btc = 0;
+  userBalance.eth = 0;
+  userBalance.sol = 0;
+  userBalance.bnb = 0;
 
   user.claimedWelcomeBonus = true;
 
@@ -898,7 +911,7 @@ function creditWelcomeBonus(userId: string) {
     adminId: 'SYSTEM',
     action: 'WELCOME_BONUS_GRANTED',
     target: userId,
-    details: `Granted ${systemSettings.welcomeBonusUSDT} USDT + ${systemSettings.welcomeBonusE4F} E4F`,
+    details: `Granted welcome bonus: ${bonusUSDT} USDT + ${bonusE4F} E4F (All other balances: 0)`,
     timestamp: Date.now(),
   });
 }
@@ -1116,6 +1129,8 @@ app.get('/api/system/public-settings', (_req: Request, res: Response) => {
     depositFirstBonusUSDT: systemSettings.depositFirstBonusUSDT !== undefined ? systemSettings.depositFirstBonusUSDT : 10.0,
     e4fPlannedListingDate: systemSettings.e4fPlannedListingDate || '2028-02-28',
     referralBonusUSDT: systemSettings.referralBonusUSDT !== undefined ? systemSettings.referralBonusUSDT : 5.0,
+    welcomeBonusUSDT: systemSettings.welcomeBonusUSDT !== undefined ? systemSettings.welcomeBonusUSDT : 25.0,
+    welcomeBonusE4F: systemSettings.welcomeBonusE4F !== undefined ? systemSettings.welcomeBonusE4F : 10.0,
     adProvider: systemSettings.adProvider || 'MONETAG',
     rewardedAdRequired: systemSettings.rewardedAdRequired !== false,
     adRequired: systemSettings.rewardedAdRequired !== false,
