@@ -2808,11 +2808,11 @@ app.post('/api/trade/order', (req: Request, res: Response) => {
     if (userBalance.usdt < totalCostUSDT) {
       return res.status(400).json({ success: false, error: `Insufficient USDT balance. Available: ${userBalance.usdt.toFixed(2)} USDT, Required: ${totalCostUSDT.toFixed(2)} USDT` });
     }
-    userBalance.usdt -= totalCostUSDT;
-    if (pair === 'BTC/USDT') userBalance.btc += Number(amount);
-    if (pair === 'ETH/USDT') userBalance.eth += Number(amount);
-    if (pair === 'SOL/USDT') userBalance.sol += Number(amount);
-    if (pair === 'BNB/USDT') userBalance.bnb += Number(amount);
+    userBalance.usdt = Number(Math.max(0, userBalance.usdt - totalCostUSDT).toFixed(4));
+    if (pair === 'BTC/USDT') userBalance.btc = Number((userBalance.btc + Number(amount)).toFixed(6));
+    if (pair === 'ETH/USDT') userBalance.eth = Number((userBalance.eth + Number(amount)).toFixed(6));
+    if (pair === 'SOL/USDT') userBalance.sol = Number((userBalance.sol + Number(amount)).toFixed(6));
+    if (pair === 'BNB/USDT') userBalance.bnb = Number((userBalance.bnb + Number(amount)).toFixed(6));
   } else {
     // SELL
     let userCoinAmt = 0;
@@ -2825,12 +2825,12 @@ app.post('/api/trade/order', (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: `Insufficient ${pair.split('/')[0]} balance. Available: ${userCoinAmt}` });
     }
 
-    if (pair === 'BTC/USDT') userBalance.btc -= Number(amount);
-    if (pair === 'ETH/USDT') userBalance.eth -= Number(amount);
-    if (pair === 'SOL/USDT') userBalance.sol -= Number(amount);
-    if (pair === 'BNB/USDT') userBalance.bnb -= Number(amount);
+    if (pair === 'BTC/USDT') userBalance.btc = Number(Math.max(0, userBalance.btc - Number(amount)).toFixed(6));
+    if (pair === 'ETH/USDT') userBalance.eth = Number(Math.max(0, userBalance.eth - Number(amount)).toFixed(6));
+    if (pair === 'SOL/USDT') userBalance.sol = Number(Math.max(0, userBalance.sol - Number(amount)).toFixed(6));
+    if (pair === 'BNB/USDT') userBalance.bnb = Number(Math.max(0, userBalance.bnb - Number(amount)).toFixed(6));
 
-    userBalance.usdt += totalCostUSDT;
+    userBalance.usdt = Number((userBalance.usdt + totalCostUSDT).toFixed(4));
   }
 
   const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;

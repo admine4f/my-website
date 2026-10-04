@@ -62,12 +62,12 @@
     [
       "usr_123456789",
       {
-        "usdt": 7.7657,
+        "usdt": 77.9149,
         "e4f": 48.9,
-        "btc": 0.001299999999999999,
-        "eth": 0.0814,
+        "btc": 0.0003,
+        "eth": 0,
         "sol": 0.0407,
-        "bnb": 0.138
+        "bnb": 0.4422
       }
     ],
     [
@@ -94,6 +94,76 @@
     ]
   ],
   "transactions": [
+    {
+      "id": "tx_1791022546637_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 233.753364,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1791022546637,
+      "referenceId": "ord_1791022546637_dvad",
+      "note": "BUY 0.3042 BNB/USDT @ 768.42"
+    },
+    {
+      "id": "tx_1791022527197_trade",
+      "userId": "usr_123456789",
+      "asset": "ETH",
+      "amount": 0.1075,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1791022527197,
+      "referenceId": "ord_1791022527197_88vw",
+      "note": "SELL 0.1075 ETH/USDT @ 2681.84"
+    },
+    {
+      "id": "tx_1791022522532_trade",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 69.996024,
+      "direction": "OUT",
+      "source": "SPOT_TRADE_BUY",
+      "status": "COMPLETED",
+      "timestamp": 1791022522532,
+      "referenceId": "ord_1791022522532_kbzc",
+      "note": "BUY 0.0261 ETH/USDT @ 2681.84"
+    },
+    {
+      "id": "tx_1791022505567_trade",
+      "userId": "usr_123456789",
+      "asset": "BTC",
+      "amount": 0.001,
+      "direction": "IN",
+      "source": "SPOT_TRADE_SELL",
+      "status": "COMPLETED",
+      "timestamp": 1791022505567,
+      "referenceId": "ord_1791022505567_xgfs",
+      "note": "SELL 0.001 BTC/USDT @ 84580.76"
+    },
+    {
+      "id": "tx_1791022324239_task",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 1,
+      "direction": "IN",
+      "source": "TASK_REWARD",
+      "status": "COMPLETED",
+      "timestamp": 1791022324239,
+      "note": "Website Visit Completed: Review E4F Tokenomics & Whitepaper (30s verified)"
+    },
+    {
+      "id": "tx_1791021791100_checkin",
+      "userId": "usr_123456789",
+      "asset": "USDT",
+      "amount": 0.02,
+      "direction": "IN",
+      "source": "DAILY_CHECKIN",
+      "status": "COMPLETED",
+      "timestamp": 1791021791100,
+      "note": "Day 2 Check-in Reward (+0.02 USDT)"
+    },
     {
       "id": "tx_1790766125836_checkin",
       "userId": "usr_123456789",
@@ -1110,6 +1180,58 @@
   "supportTickets": [],
   "spotOrders": [
     {
+      "id": "ord_1791022546637_dvad",
+      "userId": "usr_123456789",
+      "pair": "BNB/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 768.42,
+      "amount": 0.3042,
+      "totalUSDT": 233.753364,
+      "filledAmount": 0.3042,
+      "status": "FILLED",
+      "timestamp": 1791022546637
+    },
+    {
+      "id": "ord_1791022527197_88vw",
+      "userId": "usr_123456789",
+      "pair": "ETH/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 2681.84,
+      "amount": 0.1075,
+      "totalUSDT": 288.2978,
+      "filledAmount": 0.1075,
+      "status": "FILLED",
+      "timestamp": 1791022527197
+    },
+    {
+      "id": "ord_1791022522532_kbzc",
+      "userId": "usr_123456789",
+      "pair": "ETH/USDT",
+      "side": "BUY",
+      "type": "MARKET",
+      "price": 2681.84,
+      "amount": 0.0261,
+      "totalUSDT": 69.996024,
+      "filledAmount": 0.0261,
+      "status": "FILLED",
+      "timestamp": 1791022522532
+    },
+    {
+      "id": "ord_1791022505567_xgfs",
+      "userId": "usr_123456789",
+      "pair": "BTC/USDT",
+      "side": "SELL",
+      "type": "MARKET",
+      "price": 84580.76,
+      "amount": 0.001,
+      "totalUSDT": 84.58076,
+      "filledAmount": 0.001,
+      "status": "FILLED",
+      "timestamp": 1791022505567
+    },
+    {
       "id": "ord_1790513733208_4h2m",
       "userId": "usr_123456789",
       "pair": "BNB/USDT",
@@ -1312,6 +1434,11 @@
           "status": "APPROVED",
           "proof": "@rifa",
           "timestamp": 1790106499569
+        },
+        {
+          "taskId": "task-web-whitepaper",
+          "status": "APPROVED",
+          "timestamp": 1791022324239
         }
       ]
     ]
@@ -1363,11 +1490,9 @@
     [
       "usr_123456789",
       {
-        "date": "2026-09-27",
-        "count": 1,
-        "openedBoxIds": [
-          5
-        ]
+        "date": "2026-10-03",
+        "count": 0,
+        "openedBoxIds": []
       }
     ]
   ],
@@ -1421,7 +1546,7 @@
           "rewardAsset": "E4F",
           "rewardAmount": 0.1,
           "color": "#10B981",
-          "isOpened": true
+          "isOpened": false
         }
       ]
     ],
@@ -1530,10 +1655,11 @@
     [
       "usr_123456789",
       {
-        "currentStreak": 1,
-        "lastDate": "2026-09-30",
+        "currentStreak": 2,
+        "lastDate": "2026-10-03",
         "claimedDays": [
-          1
+          1,
+          2
         ]
       }
     ],
@@ -2317,7 +2443,76 @@
         "adOpenedAt": 0,
         "watchStarted": false
       }
+    ],
+    [
+      "ad_1791021711798_7tbz97b",
+      {
+        "sessionId": "ad_1791021711798_7tbz97b",
+        "userId": "usr_123456789",
+        "actionType": "MINING",
+        "startedAt": 0,
+        "endsAt": 1791022611798,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "e4b4c0d7a6cb6c3efd3185b0385c4be7e9f9229d524c6d1e",
+        "createdAt": 1791021711798,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791021780650_3xsz7f7",
+      {
+        "sessionId": "ad_1791021780650_3xsz7f7",
+        "userId": "usr_123456789",
+        "actionType": "SPIN",
+        "startedAt": 0,
+        "endsAt": 1791022680650,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "2a956e24b8e9c8f43c8618388ab3c444e6cf8a31b33683e4",
+        "createdAt": 1791021780650,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791022558893_tyhaxka",
+      {
+        "sessionId": "ad_1791022558893_tyhaxka",
+        "userId": "usr_123456789",
+        "actionType": "MINING",
+        "startedAt": 0,
+        "endsAt": 1791023458893,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "63ec1a86fa986342a2470c65da63c4223f8927581fd32ef4",
+        "createdAt": 1791022558893,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
+    ],
+    [
+      "ad_1791022572576_amy21t8",
+      {
+        "sessionId": "ad_1791022572576_amy21t8",
+        "userId": "usr_123456789",
+        "actionType": "GIFT_BOX",
+        "targetId": 1,
+        "startedAt": 0,
+        "endsAt": 1791023472576,
+        "durationSeconds": 30,
+        "verified": false,
+        "consumed": false,
+        "token": "a140cb26af5ba40aad11205c4d30a0bb98ec02c073d672c2",
+        "createdAt": 1791022572576,
+        "adOpenedAt": 0,
+        "watchStarted": false
+      }
     ]
   ],
-  "lastSaved": 1790945656133
+  "lastSaved": 1791023084184
 }

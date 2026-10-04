@@ -53,10 +53,20 @@ export const HomeView: React.FC = () => {
     return () => clearInterval(interval);
   }, [activeMiningSession]);
 
-  // Calculate Spot Assets in USDT (BTC, ETH, USDT) - E4F is EXCLUDED before listing (Section 6 & 12)
-  const btcPrice = 68432;
-  const ethPrice = 3485;
-  const totalSpotUSDT = (balances.usdt + balances.btc * btcPrice + balances.eth * ethPrice).toFixed(2);
+  // Calculate Spot Assets in USDT (BTC, ETH, SOL, BNB, USDT, Deposit Balance, E4F)
+  const btcPrice = 68432.5;
+  const ethPrice = 3485.2;
+  const solPrice = 152.8;
+  const bnbPrice = 582.3;
+  const e4fPrice = 3.5;
+  const usdtVal = Number((balances.usdt || 0).toFixed(2));
+  const depositVal = Number(((user?.depositBalance || 0)).toFixed(2));
+  const e4fVal = Number(((balances.e4f || 0) * e4fPrice).toFixed(2));
+  const btcVal = Number(((balances.btc || 0) * btcPrice).toFixed(2));
+  const ethVal = Number(((balances.eth || 0) * ethPrice).toFixed(2));
+  const solVal = Number(((balances.sol || 0) * solPrice).toFixed(2));
+  const bnbVal = Number(((balances.bnb || 0) * bnbPrice).toFixed(2));
+  const totalSpotUSDT = (usdtVal + depositVal + e4fVal + btcVal + ethVal + solVal + bnbVal).toFixed(2);
 
   return (
     <div className="flex flex-col gap-4 pb-20 pt-2 px-4 max-w-md mx-auto">

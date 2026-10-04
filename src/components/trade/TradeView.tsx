@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowUpDown, AlertCircle, CheckCircle2, History, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { api } from '../../services/api';
+import { api, formatCoinBalance } from '../../services/api';
 import { OrderBook, SpotOrder } from '../../types';
 import { OrderBookView } from './OrderBookView';
 
 export const TradeView: React.FC = () => {
-  const { user, balances, refreshProfile, addToast, language } = useApp();
+  const { user, balances, refreshProfile, updateBalances, addToast, language } = useApp();
   const [selectedPair, setSelectedPair] = useState<string>('BTC/USDT');
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
   const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT'>('MARKET');
@@ -18,6 +18,18 @@ export const TradeView: React.FC = () => {
   const [activeTabSub, setActiveTabSub] = useState<'BOOK' | 'ORDERS'>('BOOK');
 
   const pairs = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'E4F/USDT'];
+
+  // Sync default price when pair switches
+  useEffect(() => {
+    let defaultPrice = '68432.50';
+    if (selectedPair.includes('ETH')) defaultPrice = '3485.20';
+    else if (selectedPair.includes('SOL')) defaultPrice = '152.80';
+    else if (selectedPair.includes('BNB')) defaultPrice = '582.30';
+    else if (selectedPair.includes('E4F')) defaultPrice = '3.50';
+    if (orderType === 'MARKET') {
+      setPriceInput(defaultPrice);
+    }
+  }, [selectedPair, orderType]);
 
   // Load Order Book & Orders
   useEffect(() => {
@@ -103,6 +115,9 @@ export const TradeView: React.FC = () => {
       });
 
       if (res.success) {
+        if (res.balances) {
+          updateBalances(res.balances);
+        }
         addToast(
           'Order Executed!',
           `Filled ${side} ${amt} ${selectedPair.split('/')[0]} @ $${res.order.price.toFixed(2)}`,
@@ -150,8 +165,11 @@ export const TradeView: React.FC = () => {
 
         {orderBook && !selectedPair.startsWith('E4F') && (
           <div className="text-right">
-            <span className="font-mono text-xs font-bold text-emerald-400">
+            <span className="font-mono text-xs font-bold text-emerald-400 block">
               ${orderBook.lastPrice.toLocaleString()}
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono">
+              Bal: <strong className="text-white">{formatCoinBalance(availableCoin, baseSymbol === 'btc' || baseSymbol === 'eth' ? 6 : 4)}</strong> {selectedPair.split('/')[0]}
             </span>
           </div>
         )}
@@ -278,16 +296,20 @@ export const TradeView: React.FC = () => {
               </div>
 
               {/* Available & Total Info */}
-              <div className="text-[10px] text-slate-400 space-y-0.5 pt-1">
-                <div className="flex justify-between">
-                  <span>Available:</span>
-                  <span className="font-mono text-slate-200">
-                    {side === 'BUY'
-                      ? `${availableUSDT.toFixed(2)} USDT`
-                      : `${availableCoin} ${selectedPair.split('/')[0]}`}
+              <div className="text-[10px] text-slate-400 space-y-1 pt-1.5 pb-1 px-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                <div className="flex justify-between items-center">
+                  <span>Available USDT:</span>
+                  <span className="font-mono font-semibold text-slate-200">
+                    {availableUSDT.toFixed(2)} USDT
                   </span>
                 </div>
-                <div className="flex justify-between font-semibold">
+                <div className="flex justify-between items-center">
+                  <span>{selectedPair.split('/')[0]} Balance:</span>
+                  <span className="font-mono font-bold text-emerald-400">
+                    {formatCoinBalance(availableCoin, baseSymbol === 'btc' || baseSymbol === 'eth' ? 6 : 4)} {selectedPair.split('/')[0]}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center font-semibold pt-1 border-t border-slate-800/60">
                   <span>Total Cost:</span>
                   <span className="font-mono text-amber-400">${totalCost} USDT</span>
                 </div>

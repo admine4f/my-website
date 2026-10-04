@@ -1,4 +1,4 @@
-import { UserAccount, WalletBalances, MiningStats, MarketAsset, CandlestickData, OrderBook, SpotOrder, SocialTask, GiftBox, DailyCheckInState, Announcement, SupportTicket, TransactionRecord } from '../types';
+import { UserAccount, WalletBalances, MiningStats, MiningSession, MarketAsset, CandlestickData, OrderBook, SpotOrder, SocialTask, GiftBox, DailyCheckInState, Announcement, SupportTicket, TransactionRecord } from '../types';
 
 export async function parseResponseJson<T = any>(res: Response): Promise<T | null> {
   try {
@@ -14,19 +14,62 @@ export async function parseResponseJson<T = any>(res: Response): Promise<T | nul
   }
 }
 
+export function cleanWalletBalances(b: WalletBalances): WalletBalances {
+  return {
+    usdt: Number(Number(b.usdt || 0).toFixed(4)),
+    e4f: Number(Number(b.e4f || 0).toFixed(4)),
+    btc: Number(Number(b.btc || 0).toFixed(6)),
+    eth: Number(Number(b.eth || 0).toFixed(6)),
+    sol: Number(Number(b.sol || 0).toFixed(6)),
+    bnb: Number(Number(b.bnb || 0).toFixed(6)),
+    depositBalance: b.depositBalance !== undefined ? Number(Number(b.depositBalance || 0).toFixed(4)) : undefined,
+  };
+}
+
+export function formatCoinBalance(val?: number | null, maxDecimals = 6): string {
+  if (val === undefined || val === null || isNaN(val)) return '0';
+  if (val === 0) return '0';
+  const rounded = Number(val.toFixed(maxDecimals));
+  return rounded.toString();
+}
+
 export function getLocalBalances(): WalletBalances {
   try {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('e4f_cached_balances') : null;
-    if (raw) return JSON.parse(raw);
+    if (raw) return cleanWalletBalances(JSON.parse(raw));
   } catch {}
   return { usdt: 25, e4f: 10, btc: 0.0024, eth: 0.0456, sol: 0.85, bnb: 0.12, depositBalance: 0 };
 }
 
 export function saveLocalBalances(b: WalletBalances) {
   try {
+    const cleaned = cleanWalletBalances(b);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('e4f_cached_balances', JSON.stringify(b));
-      window.dispatchEvent(new CustomEvent('e4f_balances_updated', { detail: b }));
+      localStorage.setItem('e4f_cached_balances', JSON.stringify(cleaned));
+      window.dispatchEvent(new CustomEvent('e4f_balances_updated', { detail: cleaned }));
+    }
+  } catch {}
+}
+
+export function getLocalTransactions(userId?: string): TransactionRecord[] {
+  try {
+    const key = userId ? `e4f_txs_${userId}` : 'e4f_txs';
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+export function saveLocalTransaction(userId: string | undefined, tx: TransactionRecord) {
+  try {
+    if (typeof window !== 'undefined') {
+      const key = userId ? `e4f_txs_${userId}` : 'e4f_txs';
+      const existing = getLocalTransactions(userId);
+      existing.unshift(tx);
+      localStorage.setItem(key, JSON.stringify(existing.slice(0, 100)));
     }
   } catch {}
 }
@@ -279,8 +322,8 @@ export const api = {
     };
 
     const cleanBalances: WalletBalances = {
-      usdt: 0,
-      e4f: 0,
+      usdt: 25.0,
+      e4f: 10.0,
       btc: 0.0024,
       eth: 0.0456,
       sol: 0.85,
@@ -306,7 +349,7 @@ export const api = {
     return {
       user: localUser,
       balances: localBalances,
-      recentTransactions: [],
+      recentTransactions: getLocalTransactions(userId),
       serverTime: Date.now(),
     };
   },
@@ -1012,6 +1055,22 @@ export const api = {
     }
     saveLocalBalances(balances);
 
+    try {
+      const tx: TransactionRecord = {
+        id: `tx_${Date.now()}_task`,
+        userId,
+        asset: rewardAsset as any,
+        amount: rewardAmount,
+        direction: 'IN',
+        source: 'TASK_REWARD',
+        status: 'COMPLETED',
+        timestamp: Date.now(),
+        referenceId: taskId,
+        note: `Completed task: ${task?.title || taskId}`,
+      };
+      saveLocalTransaction(userId, tx);
+    } catch {}
+
     return {
       success: true,
       rewardAmount,
@@ -1374,6 +1433,8 @@ export const api = {
         return data;
       }
     } catch {}
+
+    const totalUSDT = Number((orderData.price * orderData.amount).toFixed(2));
     const order: SpotOrder = {
       id: `ord_${Date.now()}`,
       userId,
@@ -1382,13 +1443,61 @@ export const api = {
       type: orderData.type,
       price: orderData.price,
       amount: orderData.amount,
-      totalUSDT: Number((orderData.price * orderData.amount).toFixed(2)),
+      totalUSDT,
       filledAmount: orderData.amount,
       status: 'FILLED',
       timestamp: Date.now(),
     };
+
     const balances = getLocalBalances();
+    const rawSymbol = (orderData.pair.split('/')[0] || '').toLowerCase();
+    const baseKey = (rawSymbol === 'e4f' ? 'e4f' : rawSymbol) as keyof WalletBalances;
+
+    if (orderData.side === 'BUY') {
+      // User buys coin with USDT
+      if ((balances.usdt || 0) < totalUSDT) {
+        throw new Error(`Insufficient USDT balance. Available: ${(balances.usdt || 0).toFixed(2)} USDT, Required: ${totalUSDT.toFixed(2)} USDT`);
+      }
+      balances.usdt = Math.max(0, Number(((balances.usdt || 0) - totalUSDT).toFixed(4)));
+      (balances as any)[baseKey] = Number((((balances as any)[baseKey] || 0) + orderData.amount).toFixed(6));
+    } else {
+      // User sells coin for USDT
+      const currentCoinAmt = (balances as any)[baseKey] || 0;
+      if (currentCoinAmt < orderData.amount) {
+        throw new Error(`Insufficient ${orderData.pair.split('/')[0]} balance. Available: ${currentCoinAmt}`);
+      }
+      (balances as any)[baseKey] = Math.max(0, Number((currentCoinAmt - orderData.amount).toFixed(6)));
+      balances.usdt = Number(((balances.usdt || 0) + totalUSDT).toFixed(4));
+    }
+
     saveLocalBalances(balances);
+
+    try {
+      if (typeof window !== 'undefined') {
+        const key = `e4f_orders_${userId}`;
+        const raw = localStorage.getItem(key);
+        const existing = raw ? JSON.parse(raw) : [];
+        existing.unshift(order);
+        localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+      }
+    } catch {}
+
+    try {
+      const tx: TransactionRecord = {
+        id: `tx_${Date.now()}_trade`,
+        userId,
+        asset: orderData.side === 'BUY' ? 'USDT' : (orderData.pair.split('/')[0] as any),
+        amount: orderData.side === 'BUY' ? totalUSDT : orderData.amount,
+        direction: orderData.side === 'BUY' ? 'OUT' : 'IN',
+        source: orderData.side === 'BUY' ? 'SPOT_TRADE_BUY' : 'SPOT_TRADE_SELL',
+        status: 'COMPLETED',
+        timestamp: Date.now(),
+        referenceId: order.id,
+        note: `${orderData.side} ${orderData.amount} ${orderData.pair} @ ${orderData.price.toFixed(2)}`,
+      };
+      saveLocalTransaction(userId, tx);
+    } catch {}
+
     return { success: true, order, balances };
   },
 
@@ -1397,6 +1506,12 @@ export const api = {
       const res = await fetch(`/api/trade/${userId}/orders`);
       const data = await parseResponseJson(res);
       if (res.ok && data && Array.isArray(data.orders)) return data;
+    } catch {}
+    try {
+      if (typeof window !== 'undefined') {
+        const raw = localStorage.getItem(`e4f_orders_${userId}`);
+        if (raw) return { orders: JSON.parse(raw) };
+      }
     } catch {}
     return { orders: [] };
   },

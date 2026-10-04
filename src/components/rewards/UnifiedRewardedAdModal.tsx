@@ -330,79 +330,42 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   const currentBurstStartTimeRef = useRef<number | null>(null);
   const isVerifyingRef = useRef<boolean>(false);
   const triggerAutoClaimRef = useRef<() => void>(() => {});
-  const stepRef = useRef(step);
-  stepRef.current = step;
-
-  // Pause watching if user leaves tab, switches window, or minimizes
-  const pauseAdWatching = useCallback(() => {
-    if (stepRef.current !== 'WATCHING' || !currentBurstStartTimeRef.current) return;
-    const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
-    const burstElapsed = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
-    const accumulated = Math.min(targetSec, totalWatchedSecondsRef.current + burstElapsed);
-
-    totalWatchedSecondsRef.current = accumulated;
-    setSecondsWatched(accumulated);
-    currentBurstStartTimeRef.current = null;
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    if (accumulated >= targetSec) {
-      setStep('COMPLETED');
-      triggerAutoClaimRef.current();
-    } else {
-      // User switched tabs or left before 30s: pause timer at watched seconds and show remaining seconds!
-      setStep('EARLY_EXIT');
-    }
-  }, []);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        pauseAdWatching();
-      } else if (document.visibilityState === 'visible') {
-        if (stepRef.current === 'WATCHING' && currentBurstStartTimeRef.current) {
-          const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
-          const burstElapsed = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
-          const accumulated = Math.min(targetSec, totalWatchedSecondsRef.current + burstElapsed);
-          totalWatchedSecondsRef.current = accumulated;
-          setSecondsWatched(accumulated);
+      if (!isMountedRef.current || !hasStartedRef.current || !currentBurstStartTimeRef.current) return;
 
-          if (accumulated >= targetSec) {
-            currentBurstStartTimeRef.current = null;
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-              timerRef.current = null;
-            }
-            setStep('COMPLETED');
-            triggerAutoClaimRef.current();
-          } else {
-            // User returned before completing full duration -> pause at watched time!
-            currentBurstStartTimeRef.current = null;
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-              timerRef.current = null;
-            }
-            setStep('EARLY_EXIT');
-          }
+      if (document.visibilityState === 'visible') {
+        const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
+        const burstElapsed = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
+        const accumulated = Math.min(targetSec, totalWatchedSecondsRef.current + burstElapsed);
+        setSecondsWatched(accumulated);
+
+        if (accumulated >= targetSec) {
+          totalWatchedSecondsRef.current = targetSec;
+          currentBurstStartTimeRef.current = null;
+          if (timerRef.current) clearInterval(timerRef.current);
+          setStep('COMPLETED');
+          triggerAutoClaimRef.current();
+        } else {
+          // User returned before completing full duration (e.g. 10s watched of 30s)
+          // Stop timer right here, freeze time, show remaining seconds, require user to continue!
+          totalWatchedSecondsRef.current = accumulated;
+          currentBurstStartTimeRef.current = null;
+          if (timerRef.current) clearInterval(timerRef.current);
+          setStep('EARLY_EXIT');
         }
       }
     };
 
-    const handleWindowBlur = () => {
-      pauseAdWatching();
-    };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleVisibilityChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleVisibilityChange);
     };
-  }, [pauseAdWatching]);
+  }, []);
 
   // 4. User Clicks "Watch Ad Now"
   const handleWatchAdClick = async (e?: React.MouseEvent) => {

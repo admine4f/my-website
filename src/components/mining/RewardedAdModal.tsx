@@ -101,7 +101,6 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
       if (!hasStartedRef.current || !currentBurstStartTimeRef.current) return;
 
       if (document.visibilityState === 'visible') {
-        // User came back to the app from the ad
         const currentBurstElapsed = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
         const accumulated = Math.min(
           REQUIRED_MINING_SECONDS,
@@ -115,6 +114,11 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
           if (timerRef.current) clearInterval(timerRef.current);
           setStep('COMPLETED');
           triggerAutoVerifyRef.current();
+        } else {
+          totalWatchedSecondsRef.current = accumulated;
+          currentBurstStartTimeRef.current = null;
+          if (timerRef.current) clearInterval(timerRef.current);
+          setStep('EARLY_EXIT');
         }
       }
     };

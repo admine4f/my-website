@@ -40,6 +40,7 @@ interface AppContextType {
   activeMiningSession: MiningSession | null;
   refreshMining: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateBalances: (b: WalletBalances) => void;
   notifications: AppNotification[];
   addToast: (title: string, message: string, type?: 'info' | 'success' | 'error') => void;
   toasts: ToastItem[];
@@ -172,6 +173,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
   }, []);
 
+  // Listen for local balance update events (instant UI reactivity on buy/sell/claim)
+  useEffect(() => {
+    const handleBalancesUpdated = (e: any) => {
+      if (e.detail) {
+        setBalances(e.detail);
+      }
+    };
+    window.addEventListener('e4f_balances_updated', handleBalancesUpdated);
+    return () => window.removeEventListener('e4f_balances_updated', handleBalancesUpdated);
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     try {
@@ -189,6 +201,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error(e);
     }
   }, [user]);
+
+  const updateBalances = useCallback((newBalances: WalletBalances) => {
+    setBalances(newBalances);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('e4f_cached_balances', JSON.stringify(newBalances));
+        window.dispatchEvent(new CustomEvent('e4f_balances_updated', { detail: newBalances }));
+      }
+    } catch {}
+  }, []);
 
   const refreshMining = useCallback(async () => {
     if (!user) return;
@@ -227,6 +249,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeMiningSession: miningStats?.activeSession || null,
         refreshMining,
         refreshProfile,
+        updateBalances,
         notifications,
         addToast,
         toasts,

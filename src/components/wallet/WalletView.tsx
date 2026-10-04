@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, History, Shield, AlertCircle, Filter } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { api } from '../../services/api';
+import { api, formatCoinBalance } from '../../services/api';
 import { TransactionRecord } from '../../types';
 
 export const WalletView: React.FC = () => {
@@ -47,8 +47,17 @@ export const WalletView: React.FC = () => {
     openModal('WITHDRAW');
   };
 
-  // Total Spot calculation (BTC & ETH included at standard prices; E4F strictly excluded before listing)
-  const totalSpotUSD = (balances.usdt + balances.btc * 68432 + balances.eth * 3485).toFixed(2);
+  // Exact coin USD calculations matching individual cards:
+  const usdtVal = Number((balances.usdt || 0).toFixed(2));
+  const depositVal = Number(((user?.depositBalance || 0)).toFixed(2));
+  const e4fVal = Number(((balances.e4f || 0) * 3.5).toFixed(2));
+  const btcVal = Number(((balances.btc || 0) * 68432.5).toFixed(2));
+  const ethVal = Number(((balances.eth || 0) * 3485.2).toFixed(2));
+  const solVal = Number(((balances.sol || 0) * 152.8).toFixed(2));
+  const bnbVal = Number(((balances.bnb || 0) * 582.3).toFixed(2));
+
+  // Total Spot calculation: exact mathematical sum of all coins and available balance
+  const totalSpotUSD = (usdtVal + depositVal + e4fVal + btcVal + ethVal + solVal + bnbVal).toFixed(2);
 
   const filteredTxs = transactions.filter(t => {
     if (filterSource === 'ALL') return true;
@@ -194,8 +203,8 @@ export const WalletView: React.FC = () => {
             <div className="font-mono text-sm font-bold text-amber-300">
               {balances.e4f.toFixed(2)} E4F
             </div>
-            <div className="text-[10px] text-slate-500 font-mono">
-              Price: <span className="text-slate-400">—</span> | Value: <span className="text-slate-400">—</span>
+            <div className="text-[10px] text-slate-400 font-mono">
+              Price: $3.50 | ≈ ${e4fVal.toFixed(2)}
             </div>
           </div>
         </div>
@@ -215,10 +224,10 @@ export const WalletView: React.FC = () => {
           </div>
           <div className="text-right">
             <div className="font-mono text-sm font-bold text-white">
-              {balances.btc}
+              {formatCoinBalance(balances.btc, 6)}
             </div>
             <div className="text-[10px] text-slate-400 font-mono">
-              ≈ ${(balances.btc * 68432).toFixed(2)}
+              ≈ ${btcVal.toFixed(2)}
             </div>
           </div>
         </div>
@@ -238,10 +247,56 @@ export const WalletView: React.FC = () => {
           </div>
           <div className="text-right">
             <div className="font-mono text-sm font-bold text-white">
-              {balances.eth}
+              {formatCoinBalance(balances.eth, 6)}
             </div>
             <div className="text-[10px] text-slate-400 font-mono">
-              ≈ ${(balances.eth * 3485).toFixed(2)}
+              ≈ ${ethVal.toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        {/* 5. SOL Card */}
+        <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="https://cryptologos.cc/logos/solana-sol-logo.svg?v=040"
+              alt="SOL"
+              className="w-8 h-8 rounded-full p-0.5 bg-slate-900"
+            />
+            <div>
+              <div className="font-bold text-xs text-white">SOL</div>
+              <div className="text-[10px] text-slate-400">Solana</div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-mono text-sm font-bold text-white">
+              {formatCoinBalance(balances.sol, 4)}
+            </div>
+            <div className="text-[10px] text-slate-400 font-mono">
+              ≈ ${solVal.toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        {/* 6. BNB Card */}
+        <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="https://cryptologos.cc/logos/bnb-bnb-logo.svg?v=040"
+              alt="BNB"
+              className="w-8 h-8 rounded-full p-0.5 bg-slate-900"
+            />
+            <div>
+              <div className="font-bold text-xs text-white">BNB</div>
+              <div className="text-[10px] text-slate-400">BNB Chain</div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-mono text-sm font-bold text-white">
+              {formatCoinBalance(balances.bnb, 4)}
+            </div>
+            <div className="text-[10px] text-slate-400 font-mono">
+              ≈ ${bnbVal.toFixed(2)}
             </div>
           </div>
         </div>

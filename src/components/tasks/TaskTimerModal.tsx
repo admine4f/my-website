@@ -107,7 +107,7 @@ export const TaskTimerModal: React.FC<TaskTimerModalProps> = ({
     };
   }, [userId, task.id, durationSeconds]);
 
-  // 2. Visibility change & Focus event listener (smooth background synchronization)
+  // 2. Visibility change & Focus event listener (smooth synchronization, freeze if user returns early)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!isMountedRef.current || !hasStartedRef.current || !currentBurstStartTimeRef.current) return;
@@ -123,6 +123,13 @@ export const TaskTimerModal: React.FC<TaskTimerModalProps> = ({
           currentBurstStartTimeRef.current = null;
           if (timerRef.current) clearInterval(timerRef.current);
           setStep('COMPLETED');
+        } else {
+          // User returned before completing full duration (e.g. 10s of 30s)
+          // Stop timer right here, freeze time, show remaining seconds, require user to continue!
+          accumulatedSecondsRef.current = accumulated;
+          currentBurstStartTimeRef.current = null;
+          if (timerRef.current) clearInterval(timerRef.current);
+          setStep('EARLY_EXIT');
         }
       }
     };
@@ -345,35 +352,35 @@ export const TaskTimerModal: React.FC<TaskTimerModalProps> = ({
         {/* STATE: EARLY_EXIT */}
         {step === 'EARLY_EXIT' && (
           <div className="py-2 flex flex-col items-center justify-center gap-3 animate-in fade-in">
-            {/* Amber icon with glow */}
-            <div className="w-14 h-14 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mx-auto shadow-inner">
-              <Clock className="w-7 h-7" />
+            {/* Amber icon with glow - matches Screenshot 1 */}
+            <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mx-auto shadow-inner">
+              <Clock className="w-6 h-6" />
             </div>
 
             <div className="space-y-1">
-              <div className="text-sm font-extrabold text-amber-400 uppercase tracking-wide">
-                {actionNoun === 'Watch' ? 'Watch/Visit' : 'Visit'} PAUSED
+              <div className="text-sm font-extrabold text-amber-300 uppercase tracking-wide">
+                TASK {actionNoun.toUpperCase()} PAUSED
               </div>
-              <div className="text-xs font-semibold text-slate-300">
-                Progress: <span className="text-amber-400 font-bold">{secondsWatched}s</span> completed of {durationSeconds}s.
+              <div className="text-[11px] font-semibold text-slate-300">
+                Watched <span className="text-amber-400 font-bold">{secondsWatched}s</span> of {durationSeconds}s required.
               </div>
             </div>
 
             {errorMsg && <p className="text-[11px] text-amber-400 px-2">{errorMsg}</p>}
 
-            {/* Prominent Resume Button */}
+            {/* Prominent Resume Button - matches Screenshot 1 */}
             <button
               onClick={handleStartOrResume}
-              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
             >
               <Play className="w-4 h-4 fill-slate-950" />
               <span>
-                Resume {actionNoun === 'Watch' ? 'Watching' : 'Visiting'} ({remainingSeconds}s remaining)
+                Continue {actionNoun} ({remainingSeconds}s remaining)
               </span>
             </button>
 
             <p className="text-[10px] text-slate-500 pt-1">
-              Progress saved at {secondsWatched}s. Click above to continue to reward.
+              Time is paused. Click above to continue watching until completed.
             </p>
           </div>
         )}

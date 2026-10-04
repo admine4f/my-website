@@ -84,8 +84,12 @@ export const TasksModal: React.FC<TasksModalProps> = ({ onClose }) => {
 
   // Handle "Go" / "Visit" Button Click
   const handleGoTask = async (task: TaskItem) => {
-    // If task has TIMER verification or configured duration, open TaskTimerModal
-    const isTimer = task.verificationMethod === 'TIMER' || Boolean(task.durationSeconds && task.durationSeconds > 0);
+    // If task has TIMER verification or configured duration or is website/youtube/tiktok, open TaskTimerModal
+    const isTimer =
+      task.verificationMethod === 'TIMER' ||
+      Boolean(task.durationSeconds && task.durationSeconds > 0) ||
+      ['WEBSITE', 'YOUTUBE', 'TIKTOK', 'VIDEO'].includes((task.platform || '').toUpperCase());
+
     if (isTimer) {
       setActiveTimerTask(task);
       return;
@@ -99,7 +103,11 @@ export const TasksModal: React.FC<TasksModalProps> = ({ onClose }) => {
 
   // Open Proof Verification Modal
   const handleOpenVerifyModal = (task: TaskItem) => {
-    const isTimer = task.verificationMethod === 'TIMER' || Boolean(task.durationSeconds && task.durationSeconds > 0);
+    const isTimer =
+      task.verificationMethod === 'TIMER' ||
+      Boolean(task.durationSeconds && task.durationSeconds > 0) ||
+      ['WEBSITE', 'YOUTUBE', 'TIKTOK', 'VIDEO'].includes((task.platform || '').toUpperCase());
+
     if (isTimer) {
       setActiveTimerTask(task);
       return;
