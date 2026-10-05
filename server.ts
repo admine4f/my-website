@@ -2,6 +2,16 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+
+export const supabase: SupabaseClient | null = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    })
+  : null;
 
 const app = express();
 const PORT = 3000;
@@ -43,10 +53,16 @@ interface UserRecord {
 interface BalanceRecord {
   usdt: number;
   e4f: number;
+  bnb: number;
   btc: number;
   eth: number;
   sol: number;
-  bnb: number;
+  ton?: number;
+  xrp?: number;
+  doge?: number;
+  ada?: number;
+  trx?: number;
+  ltc?: number;
 }
 
 interface TxRecord {
@@ -64,6 +80,7 @@ interface TxRecord {
   network?: string;
   fee?: number;
   userDepositTotal?: number;
+  txHash?: string;
 }
 
 interface MiningRecord {
@@ -187,7 +204,7 @@ const systemSettings = {
   e4fListingStatus: 'PENDING_LISTING',
   e4fPlannedListingDate: '2028-02-28',
   e4fPlannedTargetPriceRange: '3–5 USDT',
-  depositsEnabled: true,
+  depositsEnabled: false,
   withdrawalsEnabled: true,
   minWithdrawalLimit: 0.1,
   maxWithdrawalLimit: 1000.0,
@@ -443,13 +460,11 @@ const spotOrders: Array<{
 }> = [];
 
 // ====================================================
-// Atomic File-Based Persistence Engine (app-database.json + app-database.json.bak)
-// Ensures users, balances, transactions, and state NEVER wipe on updates
-// 90-Day Retention Policy strictly preserves history for 90 days
+// Supabase-Backed Persistence Engine
+// Table: balances (user_id, USDT, E4F, BNB, BTC, ETH, SOL, TON, XRP, DOGE, ADA, TRX, LTC)
+// Completely removes local file system dependency (.db_content.json / app-database.json)
+// Perfectly compatible with Vercel Serverless & prevents balances resetting to 0
 // ====================================================
-const DB_FILE = path.join(process.cwd(), 'app-database.json');
-const DB_BACKUP_FILE = path.join(process.cwd(), '.app-database.bak');
-const DB_TMP_FILE = path.join(process.cwd(), '.app-database.tmp');
 
 let isDbDirty = false;
 function markDbDirty() {
@@ -458,8 +473,6 @@ function markDbDirty() {
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
 
-// 90-Day Retention Policy: All history (transactions, spot orders, referrals, task submissions, audit logs)
-// is preserved for 90 days. Records strictly older than 90 days are sequentially and progressively purged.
 function apply90DayRetentionPolicy(): {
   purgedTransactions: number;
   purgedOrders: number;
@@ -474,7 +487,6 @@ function apply90DayRetentionPolicy(): {
   let purgedSubmissions = 0;
   let purgedReferrals = 0;
 
-  // 1. Transactions: Purge only completed/rejected records older than 90 days (never purge pending)
   for (let i = transactions.length - 1; i >= 0; i--) {
     if (transactions[i].timestamp < cutoff && transactions[i].status !== 'PENDING') {
       transactions.splice(i, 1);
@@ -482,7 +494,6 @@ function apply90DayRetentionPolicy(): {
     }
   }
 
-  // 2. Spot Orders: Purge filled/cancelled orders older than 90 days
   for (let i = spotOrders.length - 1; i >= 0; i--) {
     if (spotOrders[i].timestamp < cutoff) {
       spotOrders.splice(i, 1);
@@ -490,7 +501,6 @@ function apply90DayRetentionPolicy(): {
     }
   }
 
-  // 3. Referral History: Purge inactive records older than 90 days
   for (let i = referralHistory.length - 1; i >= 0; i--) {
     if (referralHistory[i].timestamp < cutoff && referralHistory[i].status !== 'ACTIVE') {
       referralHistory.splice(i, 1);
@@ -498,7 +508,6 @@ function apply90DayRetentionPolicy(): {
     }
   }
 
-  // 4. Audit logs: Purge logs older than 90 days
   for (let i = auditLogs.length - 1; i >= 0; i--) {
     if (auditLogs[i].timestamp < cutoff) {
       auditLogs.splice(i, 1);
@@ -506,7 +515,6 @@ function apply90DayRetentionPolicy(): {
     }
   }
 
-  // 5. Task submissions: Purge resolved submissions older than 90 days
   for (let i = taskSubmissionsQueue.length - 1; i >= 0; i--) {
     if (taskSubmissionsQueue[i].timestamp < cutoff && taskSubmissionsQueue[i].status !== 'SUBMITTED') {
       taskSubmissionsQueue.splice(i, 1);
@@ -517,208 +525,133 @@ function apply90DayRetentionPolicy(): {
   return { purgedTransactions, purgedOrders, purgedLogs, purgedSubmissions, purgedReferrals };
 }
 
+// Parse balances row from Supabase
+function parseSupabaseBalance(row: any): BalanceRecord {
+  if (!row) {
+    return { usdt: 0, e4f: 0, bnb: 0, btc: 0, eth: 0, sol: 0, ton: 0, xrp: 0, doge: 0, ada: 0, trx: 0, ltc: 0 };
+  }
+  const getVal = (col: string) => {
+    if (row[col] !== undefined && row[col] !== null) return Number(row[col]);
+    const lower = col.toLowerCase();
+    if (row[lower] !== undefined && row[lower] !== null) return Number(row[lower]);
+    const upper = col.toUpperCase();
+    if (row[upper] !== undefined && row[upper] !== null) return Number(row[upper]);
+    return 0;
+  };
+
+  return {
+    usdt: getVal('USDT'),
+    e4f: getVal('E4F'),
+    bnb: getVal('BNB'),
+    btc: getVal('BTC'),
+    eth: getVal('ETH'),
+    sol: getVal('SOL'),
+    ton: getVal('TON'),
+    xrp: getVal('XRP'),
+    doge: getVal('DOGE'),
+    ada: getVal('ADA'),
+    trx: getVal('TRX'),
+    ltc: getVal('LTC'),
+  };
+}
+
+// Read balance directly from Supabase table 'balances'
+async function getSupabaseBalance(userId: string): Promise<BalanceRecord> {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('balances')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!error && data) {
+        const parsed = parseSupabaseBalance(data);
+        balances.set(userId, parsed);
+        return parsed;
+      }
+    } catch (err) {
+      console.warn('[Supabase] Failed to fetch balance for user:', userId, err);
+    }
+  }
+
+  let bal = balances.get(userId);
+  if (!bal) {
+    bal = { usdt: 0, e4f: 0, bnb: 0, btc: 0, eth: 0, sol: 0, ton: 0, xrp: 0, doge: 0, ada: 0, trx: 0, ltc: 0 };
+    balances.set(userId, bal);
+  }
+  return bal;
+}
+
+// Write balance directly to Supabase table 'balances'
+async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRecord>): Promise<BalanceRecord> {
+  const current = await getSupabaseBalance(userId);
+  const updated: BalanceRecord = {
+    usdt: newBalance.usdt !== undefined ? Number(Number(newBalance.usdt).toFixed(6)) : current.usdt,
+    e4f: newBalance.e4f !== undefined ? Number(Number(newBalance.e4f).toFixed(6)) : current.e4f,
+    bnb: newBalance.bnb !== undefined ? Number(Number(newBalance.bnb).toFixed(6)) : current.bnb,
+    btc: newBalance.btc !== undefined ? Number(Number(newBalance.btc).toFixed(6)) : current.btc,
+    eth: newBalance.eth !== undefined ? Number(Number(newBalance.eth).toFixed(6)) : current.eth,
+    sol: newBalance.sol !== undefined ? Number(Number(newBalance.sol).toFixed(6)) : current.sol,
+    ton: newBalance.ton !== undefined ? Number(Number(newBalance.ton).toFixed(6)) : (current.ton || 0),
+    xrp: newBalance.xrp !== undefined ? Number(Number(newBalance.xrp).toFixed(6)) : (current.xrp || 0),
+    doge: newBalance.doge !== undefined ? Number(Number(newBalance.doge).toFixed(6)) : (current.doge || 0),
+    ada: newBalance.ada !== undefined ? Number(Number(newBalance.ada).toFixed(6)) : (current.ada || 0),
+    trx: newBalance.trx !== undefined ? Number(Number(newBalance.trx).toFixed(6)) : (current.trx || 0),
+    ltc: newBalance.ltc !== undefined ? Number(Number(newBalance.ltc).toFixed(6)) : (current.ltc || 0),
+  };
+
+  balances.set(userId, updated);
+
+  if (supabase) {
+    try {
+      const payload = {
+        user_id: userId,
+        USDT: updated.usdt,
+        E4F: updated.e4f,
+        BNB: updated.bnb,
+        BTC: updated.btc,
+        ETH: updated.eth,
+        SOL: updated.sol,
+        TON: updated.ton || 0,
+        XRP: updated.xrp || 0,
+        DOGE: updated.doge || 0,
+        ADA: updated.ada || 0,
+        TRX: updated.trx || 0,
+        LTC: updated.ltc || 0,
+      };
+
+      const { error } = await supabase
+        .from('balances')
+        .upsert(payload, { onConflict: 'user_id' });
+
+      if (error) {
+        console.warn('[Supabase] Warning on balances upsert:', error.message);
+      }
+    } catch (err) {
+      console.warn('[Supabase] Failed to persist balance for user:', userId, err);
+    }
+  }
+
+  return updated;
+}
+
+// In-memory / serverless safe persistence sync (no local file writes)
 function persistDatabaseSync() {
   isDbDirty = false;
-  try {
-    const data = {
-      users: Array.from(users.entries()),
-      balances: Array.from(balances.entries()),
-      transactions,
-      referralHistory,
-      miningSessions,
-      auditLogs,
-      dynamicTasks,
-      announcements,
-      supportTickets,
-      spotOrders,
-      userTaskSubmissions: Array.from(userTaskSubmissions.entries()),
-      taskSubmissionsQueue,
-      userDailySpins: Array.from(userDailySpins.entries()),
-      userDailyGiftBoxOpens: Array.from(userDailyGiftBoxOpens.entries()),
-      userFirstDepositClaimed: Array.from(userFirstDepositClaimed.values()),
-      userGiftBoxes: Array.from(userGiftBoxes.entries()),
-      userDailyCheckIns: Array.from(userDailyCheckIns.entries()),
-      miningAdSessions: Array.from(miningAdSessions.entries()),
-      lastSaved: Date.now(),
-    };
-
-    const jsonStr = JSON.stringify(data, null, 2);
-    // Atomic write pattern: write to tmp file first, then atomically rename to primary file
-    fs.writeFileSync(DB_TMP_FILE, jsonStr, 'utf-8');
-    fs.renameSync(DB_TMP_FILE, DB_FILE);
-    // Also mirror to secondary backup file
-    try {
-      fs.copyFileSync(DB_FILE, DB_BACKUP_FILE);
-    } catch {}
-  } catch (err) {
-    console.error('[Persistence] Failed to persist database:', err);
-  }
 }
 
-let saveTimer: any = null;
 function scheduleSaveDatabase() {
-  isDbDirty = true;
-  if (saveTimer) return;
-  saveTimer = setTimeout(() => {
-    saveTimer = null;
-    persistDatabaseSync();
-  }, 500);
+  isDbDirty = false;
 }
 
-function loadDatabaseFromDisk() {
-  try {
-    let raw = '';
-    let loadedSource = '';
-
-    // Step 1: Attempt to load from primary DB_FILE
-    if (fs.existsSync(DB_FILE)) {
-      try {
-        const primaryContent = fs.readFileSync(DB_FILE, 'utf-8');
-        if (primaryContent && primaryContent.trim().length > 0) {
-          JSON.parse(primaryContent); // validate JSON integrity
-          raw = primaryContent;
-          loadedSource = 'primary';
-        }
-      } catch (e) {
-        console.warn('[Persistence] Primary DB file is corrupt. Attempting backup recovery...', e);
-      }
-    }
-
-    // Step 2: Attempt to restore from DB_BACKUP_FILE if primary failed or was empty
-    if (!raw && fs.existsSync(DB_BACKUP_FILE)) {
-      try {
-        const backupContent = fs.readFileSync(DB_BACKUP_FILE, 'utf-8');
-        if (backupContent && backupContent.trim().length > 0) {
-          JSON.parse(backupContent);
-          raw = backupContent;
-          loadedSource = 'backup';
-          console.log('[Persistence] Successfully restored database from backup file.');
-          // Restore primary DB file from backup
-          fs.copyFileSync(DB_BACKUP_FILE, DB_FILE);
-        }
-      } catch (e) {
-        console.error('[Persistence] Backup DB file also corrupt:', e);
-      }
-    }
-
-    if (raw) {
-      const data = JSON.parse(raw);
-      if (Array.isArray(data.users)) {
-        for (const [k, v] of data.users) {
-          if (v.firstName === 'Telegram User') {
-            v.firstName = 'E4F User';
-          }
-          if (!v.depositAddress) {
-            v.depositAddress = generateUserDepositAddress(v.id || k, v.uid || '80000000');
-          }
-          users.set(k, v);
-        }
-      }
-      if (Array.isArray(data.balances)) {
-        for (const [k, v] of data.balances) {
-          balances.set(k, v);
-        }
-      }
-      if (Array.isArray(data.transactions)) {
-        transactions.length = 0;
-        transactions.push(...data.transactions);
-      }
-      if (Array.isArray(data.referralHistory)) {
-        referralHistory.length = 0;
-        referralHistory.push(...data.referralHistory);
-      }
-      if (Array.isArray(data.miningSessions)) {
-        miningSessions.length = 0;
-        miningSessions.push(...data.miningSessions);
-      }
-      if (Array.isArray(data.auditLogs)) {
-        auditLogs.length = 0;
-        auditLogs.push(...data.auditLogs);
-      }
-      if (Array.isArray(data.dynamicTasks) && data.dynamicTasks.length > 0) {
-        dynamicTasks.length = 0;
-        dynamicTasks.push(...data.dynamicTasks);
-      }
-      if (Array.isArray(data.announcements) && data.announcements.length > 0) {
-        announcements.length = 0;
-        announcements.push(...data.announcements);
-      }
-      if (Array.isArray(data.supportTickets)) {
-        supportTickets.length = 0;
-        supportTickets.push(...data.supportTickets);
-      }
-      if (Array.isArray(data.spotOrders)) {
-        spotOrders.length = 0;
-        spotOrders.push(...data.spotOrders);
-      }
-      if (Array.isArray(data.userTaskSubmissions)) {
-        for (const [k, v] of data.userTaskSubmissions) {
-          userTaskSubmissions.set(k, v);
-        }
-      }
-      if (Array.isArray(data.taskSubmissionsQueue)) {
-        taskSubmissionsQueue.length = 0;
-        taskSubmissionsQueue.push(...data.taskSubmissionsQueue);
-      }
-      if (Array.isArray(data.userDailySpins)) {
-        for (const [k, v] of data.userDailySpins) {
-          userDailySpins.set(k, v);
-        }
-      }
-      if (Array.isArray(data.userDailyGiftBoxOpens)) {
-        for (const [k, v] of data.userDailyGiftBoxOpens) {
-          if (v && (v as any).lastDate && !(v as any).date) {
-            userDailyGiftBoxOpens.set(k, {
-              date: (v as any).lastDate,
-              count: 1,
-              openedBoxIds: [1],
-            });
-          } else {
-            userDailyGiftBoxOpens.set(k, v);
-          }
-        }
-      }
-      if (Array.isArray(data.userFirstDepositClaimed)) {
-        for (const v of data.userFirstDepositClaimed) {
-          userFirstDepositClaimed.add(v);
-        }
-      }
-      if (Array.isArray(data.userGiftBoxes)) {
-        for (const [k, v] of data.userGiftBoxes) {
-          userGiftBoxes.set(k, v);
-        }
-      }
-      if (Array.isArray(data.userDailyCheckIns)) {
-        for (const [k, v] of data.userDailyCheckIns) {
-          userDailyCheckIns.set(k, v);
-        }
-      }
-      if (Array.isArray(data.miningAdSessions)) {
-        for (const [k, v] of data.miningAdSessions) {
-          miningAdSessions.set(k, v);
-          adSessions.set(k, {
-            userId: v.userId,
-            createdAt: v.createdAt || v.startedAt,
-            verified: v.verified,
-            token: v.token,
-          });
-        }
-      }
-      console.log(`[Persistence] Loaded ${users.size} users, ${balances.size} balances, ${transactions.length} txs, ${spotOrders.length} orders from ${loadedSource}`);
-      // Apply 90-day retention progressive cleanup on startup
-      apply90DayRetentionPolicy();
-    } else {
-      // First boot: Do NOT add fake demo users. Real users register seamlessly.
-      console.log('[Persistence] Fresh start: Initialized clean database without demo users.');
-      persistDatabaseSync();
-    }
-  } catch (err) {
-    console.error('[Persistence] Failed to load database:', err);
-  }
+// Initial state setup (clean & memory-safe)
+function initializeServerState() {
+  console.log('[Supabase] Supabase persistence engine initialized.');
+  apply90DayRetentionPolicy();
 }
 
-// Load database immediately
-loadDatabaseFromDisk();
+initializeServerState();
 
 // Periodic backup sync (only when data has changed) & 90-day retention policy execution
 setInterval(() => {
@@ -975,7 +908,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 // 1. Authentication (/api/auth)
-app.post('/api/auth/telegram', (req: Request, res: Response) => {
+app.post('/api/auth/telegram', async (req: Request, res: Response) => {
   const { initData, demoUser, storedUserId, referralCode } = req.body;
 
   // If client provided a storedUserId and that user exists in database, restore immediately!
@@ -987,8 +920,7 @@ app.post('/api/auth/telegram', (req: Request, res: Response) => {
     if (!existingUser.depositAddress) {
       existingUser.depositAddress = generateUserDepositAddress(existingUser.id, existingUser.uid);
     }
-    const userBalances = balances.get(existingUser.id);
-    persistDatabaseSync();
+    const userBalances = await getSupabaseBalance(existingUser.id);
     return res.json({
       success: true,
       user: existingUser,
@@ -1036,8 +968,7 @@ app.post('/api/auth/telegram', (req: Request, res: Response) => {
   if (!user.depositAddress) {
     user.depositAddress = generateUserDepositAddress(user.id, user.uid);
   }
-  const userBalances = balances.get(user.id);
-  persistDatabaseSync();
+  const userBalances = await getSupabaseBalance(user.id);
 
   res.json({
     success: true,
@@ -1047,8 +978,41 @@ app.post('/api/auth/telegram', (req: Request, res: Response) => {
   });
 });
 
+// Explicit /api/balance Routes (Directly reading & writing from Supabase table 'balances')
+app.get('/api/balance/:userId', async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const userBalances = await getSupabaseBalance(userId);
+  res.json({ success: true, balances: userBalances, serverTime: Date.now() });
+});
+
+app.get('/api/balance', async (req: Request, res: Response) => {
+  const userId = (req.query.userId as string) || (req.query.user_id as string);
+  if (!userId) {
+    return res.status(400).json({ success: false, error: 'userId is required' });
+  }
+  const userBalances = await getSupabaseBalance(userId);
+  res.json({ success: true, balances: userBalances, serverTime: Date.now() });
+});
+
+app.post('/api/balance/:userId', async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const incoming = req.body.balances || req.body;
+  const updated = await setSupabaseBalance(userId, incoming);
+  res.json({ success: true, balances: updated, serverTime: Date.now() });
+});
+
+app.post('/api/balance', async (req: Request, res: Response) => {
+  const userId = req.body.userId || req.body.user_id;
+  if (!userId) {
+    return res.status(400).json({ success: false, error: 'userId is required' });
+  }
+  const incoming = req.body.balances || req.body;
+  const updated = await setSupabaseBalance(userId, incoming);
+  res.json({ success: true, balances: updated, serverTime: Date.now() });
+});
+
 // 2. User & Balances (/api/user/profile)
-app.get('/api/user/:userId/profile', (req: Request, res: Response) => {
+app.get('/api/user/:userId/profile', async (req: Request, res: Response) => {
   const { userId } = req.params;
   const parsedTelegramId = parseInt(userId.replace(/\D/g, '')) || 123456789;
   const user = users.get(userId) || getOrCreateUser(parsedTelegramId, 'E4F User');
@@ -1058,7 +1022,7 @@ app.get('/api/user/:userId/profile', (req: Request, res: Response) => {
   if (!user.depositAddress) {
     user.depositAddress = generateUserDepositAddress(user.id, user.uid);
   }
-  const userBalances = balances.get(user.id);
+  const userBalances = await getSupabaseBalance(user.id);
   // 90-day retention cutoff: return all user transactions within 90 days (up to 200)
   const cutoff = Date.now() - NINETY_DAYS_MS;
   const userTxs = transactions.filter(t => t.userId === user.id && t.timestamp >= cutoff).slice(0, 200);
@@ -1118,7 +1082,7 @@ app.post('/api/user/:userId/username', (req: Request, res: Response) => {
 app.get('/api/system/public-settings', (_req: Request, res: Response) => {
   res.json({
     success: true,
-    depositsEnabled: systemSettings.depositsEnabled !== false,
+    depositsEnabled: systemSettings.depositsEnabled === true,
     withdrawalsEnabled: systemSettings.withdrawalsEnabled !== false,
     minWithdrawalLimit: systemSettings.minWithdrawalLimit !== undefined ? systemSettings.minWithdrawalLimit : 0.1,
     maxWithdrawalLimit: systemSettings.maxWithdrawalLimit || 1000.0,
@@ -1168,7 +1132,7 @@ app.get('/api/system/public-settings', (_req: Request, res: Response) => {
 });
 
 // Account Verification with $2 USDT deposit
-app.post('/api/user/:userId/verify-account', (req: Request, res: Response) => {
+app.post('/api/user/:userId/verify-account', async (req: Request, res: Response) => {
   const { userId } = req.params;
   const user = users.get(userId);
   if (!user) return res.status(404).json({ success: false, error: 'User not found' });
@@ -1223,10 +1187,10 @@ app.post('/api/user/:userId/verify-account', (req: Request, res: Response) => {
   user.depositBalance = Math.max(0, Number((currentDepositBal - requiredUSDT).toFixed(4)));
   user.isVerified = true;
 
-  // Instant back bonus returned to user Spot balance!
-  const userBal = balances.get(userId) || { usdt: 0, e4f: 0, btc: 0, eth: 0, sol: 0, bnb: 0 };
+  // Instant back bonus returned to user Spot balance (saved to Supabase)!
+  const userBal = (await getSupabaseBalance(userId)) || { usdt: 0, e4f: 0, btc: 0, eth: 0, sol: 0, bnb: 0 };
   userBal.usdt = Number(((userBal.usdt || 0) + returnBonusUSDT).toFixed(4));
-  balances.set(userId, userBal);
+  await setSupabaseBalance(userId, userBal);
 
   const txId = `tx_verify_${Date.now()}`;
   transactions.unshift({
@@ -2894,9 +2858,81 @@ app.get('/api/trade/:userId/orders', (req: Request, res: Response) => {
   res.json({ orders });
 });
 
+// Helper to gather all internal E4F addresses (BEP20, TRC20, TON), UIDs, referral codes, and internal transaction IDs
+function getAllE4FInternalEntities(): {
+  addresses: Set<string>;
+  ids: Set<string>;
+  withdrawalHashes: Set<string>;
+} {
+  const addresses = new Set<string>();
+  const ids = new Set<string>();
+  const withdrawalHashes = new Set<string>();
+
+  const addAllNetworkForms = (addr: string) => {
+    if (!addr || typeof addr !== 'string') return;
+    const clean = addr.trim().toLowerCase();
+    addresses.add(clean);
+    if (clean.startsWith('0x') && clean.length >= 40) {
+      addresses.add(('t' + clean.slice(2, 35)).toLowerCase());
+      addresses.add(('eq' + clean.slice(2, 34)).toLowerCase());
+      addresses.add(('uq' + clean.slice(2, 34)).toLowerCase());
+    }
+  };
+
+  // 1. Official system addresses
+  const officialAddrs = [
+    '0x63562945f7845aa1130a5b1499720b29788c82db',
+    '0x187c938bbdfedf58c688b8699a909bd262ed6f20',
+    systemSettings.bscDepositAddress || '',
+  ];
+  officialAddrs.forEach(addAllNetworkForms);
+
+  // 2. All registered users' addresses and identifiers
+  for (const [_, u] of users.entries()) {
+    if (u.depositAddress) addAllNetworkForms(u.depositAddress);
+    if (u.uid) ids.add(u.uid.trim().toLowerCase());
+    if (u.id) ids.add(u.id.trim().toLowerCase());
+    if (u.referralCode) ids.add(u.referralCode.trim().toLowerCase());
+    if (u.username) ids.add(u.username.trim().toLowerCase());
+  }
+
+  // 3. All internal transaction records & withdrawal hashes
+  for (const t of transactions) {
+    if (t.id) ids.add(t.id.trim().toLowerCase());
+    if (t.txHash) withdrawalHashes.add(t.txHash.trim().toLowerCase());
+    if (t.referenceId) withdrawalHashes.add(t.referenceId.trim().toLowerCase());
+  }
+
+  return { addresses, ids, withdrawalHashes };
+}
+
+function isValidExternalTxid(txid: string, network: string): boolean {
+  if (!txid || typeof txid !== 'string') return false;
+  const clean = txid.trim();
+  const net = (network || '').toUpperCase();
+
+  // BEP20 (BSC) / ETH: standard 66-char hex with 0x, or 64-char hex
+  if (net.includes('BEP20') || net.includes('BSC') || net.includes('ERC20')) {
+    return /^0x[a-fA-F0-9]{64}$/.test(clean) || /^[a-fA-F0-9]{64}$/.test(clean);
+  }
+
+  // TRC20: standard 64-char hex transaction ID
+  if (net.includes('TRC20') || net.includes('TRON')) {
+    return /^[a-fA-F0-9]{64}$/.test(clean);
+  }
+
+  // TON: 64-char hex or 43-48 char base64 string
+  if (net.includes('TON')) {
+    return /^[a-fA-F0-9]{64}$/.test(clean) || /^[a-zA-Z0-9+/=_-]{43,48}$/.test(clean);
+  }
+
+  // Fallback for any other network: must be at least 64 hex characters or standard hash
+  return /^[a-fA-F0-9]{64}$/.test(clean) || /^0x[a-fA-F0-9]{64}$/.test(clean);
+}
+
 // 9. Wallet Operations (Deposit & Withdrawal)
-app.post('/api/wallet/deposit', (req: Request, res: Response) => {
-  const { userId, asset, network, amount } = req.body;
+app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
+  const { userId, asset, network, amount, txid, senderAddress } = req.body;
   if (asset === 'E4F') {
     return res.status(400).json({ success: false, error: 'E4F is not listed yet. Deposits not available.' });
   }
@@ -2905,8 +2941,90 @@ app.post('/api/wallet/deposit', (req: Request, res: Response) => {
     return res.status(403).json({ success: false, error: 'Open soon.' });
   }
 
-  const userBalance = balances.get(userId);
-  if (!userBalance) return res.status(404).json({ success: false, error: 'User not found' });
+  const user = users.get(userId);
+  if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+  // STRICT RULE: Require external blockchain transaction hash (TXID)
+  // Deposit CANNOT be executed from inside this app to this same app without external proof!
+  if (!txid || typeof txid !== 'string' || txid.trim().length < 40) {
+    return res.status(400).json({
+      success: false,
+      error: 'External Transaction Hash (TXID) is required. Deposits must be sent from an external exchange (Binance, Bybit, OKX) or external wallet (Trust Wallet, MetaMask) with a valid 64-character hash.',
+    });
+  }
+
+  const cleanTxid = txid.trim().toLowerCase();
+  const cleanSender = (senderAddress || '').trim().toLowerCase();
+  const netKey = (network || 'BEP20').toUpperCase();
+
+  // Validate blockchain TXID format
+  if (!isValidExternalTxid(cleanTxid, netKey)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid external Transaction Hash (TXID). Please provide a valid 64-character transaction hash from Binance, Bybit, Trust Wallet, etc.',
+    });
+  }
+
+  const { addresses, ids, withdrawalHashes } = getAllE4FInternalEntities();
+
+  // ANTI-SELF DEPOSIT & ANTI-INTERNAL TRANSFER RULE:
+  // 1. Cannot use any E4F internal deposit address (own address, another user's address, official address)
+  if (addresses.has(cleanTxid) || addresses.has(cleanSender)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Cannot deposit using an internal E4F deposit address. Deposits must originate from an external exchange (e.g. Binance, Bybit) or non-custodial wallet.',
+    });
+  }
+
+  // 2. Cannot use internal E4F user IDs, referral codes, or transaction IDs (Anti-same app & anti-internal transfer)
+  if (
+    ids.has(cleanTxid) ||
+    ids.has(cleanSender) ||
+    cleanTxid.startsWith('tx_') ||
+    cleanTxid.startsWith('wd_') ||
+    cleanSender.startsWith('tx_')
+  ) {
+    return res.status(400).json({
+      success: false,
+      error: 'Internal transfers between E4F accounts or within the same app are strictly prohibited. Deposits must come from an external exchange or wallet.',
+    });
+  }
+
+  // 3. Cannot use an internal E4F withdrawal hash as a deposit hash
+  if (withdrawalHashes.has(cleanTxid)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Internal E4F withdrawal hash cannot be reused as a deposit. Deposit must be sent from an external exchange or wallet.',
+    });
+  }
+
+  // 4. Sender address/exchange cannot be E4F or internal
+  if (
+    cleanSender.includes('e4f') ||
+    cleanSender.includes('earn4future') ||
+    cleanSender.includes('internal') ||
+    cleanSender.includes('same app')
+  ) {
+    return res.status(400).json({
+      success: false,
+      error: 'Deposits cannot originate from E4F or internal accounts. Please transfer from an external exchange (Binance, Bybit, OKX, etc.) or external wallet.',
+    });
+  }
+
+  // 5. Prevent duplicate TXID usage
+  const isDuplicate = transactions.some(
+    t => (t.source === 'DEPOSIT' && t.referenceId && t.referenceId.toLowerCase() === cleanTxid) ||
+         (t.txHash && t.txHash.toLowerCase() === cleanTxid)
+  );
+  if (isDuplicate) {
+    return res.status(400).json({
+      success: false,
+      error: 'This external Transaction Hash (TXID) has already been submitted and processed.',
+    });
+  }
+
+  const userBalance = await getSupabaseBalance(userId);
+  if (!userBalance) return res.status(404).json({ success: false, error: 'User balance record not found' });
 
   const num = parseFloat(amount);
   if (isNaN(num) || num <= 0) return res.status(400).json({ success: false, error: 'Invalid deposit amount' });
@@ -2921,20 +3039,20 @@ app.post('/api/wallet/deposit', (req: Request, res: Response) => {
     });
   }
 
-  const user = users.get(userId);
-  if (user) {
-    if (!user.depositAddress) {
-      user.depositAddress = generateUserDepositAddress(user.id, user.uid);
-    }
-    if (asset === 'USDT') {
-      user.depositBalance = Number(((user.depositBalance || 0) + num).toFixed(4));
-    }
+  if (!user.depositAddress) {
+    user.depositAddress = generateUserDepositAddress(user.id, user.uid);
+  }
+  if (asset === 'USDT') {
+    user.depositBalance = Number(((user.depositBalance || 0) + num).toFixed(4));
   }
 
-  if (asset === 'USDT') userBalance.usdt += num;
-  if (asset === 'BTC') userBalance.btc += num;
-  if (asset === 'ETH') userBalance.eth += num;
-  if (asset === 'SOL') userBalance.sol += num;
+  if (asset === 'USDT') userBalance.usdt = Number((userBalance.usdt + num).toFixed(6));
+  if (asset === 'BTC') userBalance.btc = Number((userBalance.btc + num).toFixed(6));
+  if (asset === 'ETH') userBalance.eth = Number((userBalance.eth + num).toFixed(6));
+  if (asset === 'SOL') userBalance.sol = Number((userBalance.sol + num).toFixed(6));
+
+  // Sync updated balance to Supabase
+  await setSupabaseBalance(userId, userBalance);
 
   const tx: TxRecord = {
     id: `tx_${Date.now()}_dep`,
@@ -2945,7 +3063,10 @@ app.post('/api/wallet/deposit', (req: Request, res: Response) => {
     source: 'DEPOSIT',
     status: 'COMPLETED',
     timestamp: Date.now(),
-    note: `Deposit via ${network} (${num} ${asset}) to ${user?.depositAddress ? user.depositAddress.slice(0, 10) + '...' : 'wallet'}`,
+    referenceId: cleanTxid,
+    address: senderAddress || 'External Wallet',
+    network: network || 'BEP20 (BSC)',
+    note: `External ${network} Deposit (TXID: ${txid.substring(0, 10)}...) to ${user.depositAddress.slice(0, 10)}...`,
   };
   transactions.unshift(tx);
 
@@ -2955,7 +3076,8 @@ app.post('/api/wallet/deposit', (req: Request, res: Response) => {
   if (asset === 'USDT' && num >= minDepositLimit && !userFirstDepositClaimed.has(userId) && configuredBonus > 0) {
     userFirstDepositClaimed.add(userId);
     bonusAwarded = configuredBonus;
-    userBalance.usdt += bonusAwarded;
+    userBalance.usdt = Number((userBalance.usdt + bonusAwarded).toFixed(6));
+    await setSupabaseBalance(userId, userBalance);
 
     const bonusTx: TxRecord = {
       id: `tx_${Date.now() + 1}_depbonus`,
@@ -2984,7 +3106,7 @@ app.post('/api/wallet/deposit', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/wallet/withdraw', (req: Request, res: Response) => {
+const handleWithdrawRequest = async (req: Request, res: Response) => {
   const { userId, asset, address, network, amount } = req.body;
   if (asset === 'E4F') {
     return res.status(400).json({ success: false, error: 'E4F is not listed yet. Withdrawals not available.' });
@@ -2994,13 +3116,50 @@ app.post('/api/wallet/withdraw', (req: Request, res: Response) => {
     return res.status(403).json({ success: false, error: 'Open soon' });
   }
 
-  const userBalance = balances.get(userId);
+  // Validate destination address format
+  if (!address || typeof address !== 'string' || address.trim().length < 10) {
+    return res.status(400).json({ success: false, error: 'Please enter a valid external withdrawal address.' });
+  }
+
+  const cleanDest = address.trim().toLowerCase();
+  const netKey = (network || 'TRC20').toUpperCase();
+
+  // ANTI-SELF WITHDRAWAL / ANTI-INTERNAL TRANSFER RULE:
+  // Cannot withdraw to an internal E4F deposit address, user ID, referral code, or from one E4F to another E4F!
+  const { addresses, ids } = getAllE4FInternalEntities();
+
+  if (addresses.has(cleanDest)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Internal E4F transfers are strictly prohibited. You cannot withdraw to your own or another user\'s E4F deposit address. Withdrawals must be sent directly to an external exchange (Binance, Bybit, OKX) or personal cold wallet.',
+    });
+  }
+
+  if (ids.has(cleanDest) || cleanDest.includes('e4f') || cleanDest.includes('earn4future')) {
+    return res.status(400).json({
+      success: false,
+      error: 'Withdrawals to internal E4F user IDs, referral codes, or usernames are not allowed. Please enter an external blockchain wallet address.',
+    });
+  }
+
+  // Network address format validation
+  if (netKey.includes('TRC20') && (!cleanDest.startsWith('t') || cleanDest.length < 30)) {
+    return res.status(400).json({ success: false, error: 'Invalid TRC20 address. TRC20 addresses must start with "T".' });
+  }
+  if (netKey.includes('BEP20') && (!cleanDest.startsWith('0x') || cleanDest.length < 42)) {
+    return res.status(400).json({ success: false, error: 'Invalid BEP20 address. BEP20 addresses must start with "0x".' });
+  }
+  if (netKey.includes('TON') && (!cleanDest.startsWith('eq') && !cleanDest.startsWith('uq') && !cleanDest.startsWith('0:'))) {
+    return res.status(400).json({ success: false, error: 'Invalid TON address. TON addresses must start with "EQ" or "UQ".' });
+  }
+
+  // Read balance directly from Supabase
+  const userBalance = await getSupabaseBalance(userId);
   if (!userBalance) return res.status(404).json({ success: false, error: 'User not found' });
 
   const num = parseFloat(amount);
   if (isNaN(num) || num <= 0) return res.status(400).json({ success: false, error: 'Invalid amount' });
 
-  const netKey = (network || 'TRC20').toUpperCase();
   const netConfig = (systemSettings.networkWithdrawSettings && systemSettings.networkWithdrawSettings[netKey]) || {
     minAmount: systemSettings.minWithdrawalLimit !== undefined ? systemSettings.minWithdrawalLimit : 0.1,
     maxAmount: systemSettings.maxWithdrawalLimit || 1000.0,
@@ -3034,7 +3193,44 @@ app.post('/api/wallet/withdraw', (req: Request, res: Response) => {
     if (userBalance.usdt < num + fee) {
       return res.status(400).json({ success: false, error: `Insufficient balance (including ${fee} USDT network fee)` });
     }
-    userBalance.usdt -= (num + fee);
+    userBalance.usdt = Number((userBalance.usdt - (num + fee)).toFixed(6));
+  } else {
+    const assetKey = asset.toLowerCase() as keyof BalanceRecord;
+    const currentAmt = (userBalance as any)[assetKey] || 0;
+    if (currentAmt < num + fee) {
+      return res.status(400).json({ success: false, error: `Insufficient ${asset} balance (including fee)` });
+    }
+    (userBalance as any)[assetKey] = Number((currentAmt - (num + fee)).toFixed(6));
+  }
+
+  // Write updated balance directly to Supabase
+  await setSupabaseBalance(userId, userBalance);
+
+  const withdrawalId = `wd_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const withdrawalRecord = {
+    id: withdrawalId,
+    user_id: userId,
+    amount: num,
+    currency: asset,
+    status: 'pending',
+    wallet_address: address || '',
+    created_at: new Date().toISOString(),
+  };
+
+  if (supabase) {
+    try {
+      const { error: wdErr } = await supabase
+        .from('withdrawals')
+        .insert([withdrawalRecord]);
+
+      if (wdErr) {
+        console.warn('[Supabase] Warning inserting into withdrawals table:', wdErr.message);
+      } else {
+        console.log('[Supabase] Saved withdrawal record to Supabase:', withdrawalId);
+      }
+    } catch (err) {
+      console.warn('[Supabase] Failed to insert withdrawal record:', err);
+    }
   }
 
   // Calculate user total deposits for admin verification reference
@@ -3043,7 +3239,7 @@ app.post('/api/wallet/withdraw', (req: Request, res: Response) => {
     .reduce((sum, t) => sum + (t.asset === 'USDT' ? t.amount : 0), 0);
 
   const tx: TxRecord = {
-    id: `tx_${Date.now()}_wd`,
+    id: withdrawalId,
     userId,
     asset,
     amount: num,
@@ -3058,10 +3254,52 @@ app.post('/api/wallet/withdraw', (req: Request, res: Response) => {
     note: `Withdrawal to ${address ? address.substring(0, 8) + '...' : ''} (${network || 'BEP20'})`,
   };
   transactions.unshift(tx);
-  // Persist withdrawal request and deducted balance to disk synchronously
-  persistDatabaseSync();
 
-  res.json({ success: true, message: 'Withdrawal request submitted for security review', transaction: tx, balances: userBalance });
+  res.json({
+    success: true,
+    message: 'Withdrawal request submitted for security review',
+    transaction: tx,
+    withdrawal: withdrawalRecord,
+    balances: userBalance,
+  });
+};
+
+app.post('/api/wallet/withdraw', handleWithdrawRequest);
+app.post('/api/withdraw', handleWithdrawRequest);
+
+// 3. User Withdrawals History Route (Directly from Supabase table 'withdrawals')
+app.get('/api/withdrawals/:userId', async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return res.json({ success: true, withdrawals: data });
+      }
+    } catch (err) {
+      console.warn('[Supabase] Error reading withdrawals table:', err);
+    }
+  }
+
+  // Fallback to in-memory transactions if Supabase table is not yet created or empty
+  const fallback = transactions
+    .filter(t => t.userId === userId && t.source === 'WITHDRAWAL')
+    .map(t => ({
+      id: t.id,
+      user_id: t.userId,
+      amount: t.amount,
+      currency: t.asset,
+      status: t.status === 'COMPLETED' ? 'success' : 'pending',
+      wallet_address: t.address || '',
+      created_at: new Date(t.timestamp).toISOString(),
+    }));
+
+  res.json({ success: true, withdrawals: fallback });
 });
 
 // 10. Announcements & Support
@@ -3347,6 +3585,11 @@ app.post('/api/admin/withdrawals/:id/review', requireAdminAuth, (req: Request, r
     tx.status = 'COMPLETED';
     tx.note = note || `Approved by Admin: Paid to ${tx.address ? tx.address.substring(0, 8) + '...' : ''} (${tx.network || 'BEP20'})`;
 
+    // Sync status with Supabase table 'withdrawals'
+    if (supabase) {
+      supabase.from('withdrawals').update({ status: 'success' }).eq('id', tx.id).then(() => {}, () => {});
+    }
+
     auditLogs.unshift({
       id: `audit_${Date.now()}`,
       adminId: 'ADMIN_SUPER',
@@ -3359,10 +3602,18 @@ app.post('/api/admin/withdrawals/:id/review', requireAdminAuth, (req: Request, r
     tx.status = 'REJECTED';
     tx.note = note || 'Rejected by Administrator during manual security verification';
 
+    // Sync status with Supabase table 'withdrawals'
+    if (supabase) {
+      supabase.from('withdrawals').update({ status: 'rejected' }).eq('id', tx.id).then(() => {}, () => {});
+    }
+
     // Refund deducted amount + fee back to spot balance if USDT
     if (userBalance && tx.asset === 'USDT') {
       const fee = tx.fee !== undefined ? tx.fee : 1.0;
-      userBalance.usdt += (tx.amount + fee);
+      userBalance.usdt = Number((userBalance.usdt + (tx.amount + fee)).toFixed(6));
+
+      // Persist refunded balance to Supabase
+      setSupabaseBalance(tx.userId, userBalance).catch(() => {});
 
       transactions.unshift({
         id: `tx_${Date.now()}_refund`,
@@ -3689,4 +3940,9 @@ async function start() {
   });
 }
 
-start();
+if (process.env.VERCEL !== '1' && !process.env.VERCEL_ENV) {
+  start();
+}
+
+export default app;
+export { app };

@@ -7,5 +7,7 @@ coverage/
 *.bak
 *.tmp
 .app-database*
+app-database*.json
+.db_content.json
 .env*
 !.env.example

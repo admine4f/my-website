@@ -12,7 +12,7 @@ export const HomeView: React.FC = () => {
   const [marketAssets, setMarketAssets] = useState<MarketAsset[]>([]);
   const [recentTxs, setRecentTxs] = useState<TransactionRecord[]>([]);
   const [timeLeftStr, setTimeLeftStr] = useState<string>('08:00:00');
-  const [depositsEnabled, setDepositsEnabled] = useState(true);
+  const [depositsEnabled, setDepositsEnabled] = useState(false);
   const [withdrawalsEnabled, setWithdrawalsEnabled] = useState(true);
 
   // Load assets and recent transactions & public settings

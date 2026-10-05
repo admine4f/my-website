@@ -17,7 +17,7 @@
   "e4fListingStatus": "PENDING_LISTING",
   "e4fPlannedListingDate": "2028-02-28",
   "e4fPlannedTargetPriceRange": "3–5 USDT",
-  "depositsEnabled": true,
+  "depositsEnabled": false,
   "withdrawalsEnabled": true,
   "minWithdrawalLimit": 1,
   "maxWithdrawalLimit": 1000,

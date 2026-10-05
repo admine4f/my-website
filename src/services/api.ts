@@ -1,4 +1,4 @@
-import { UserAccount, WalletBalances, MiningStats, MiningSession, MarketAsset, CandlestickData, OrderBook, SpotOrder, SocialTask, GiftBox, DailyCheckInState, Announcement, SupportTicket, TransactionRecord } from '../types';
+import { UserAccount, WalletBalances, MiningStats, MiningSession, MarketAsset, CandlestickData, OrderBook, SpotOrder, SocialTask, GiftBox, DailyCheckInState, Announcement, SupportTicket, TransactionRecord, WithdrawalRecord } from '../types';
 
 export async function parseResponseJson<T = any>(res: Response): Promise<T | null> {
   try {
@@ -1170,30 +1170,18 @@ export const api = {
   },
 
   async verifyAccount(userId: string, txHash?: string): Promise<{ success: boolean; message: string; user: any; balances?: any; depositBalance?: number; isVerified: boolean }> {
-    try {
-      const res = await fetch(`/api/user/${userId}/verify-account`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txHash }),
-      });
-      const data = await parseResponseJson(res);
-      if (res.ok && data) return data;
-    } catch {}
-    const localUser = getLocalUser();
-    localUser.isVerified = true;
-    localUser.depositBalance = 2;
-    saveLocalUser(localUser);
-    const balances = getLocalBalances();
-    balances.usdt = Number(((balances.usdt || 0) + 10).toFixed(4));
-    saveLocalBalances(balances);
-    return {
-      success: true,
-      message: 'Account verified successfully! 10 USDT instant back credited.',
-      user: localUser,
-      balances,
-      depositBalance: 2,
-      isVerified: true,
-    };
+    const res = await fetch(`/api/user/${userId}/verify-account`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txHash }),
+    });
+    const data = await parseResponseJson(res);
+    if (!res.ok || !data?.success) {
+      throw new Error(data?.error || data?.message || 'Verification failed');
+    }
+    if (data.balances) saveLocalBalances(data.balances);
+    if (data.user) saveLocalUser(data.user);
+    return data;
   },
 
   async getPublicSettings(): Promise<{
@@ -1238,7 +1226,7 @@ export const api = {
         const cached = localStorage.getItem('e4f_cached_public_settings');
         if (cached) {
           const parsed = JSON.parse(cached);
-          parsed.depositsEnabled = true;
+          parsed.depositsEnabled = false;
           parsed.withdrawalsEnabled = true;
           return parsed;
         }
@@ -1246,7 +1234,7 @@ export const api = {
     } catch {}
     return {
       success: true,
-      depositsEnabled: true,
+      depositsEnabled: false,
       withdrawalsEnabled: true,
       bscDepositAddress: '0x63562945f7845aa1130a5b1499720b29788c82db',
       depositMinUSDT: 2,
@@ -1528,40 +1516,45 @@ export const api = {
   },
 
   // Wallet Actions
-  async deposit(userId: string, data: { asset: string; network: string; amount: number }): Promise<any> {
-    try {
-      const res = await fetch('/api/wallet/deposit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, ...data }),
-      });
-      const resData = await parseResponseJson(res);
-      if (res.ok && resData && resData.success) return resData;
-    } catch {}
-    return { success: true, message: 'Deposit recorded successfully' };
+  async deposit(userId: string, data: { asset: string; network: string; amount: number; txid: string; senderAddress?: string }): Promise<any> {
+    const res = await fetch('/api/wallet/deposit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, ...data }),
+    });
+    const resData = await parseResponseJson(res);
+    if (!res.ok || !resData || !resData.success) {
+      throw new Error(resData?.error || 'Deposit verification failed');
+    }
+    if (resData.balances) saveLocalBalances(resData.balances);
+    return resData;
   },
 
   async withdraw(userId: string, data: { asset: string; address: string; network: string; amount: number }): Promise<any> {
-    try {
-      const res = await fetch('/api/wallet/withdraw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, ...data }),
-      });
-      const resData = await parseResponseJson(res);
-      if (res.ok && resData && resData.success) {
-        if (resData.balances) saveLocalBalances(resData.balances);
-        return resData;
-      }
-    } catch {}
-    const balances = getLocalBalances();
-    const fee = data.network === 'BEP20' || data.network === 'TON' ? 0.5 : 1.0;
-    const totalDeduct = data.amount + fee;
-    if (balances.usdt >= totalDeduct) {
-      balances.usdt = Number((balances.usdt - totalDeduct).toFixed(4));
-      saveLocalBalances(balances);
+    const res = await fetch('/api/wallet/withdraw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, ...data }),
+    });
+    const resData = await parseResponseJson(res);
+    if (!res.ok || !resData || !resData.success) {
+      throw new Error(resData?.error || 'Withdrawal failed');
     }
-    return { success: true, message: 'Withdrawal request submitted for processing', balances };
+    if (resData.balances) saveLocalBalances(resData.balances);
+    return resData;
+  },
+
+  async getWithdrawals(userId: string): Promise<WithdrawalRecord[]> {
+    try {
+      const res = await fetch(`/api/withdrawals/${userId}`);
+      const data = await parseResponseJson(res);
+      if (res.ok && data && Array.isArray(data.withdrawals)) {
+        return data.withdrawals;
+      }
+    } catch (err) {
+      console.warn('Failed to fetch user withdrawals:', err);
+    }
+    return [];
   },
 
   // Announcements

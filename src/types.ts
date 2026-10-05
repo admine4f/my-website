@@ -77,6 +77,16 @@ export interface TransactionRecord {
   userDepositTotal?: number;
 }
 
+export interface WithdrawalRecord {
+  id: string;
+  user_id: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'success' | 'rejected' | string;
+  wallet_address?: string;
+  created_at: string;
+}
+
 export interface MiningSession {
   id: string;
   userId: string;

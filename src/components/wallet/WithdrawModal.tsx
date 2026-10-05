@@ -66,8 +66,49 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({ onClose }) => {
       return;
     }
 
-    if (!address || address.length < 10) {
+    if (!address || address.trim().length < 10) {
       addToast('Invalid Address', 'Please provide a valid destination wallet address.', 'error');
+      return;
+    }
+
+    const cleanAddr = address.trim().toLowerCase();
+    const ownBsc = (user.depositAddress || '').toLowerCase();
+    const ownTrc = ownBsc ? ('t' + ownBsc.slice(2, 35)).toLowerCase() : '';
+    const ownTon = ownBsc ? ('eq' + ownBsc.slice(2, 34)).toLowerCase() : '';
+    const adminBsc = '0x63562945f7845aa1130a5b1499720b29788c82db';
+    const adminTrc = ('t' + adminBsc.slice(2, 35)).toLowerCase();
+    const adminTon = ('eq' + adminBsc.slice(2, 34)).toLowerCase();
+
+    // STRICT ANTI-INTERNAL & ANTI-SAME-APP WITHDRAWAL RULE
+    if (
+      cleanAddr === ownBsc ||
+      cleanAddr === ownTrc ||
+      cleanAddr === ownTon ||
+      cleanAddr === adminBsc ||
+      cleanAddr === adminTrc ||
+      cleanAddr === adminTon ||
+      cleanAddr.includes('e4f') ||
+      cleanAddr.includes('earn4future') ||
+      cleanAddr === (user.uid || '').toLowerCase()
+    ) {
+      addToast(
+        'Internal Transfer Blocked',
+        'Internal transfers are strictly prohibited. Withdrawals must be sent directly to an external exchange or wallet.',
+        'error'
+      );
+      return;
+    }
+
+    if (network === 'TRC20' && !cleanAddr.startsWith('t')) {
+      addToast('Invalid TRC20 Address', 'TRC20 addresses must start with "T".', 'error');
+      return;
+    }
+    if (network === 'BEP20' && !cleanAddr.startsWith('0x')) {
+      addToast('Invalid BEP20 Address', 'BEP20 addresses must start with "0x".', 'error');
+      return;
+    }
+    if (network === 'TON' && !cleanAddr.startsWith('eq') && !cleanAddr.startsWith('uq') && !cleanAddr.startsWith('0:')) {
+      addToast('Invalid TON Address', 'TON addresses must start with "EQ" or "UQ".', 'error');
       return;
     }
 
@@ -90,7 +131,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({ onClose }) => {
     try {
       await api.withdraw(user.id, {
         asset: selectedAsset,
-        address,
+        address: address.trim(),
         network,
         amount: numAmount,
       });

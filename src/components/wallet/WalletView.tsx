@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, History, Shield, AlertCircle, Filter } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { api, formatCoinBalance } from '../../services/api';
-import { TransactionRecord } from '../../types';
+import { TransactionRecord, WithdrawalRecord } from '../../types';
 
 export const WalletView: React.FC = () => {
   const { user, balances, openModal, addToast } = useApp();
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [filterSource, setFilterSource] = useState<string>('ALL');
-  const [depositsEnabled, setDepositsEnabled] = useState<boolean>(true);
+  const [depositsEnabled, setDepositsEnabled] = useState<boolean>(false);
   const [withdrawalsEnabled, setWithdrawalsEnabled] = useState<boolean>(true);
 
   useEffect(() => {
@@ -17,6 +18,13 @@ export const WalletView: React.FC = () => {
         .getProfile(user.id)
         .then(res => {
           if (res.recentTransactions) setTransactions(res.recentTransactions);
+        })
+        .catch(() => {});
+
+      api
+        .getWithdrawals(user.id)
+        .then(res => {
+          if (Array.isArray(res)) setWithdrawals(res);
         })
         .catch(() => {});
     }
@@ -120,11 +128,15 @@ export const WalletView: React.FC = () => {
             {!withdrawalsEnabled && <span className="text-[9px] px-1 py-0.2 bg-slate-700 text-slate-400 rounded">Open soon</span>}
           </button>
           <button
-            onClick={handleDepositClick}
-            className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+            onClick={() => {
+              const el = document.getElementById('transaction-ledger');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              setFilterSource('ALL');
+            }}
+            className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition-transform cursor-pointer"
           >
-            <ArrowLeftRight className="w-4 h-4 text-emerald-400" />
-            <span>Transfer</span>
+            <History className="w-4 h-4 text-emerald-400" />
+            <span>History</span>
           </button>
         </div>
       </div>
@@ -303,7 +315,7 @@ export const WalletView: React.FC = () => {
       </div>
 
       {/* Immutable Transaction Ledger (Section 39, 55) */}
-      <div className="rounded-2xl p-4 bg-slate-900/70 border border-slate-800">
+      <div id="transaction-ledger" className="rounded-2xl p-4 bg-slate-900/70 border border-slate-800 scroll-mt-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">
             <History className="w-4 h-4 text-amber-400" />
@@ -331,7 +343,50 @@ export const WalletView: React.FC = () => {
           ))}
         </div>
 
-        {filteredTxs.length === 0 ? (
+        {filterSource === 'WITHDRAWALS' && withdrawals.length > 0 ? (
+          <div className="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+            {withdrawals.map(w => {
+              const isSuccess = w.status.toLowerCase() === 'success' || w.status.toLowerCase() === 'completed';
+              const isRejected = w.status.toLowerCase() === 'rejected' || w.status.toLowerCase() === 'failed';
+              return (
+                <div
+                  key={w.id}
+                  className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <span>Withdrawal</span>
+                      {w.wallet_address && (
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          ({w.wallet_address.substring(0, 6)}...{w.wallet_address.substring(w.wallet_address.length - 4)})
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {w.created_at ? new Date(w.created_at).toLocaleString() : 'Recent'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono font-bold text-rose-400">
+                      -{Number(w.amount).toFixed(2)} {w.currency}
+                    </div>
+                    <span
+                      className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase ${
+                        isSuccess
+                          ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                          : isRejected
+                          ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20'
+                          : 'text-amber-400 bg-amber-500/10 border border-amber-500/20'
+                      }`}
+                    >
+                      {isSuccess ? 'SUCCESS' : isRejected ? 'REJECTED' : 'PENDING'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : filteredTxs.length === 0 ? (
           <div className="text-center py-6 text-xs text-slate-500">
             No transaction records found for this filter.
           </div>

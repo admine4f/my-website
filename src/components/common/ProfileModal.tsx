@@ -45,7 +45,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
   // System Settings State (dynamic Admin BSC address & deposit toggle)
   const [adminBscAddress, setAdminBscAddress] = useState('0x63562945f7845aa1130a5b1499720b29788c82db');
-  const [depositsEnabled, setDepositsEnabled] = useState(true);
+  const [depositsEnabled, setDepositsEnabled] = useState(false);
 
   // Deletion Dialog State
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
