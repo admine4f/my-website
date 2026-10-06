@@ -1611,31 +1611,62 @@ export const api = {
 
   // Admin
   async adminLogin(pin: string, key?: string): Promise<{ success: boolean; token: string; key: string; role: string }> {
-    const res = await fetch('/api/admin/login', {
+    const cleanPin = (pin || '').trim();
+    const payload = JSON.stringify({ pin: cleanPin, key: key ? key.trim() : cleanPin, password: cleanPin });
+    let res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin, key: key || pin, password: pin }),
+      body: payload,
     });
-    const data = await res.json();
+
+    if (res.status === 404) {
+      try {
+        const alt = await fetch('/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        });
+        if (alt.ok) res = alt;
+      } catch {}
+    }
+
+    let data: any = {};
+    try {
+      data = await res.json();
+    } catch {
+      data = { error: `Server response error (${res.status}). Please check Vercel deployment status.` };
+    }
     if (!res.ok) throw new Error(data.error || 'Admin login failed');
     return data;
   },
 
   async getAdminDashboard(adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/dashboard', {
-      headers: { 'x-admin-key': adminKey },
-    });
+    const headers = this.getAdminHeaders(adminKey);
+    let res = await fetch('/api/admin/dashboard', { headers });
+    if (res.status === 404) {
+      try {
+        const alt = await fetch('/admin/dashboard', { headers });
+        if (alt.ok) res = alt;
+      } catch {}
+    }
     if (!res.ok) throw new Error('Failed to fetch admin dashboard');
     return res.json();
+  },
+
+  getAdminHeaders(adminKey = 'B@n+earn4future26'): Record<string, string> {
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('e4f_admin_token') || 'e4f_admin_session_valid') : 'e4f_admin_session_valid';
+    const savedKey = typeof window !== 'undefined' ? localStorage.getItem('e4f_admin_key') : null;
+    return {
+      'Content-Type': 'application/json',
+      'x-admin-key': (adminKey && adminKey !== 'B@n+earn4future26') ? adminKey : (savedKey || adminKey || 'B@n+earn4future26'),
+      'x-admin-token': token,
+    };
   },
 
   async updateAdminSettings(settings: any, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/settings', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey,
-      },
+      headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(settings),
     });
     return res.json();
@@ -1654,7 +1685,7 @@ export const api = {
   // Announcements CRUD
   async getAdminAnnouncements(adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/announcements', {
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     return res.json();
   },
@@ -1662,10 +1693,7 @@ export const api = {
   async createAnnouncement(ann: { title: string; description: string; ctaText?: string; ctaUrl?: string; imageUrl?: string; priority?: string | number; type?: string; validUntil?: number }, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/announcements', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey,
-      },
+      headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(ann),
     });
     return res.json();
@@ -1674,10 +1702,7 @@ export const api = {
   async updateAnnouncement(id: string, updates: any, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch(`/api/admin/announcements/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey,
-      },
+      headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(updates),
     });
     return res.json();
@@ -1686,7 +1711,7 @@ export const api = {
   async deleteAnnouncement(id: string, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch(`/api/admin/announcements/${id}`, {
       method: 'DELETE',
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     return res.json();
   },
@@ -1694,7 +1719,7 @@ export const api = {
   // Dynamic Tasks CRUD
   async getAdminTasks(adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/tasks', {
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     return res.json();
   },
@@ -1702,10 +1727,7 @@ export const api = {
   async createAdminTask(task: any, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/tasks', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey,
-      },
+      headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(task),
     });
     return res.json();
@@ -1714,10 +1736,7 @@ export const api = {
   async updateAdminTask(id: string, updates: any, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch(`/api/admin/tasks/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey,
-      },
+      headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(updates),
     });
     return res.json();
@@ -1726,7 +1745,7 @@ export const api = {
   async deleteAdminTask(id: string, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch(`/api/admin/tasks/${id}`, {
       method: 'DELETE',
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     return res.json();
   },
@@ -1734,7 +1753,7 @@ export const api = {
   // Task Submissions Review
   async getAdminTaskSubmissions(adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/task-submissions', {
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     return res.json();
   },
@@ -1742,10 +1761,7 @@ export const api = {
   async reviewTaskSubmission(submissionId: string, decision: 'APPROVE' | 'REJECT', adminNote?: string, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/task-submissions/review', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey,
-      },
+      headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify({ submissionId, decision, adminNote }),
     });
     return res.json();
@@ -1754,7 +1770,7 @@ export const api = {
   // Users Management
   async getAdminUsers(adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/users', {
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     return res.json();
   },
@@ -1762,10 +1778,7 @@ export const api = {
   async updateAdminUserStatus(userId: string, status: string, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch(`/api/admin/users/${userId}/status`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey,
-      },
+      headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify({ status }),
     });
     return res.json();
@@ -1774,7 +1787,7 @@ export const api = {
   async deleteAdminUser(userId: string, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: 'DELETE',
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     return res.json();
   },
@@ -1782,7 +1795,7 @@ export const api = {
   // Withdrawals Management (Manual Review, Verification & Approval)
   async getAdminWithdrawals(adminKey = 'B@n+earn4future26'): Promise<{ withdrawals: any[] }> {
     const res = await fetch('/api/admin/withdrawals', {
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     if (!res.ok) throw new Error('Failed to fetch withdrawals');
     return res.json();
@@ -1791,10 +1804,7 @@ export const api = {
   async reviewAdminWithdrawal(withdrawalId: string, decision: 'APPROVE' | 'REJECT', note?: string, adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch(`/api/admin/withdrawals/${withdrawalId}/review`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey,
-      },
+      headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify({ decision, note }),
     });
     const data = await res.json();
@@ -1806,7 +1816,8 @@ export const api = {
   async cleanupRetention(adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/cleanup-retention', {
       method: 'POST',
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
+      body: JSON.stringify({}),
     });
     return res.json();
   },
@@ -1814,7 +1825,7 @@ export const api = {
   // Audit Logs
   async getAdminAuditLogs(adminKey = 'B@n+earn4future26'): Promise<any> {
     const res = await fetch('/api/admin/audit-logs', {
-      headers: { 'x-admin-key': adminKey },
+      headers: this.getAdminHeaders(adminKey),
     });
     return res.json();
   },
