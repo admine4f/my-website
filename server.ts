@@ -16,22 +16,28 @@ export const supabase: SupabaseClient | null = (SUPABASE_URL && SUPABASE_SERVICE
 const app = express();
 const PORT = 3000;
 
-// Safe Body Parser: If req.body is already populated by Vercel serverless runtime, do not re-read stream
-app.use((req: any, _res, next) => {
+// Body Parsers with Vercel Serverless Stream-Drain Protection
+const jsonParser = express.json({ limit: '10mb' });
+const urlencodedParser = express.urlencoded({ extended: true, limit: '10mb' });
+const textParser = express.text({ limit: '10mb' });
+
+app.use((req: any, res: Response, next) => {
   if (req.body !== undefined && req.body !== null) {
-    if (typeof req.body === 'string') {
+    if (typeof req.body === 'string' && req.body.trim().startsWith('{')) {
       try {
         req.body = JSON.parse(req.body);
       } catch {}
     }
     return next();
   }
-  next();
+  jsonParser(req, res, (err) => {
+    if (err) return next(err);
+    urlencodedParser(req, res, (err2) => {
+      if (err2) return next(err2);
+      textParser(req, res, next);
+    });
+  });
 });
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.text({ limit: '10mb' }));
 
 // Enable CORS for all incoming requests (crucial for iframe preview & API requests)
 app.use((req, res, next) => {
@@ -692,14 +698,17 @@ function initializeServerState() {
 initializeServerState();
 
 // Periodic backup sync (only when data has changed) & 90-day retention policy execution
-setInterval(() => {
+const backupTimer = setInterval(() => {
   if (isDbDirty) {
     persistDatabaseSync();
   }
 }, 5000);
-setInterval(() => {
+backupTimer.unref?.();
+
+const retentionTimer = setInterval(() => {
   apply90DayRetentionPolicy();
 }, 24 * 60 * 60 * 1000); // Daily retention check
+retentionTimer.unref?.();
 
 // Process exit hooks: Ensure database is synchronously flushed to disk on shutdown/restart
 process.on('SIGTERM', () => {
@@ -934,7 +943,8 @@ async function refreshMarketPrices() {
     // Graceful fallback to cached tickers
   }
 }
-setInterval(refreshMarketPrices, 30000);
+const marketTimer = setInterval(refreshMarketPrices, 30000);
+marketTimer.unref?.();
 refreshMarketPrices();
 
 // ====================================================
@@ -4018,16 +4028,30 @@ app.get('/api/admin/audit-logs', requireAdminAuth, (_req: Request, res: Response
 });
 
 // ====================================================
-// Vite Integration (Dev vs Prod)
+// Vite Integration (Dev vs Prod) & Serverless Guard
 // ====================================================
+const isServerless = Boolean(
+  process.env.VERCEL ||
+  process.env.VERCEL_ENV ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT
+);
+
 async function start() {
+  if (isServerless) return;
+
   if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      const dynamicImport = new Function('m', 'return import(m)');
+      const viteModule = await dynamicImport('vite');
+      const vite = await viteModule.createServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.warn('Vite dev middleware could not be loaded:', e);
+    }
   } else {
     const distPath = fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'))
       ? path.join(process.cwd(), 'dist')
@@ -4045,7 +4069,7 @@ async function start() {
   });
 }
 
-if (process.env.VERCEL !== '1' && !process.env.VERCEL_ENV) {
+if (!isServerless) {
   start();
 }
 

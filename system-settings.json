@@ -44,7 +44,7 @@
   },
   "depositMinUSDT": 2,
   "depositFirstBonusUSDT": 10,
-  "bscDepositAddress": "0x63562945f7845aa1130a5b1499720b29788c82db",
+  "bscDepositAddress": "0x63562945f7845aa1130a5b1499720b29788c8",
   "referralMiningBoostTiers": [
     {
       "minReferrals": 1,
