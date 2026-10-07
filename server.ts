@@ -16,6 +16,19 @@ export const supabase: SupabaseClient | null = (SUPABASE_URL && SUPABASE_SERVICE
 const app = express();
 const PORT = 3000;
 
+// Safe Body Parser: If req.body is already populated by Vercel serverless runtime, do not re-read stream
+app.use((req: any, _res, next) => {
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body === 'string') {
+      try {
+        req.body = JSON.parse(req.body);
+      } catch {}
+    }
+    return next();
+  }
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.text({ limit: '10mb' }));
@@ -3440,7 +3453,7 @@ app.post('/admin/login', handleAdminLogin);
 app.get('/api/admin/login', handleAdminLogin);
 app.get('/admin/login', handleAdminLogin);
 
-app.get('/api/admin/dashboard', (_req: Request, res: Response) => {
+app.get(['/api/admin/dashboard', '/admin/dashboard'], (_req: Request, res: Response) => {
   let totalE4FDistributed = 0;
   let totalUSDTDistributed = 0;
 
@@ -3466,8 +3479,17 @@ app.get('/api/admin/dashboard', (_req: Request, res: Response) => {
   });
 });
 
-app.post('/api/admin/settings', requireAdminAuth, (req: Request, res: Response) => {
-  const updates = req.body;
+app.post(['/api/admin/settings', '/admin/settings'], requireAdminAuth, (req: Request, res: Response) => {
+  let updates = req.body;
+  if (typeof updates === 'string') {
+    try { updates = JSON.parse(updates); } catch {}
+  } else if (Buffer.isBuffer(updates)) {
+    try { updates = JSON.parse(updates.toString('utf8')); } catch {}
+  }
+  if (!updates || typeof updates !== 'object') {
+    updates = {};
+  }
+
   if (Array.isArray(updates.dailyCheckInRewards)) {
     updates.dailyCheckInRewards = updates.dailyCheckInRewards.slice(0, 7).map((item: any, idx: number) => ({
       day: item.day || (idx + 1),
@@ -3575,7 +3597,9 @@ app.post('/api/admin/settings', requireAdminAuth, (req: Request, res: Response) 
   try {
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(systemSettings, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Failed to write system settings to disk:', err);
+    try {
+      fs.writeFileSync(path.join('/tmp', 'system-settings.json'), JSON.stringify(systemSettings, null, 2), 'utf-8');
+    } catch {}
   }
 
   auditLogs.unshift({

@@ -1641,16 +1641,9 @@ export const api = {
   },
 
   async getAdminDashboard(adminKey = 'B@n+earn4future26'): Promise<any> {
-    const headers = this.getAdminHeaders(adminKey);
-    let res = await fetch('/api/admin/dashboard', { headers });
-    if (res.status === 404) {
-      try {
-        const alt = await fetch('/admin/dashboard', { headers });
-        if (alt.ok) res = alt;
-      } catch {}
-    }
-    if (!res.ok) throw new Error('Failed to fetch admin dashboard');
-    return res.json();
+    return this.safeAdminFetch('/api/admin/dashboard', {
+      headers: this.getAdminHeaders(adminKey),
+    });
   },
 
   getAdminHeaders(adminKey = 'B@n+earn4future26'): Record<string, string> {
@@ -1663,13 +1656,45 @@ export const api = {
     };
   },
 
+  async safeAdminFetch(url: string, options: RequestInit = {}): Promise<any> {
+    let res: Response;
+    try {
+      res = await fetch(url, options);
+    } catch (netErr: any) {
+      throw new Error(`Network connection error: ${netErr.message || 'Server unreachable'}`);
+    }
+
+    if (res.status === 404 && url.startsWith('/api/')) {
+      try {
+        const altUrl = url.replace('/api/', '/');
+        const altRes = await fetch(altUrl, options);
+        if (altRes.ok) res = altRes;
+      } catch {}
+    }
+
+    let data: any = {};
+    const text = await res.text();
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = {
+        success: res.ok,
+        error: res.ok ? undefined : `Server response (${res.status}): ${text.substring(0, 100)}`,
+      };
+    }
+
+    if (!res.ok) {
+      throw new Error(data.error || `Server request failed with status ${res.status}`);
+    }
+    return data;
+  },
+
   async updateAdminSettings(settings: any, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/settings', {
+    return this.safeAdminFetch('/api/admin/settings', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(settings),
     });
-    return res.json();
   },
 
   async updateAdminAdConfig(config: { enabled: boolean; provider: string; adMiningDurationSeconds?: number; adsterraDirectLink?: string; monetagDirectLink?: string }, adminKey = 'B@n+earn4future26'): Promise<any> {
@@ -1684,149 +1709,129 @@ export const api = {
 
   // Announcements CRUD
   async getAdminAnnouncements(adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/announcements', {
+    return this.safeAdminFetch('/api/admin/announcements', {
       headers: this.getAdminHeaders(adminKey),
     });
-    return res.json();
   },
 
   async createAnnouncement(ann: { title: string; description: string; ctaText?: string; ctaUrl?: string; imageUrl?: string; priority?: string | number; type?: string; validUntil?: number }, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/announcements', {
+    return this.safeAdminFetch('/api/admin/announcements', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(ann),
     });
-    return res.json();
   },
 
   async updateAnnouncement(id: string, updates: any, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch(`/api/admin/announcements/${id}`, {
+    return this.safeAdminFetch(`/api/admin/announcements/${id}`, {
       method: 'PUT',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(updates),
     });
-    return res.json();
   },
 
   async deleteAnnouncement(id: string, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch(`/api/admin/announcements/${id}`, {
+    return this.safeAdminFetch(`/api/admin/announcements/${id}`, {
       method: 'DELETE',
       headers: this.getAdminHeaders(adminKey),
     });
-    return res.json();
   },
 
   // Dynamic Tasks CRUD
   async getAdminTasks(adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/tasks', {
+    return this.safeAdminFetch('/api/admin/tasks', {
       headers: this.getAdminHeaders(adminKey),
     });
-    return res.json();
   },
 
   async createAdminTask(task: any, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/tasks', {
+    return this.safeAdminFetch('/api/admin/tasks', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(task),
     });
-    return res.json();
   },
 
   async updateAdminTask(id: string, updates: any, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch(`/api/admin/tasks/${id}`, {
+    return this.safeAdminFetch(`/api/admin/tasks/${id}`, {
       method: 'PUT',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify(updates),
     });
-    return res.json();
   },
 
   async deleteAdminTask(id: string, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch(`/api/admin/tasks/${id}`, {
+    return this.safeAdminFetch(`/api/admin/tasks/${id}`, {
       method: 'DELETE',
       headers: this.getAdminHeaders(adminKey),
     });
-    return res.json();
   },
 
   // Task Submissions Review
   async getAdminTaskSubmissions(adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/task-submissions', {
+    return this.safeAdminFetch('/api/admin/task-submissions', {
       headers: this.getAdminHeaders(adminKey),
     });
-    return res.json();
   },
 
   async reviewTaskSubmission(submissionId: string, decision: 'APPROVE' | 'REJECT', adminNote?: string, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/task-submissions/review', {
+    return this.safeAdminFetch('/api/admin/task-submissions/review', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify({ submissionId, decision, adminNote }),
     });
-    return res.json();
   },
 
   // Users Management
   async getAdminUsers(adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/users', {
+    return this.safeAdminFetch('/api/admin/users', {
       headers: this.getAdminHeaders(adminKey),
     });
-    return res.json();
   },
 
   async updateAdminUserStatus(userId: string, status: string, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch(`/api/admin/users/${userId}/status`, {
+    return this.safeAdminFetch(`/api/admin/users/${userId}/status`, {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify({ status }),
     });
-    return res.json();
   },
 
   async deleteAdminUser(userId: string, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch(`/api/admin/users/${userId}`, {
+    return this.safeAdminFetch(`/api/admin/users/${userId}`, {
       method: 'DELETE',
       headers: this.getAdminHeaders(adminKey),
     });
-    return res.json();
   },
 
   // Withdrawals Management (Manual Review, Verification & Approval)
   async getAdminWithdrawals(adminKey = 'B@n+earn4future26'): Promise<{ withdrawals: any[] }> {
-    const res = await fetch('/api/admin/withdrawals', {
+    return this.safeAdminFetch('/api/admin/withdrawals', {
       headers: this.getAdminHeaders(adminKey),
     });
-    if (!res.ok) throw new Error('Failed to fetch withdrawals');
-    return res.json();
   },
 
   async reviewAdminWithdrawal(withdrawalId: string, decision: 'APPROVE' | 'REJECT', note?: string, adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch(`/api/admin/withdrawals/${withdrawalId}/review`, {
+    return this.safeAdminFetch(`/api/admin/withdrawals/${withdrawalId}/review`, {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify({ decision, note }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to review withdrawal');
-    return data;
   },
 
   // Data Retention Cleanup
   async cleanupRetention(adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/cleanup-retention', {
+    return this.safeAdminFetch('/api/admin/cleanup-retention', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
       body: JSON.stringify({}),
     });
-    return res.json();
   },
 
   // Audit Logs
   async getAdminAuditLogs(adminKey = 'B@n+earn4future26'): Promise<any> {
-    const res = await fetch('/api/admin/audit-logs', {
+    return this.safeAdminFetch('/api/admin/audit-logs', {
       headers: this.getAdminHeaders(adminKey),
     });
-    return res.json();
   },
 };

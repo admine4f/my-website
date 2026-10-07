@@ -42,23 +42,11 @@ type AdminTab = 'OVERVIEW' | 'ADS' | 'REWARDS' | 'DEPOSITS' | 'WITHDRAWALS' | 'B
 export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose }) => {
   const { user, miningStats, refreshMining, addToast } = useApp();
 
-  // Authentication State (Confidential Password)
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      return typeof window !== 'undefined' && localStorage.getItem('e4f_admin_token') === 'e4f_admin_session_valid';
-    } catch {
-      return false;
-    }
-  });
+  // Authentication State (Confidential Password - Auto-logout on exit)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [adminKey, setAdminKey] = useState(() => {
-    try {
-      return (typeof window !== 'undefined' && localStorage.getItem('e4f_admin_key')) || 'B@n+earn4future26';
-    } catch {
-      return 'B@n+earn4future26';
-    }
-  });
+  const [adminKey, setAdminKey] = useState('B@n+earn4future26');
   const [authError, setAuthError] = useState('');
   const [authenticating, setAuthenticating] = useState(false);
 
@@ -279,8 +267,27 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
     try {
       localStorage.removeItem('e4f_admin_token');
       localStorage.removeItem('e4f_admin_key');
+      sessionStorage.removeItem('e4f_admin_token');
+      sessionStorage.removeItem('e4f_admin_key');
     } catch {}
   };
+
+  const handleClose = () => {
+    handleLogout();
+    onClose();
+  };
+
+  // Auto-logout whenever leaving or exiting the admin panel
+  useEffect(() => {
+    return () => {
+      try {
+        localStorage.removeItem('e4f_admin_token');
+        localStorage.removeItem('e4f_admin_key');
+        sessionStorage.removeItem('e4f_admin_token');
+        sessionStorage.removeItem('e4f_admin_key');
+      } catch {}
+    };
+  }, []);
 
   const loadAdminData = async (keyToUse = adminKey) => {
     setLoading(true);
@@ -787,7 +794,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
               </button>
             )}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-1.5 rounded-full bg-slate-800/80 text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
@@ -804,7 +811,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
             </div>
             <h4 className="text-base font-bold text-white mb-1">Restricted Access</h4>
             <p className="text-xs text-slate-400 max-w-xs mb-6">
-              Enter Administrator Security PIN or Master Key to access authoritative controls.
+              Enter Administrator Password to access authoritative controls.
             </p>
 
             {authError && (
@@ -845,16 +852,6 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
               >
                 {authenticating ? 'Authenticating...' : 'Unlock Admin Panel'}
               </button>
-
-              <div className="flex items-center justify-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => setAdminPassword('B@n+earn4future26')}
-                  className="text-[10px] text-amber-400/80 hover:text-amber-300 font-mono transition-colors cursor-pointer"
-                >
-                  Auto-fill Official Key: <span className="underline">B@n+earn4future26</span>
-                </button>
-              </div>
             </div>
           </form>
         ) : (
