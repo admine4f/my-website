@@ -3302,7 +3302,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                           )}
                         </div>
                         <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                          Spot: ${(u.balances?.usdt ?? 0).toFixed(2)} | Deposit: ${(u.depositBalance ?? 0).toFixed(2)} USDT | {(u.balances?.e4f ?? 0).toFixed(2)} E4F
+                          Spot: ${(u.balances?.usdt ?? 0).toFixed(2)} | Deposit: ${(u.depositBalance ?? 0).toFixed(2)} USDT | {(u.balances?.e4f ?? 0).toFixed(2)} E4F | Refers: {u.referralsCount ?? 0}
                         </div>
                       </div>
 

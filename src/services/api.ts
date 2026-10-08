@@ -276,15 +276,19 @@ export const api = {
     storedUserId?: string,
     referralCode?: string
   ): Promise<{ user: UserAccount; balances: WalletBalances; serverTime: number }> {
+    const localBalances = getLocalBalances();
     try {
       const res = await fetch('/api/auth/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData, demoUser, storedUserId, referralCode }),
+        body: JSON.stringify({ initData, demoUser, storedUserId, referralCode, cachedBalances: localBalances }),
       });
       if (res.ok) {
         const data = await parseResponseJson(res);
-        if (data && data.user) return data;
+        if (data && data.user) {
+          if (data.balances) saveLocalBalances(data.balances);
+          return data;
+        }
       }
     } catch (err) {
       console.warn('Telegram auth temporary network issue, reading local cache:', err);
@@ -292,16 +296,16 @@ export const api = {
 
     // Retrieve genuine cached user and balances from local storage - NEVER synthesize fake demo accounts
     let localUser: UserAccount | null = null;
-    let localBalances: WalletBalances | null = null;
+    let cachedBals: WalletBalances | null = null;
     try {
       const cachedU = typeof window !== 'undefined' ? localStorage.getItem('e4f_cached_user') : null;
       if (cachedU) localUser = JSON.parse(cachedU);
       const cachedB = typeof window !== 'undefined' ? localStorage.getItem('e4f_cached_balances') : null;
-      if (cachedB) localBalances = JSON.parse(cachedB);
+      if (cachedB) cachedBals = JSON.parse(cachedB);
     } catch {}
 
-    if (localUser && localBalances) {
-      return { user: localUser, balances: localBalances, serverTime: Date.now() };
+    if (localUser && cachedBals) {
+      return { user: localUser, balances: cachedBals, serverTime: Date.now() };
     }
 
     // Only if brand new browser visitor with zero cache: create a clean active non-demo account
@@ -1541,20 +1545,57 @@ export const api = {
       throw new Error(resData?.error || 'Withdrawal failed');
     }
     if (resData.balances) saveLocalBalances(resData.balances);
+    try {
+      if (typeof window !== 'undefined') {
+        const key = `e4f_withdrawals_${userId}`;
+        const raw = localStorage.getItem(key);
+        const existing = raw ? JSON.parse(raw) : [];
+        const item = resData.withdrawal || resData.transaction || {
+          id: `wd_${Date.now()}`,
+          user_id: userId,
+          amount: data.amount,
+          currency: data.asset,
+          status: 'pending',
+          wallet_address: data.address,
+          created_at: new Date().toISOString(),
+        };
+        existing.unshift(item);
+        localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+      }
+    } catch {}
     return resData;
   },
 
   async getWithdrawals(userId: string): Promise<WithdrawalRecord[]> {
+    let serverWds: WithdrawalRecord[] = [];
     try {
       const res = await fetch(`/api/withdrawals/${userId}`);
       const data = await parseResponseJson(res);
       if (res.ok && data && Array.isArray(data.withdrawals)) {
-        return data.withdrawals;
+        serverWds = data.withdrawals;
       }
     } catch (err) {
       console.warn('Failed to fetch user withdrawals:', err);
     }
-    return [];
+    let localWds: WithdrawalRecord[] = [];
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(`e4f_withdrawals_${userId}`) : null;
+      if (raw) localWds = JSON.parse(raw);
+    } catch {}
+
+    const ninetyDaysAgoMs = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    const map = new Map<string, any>();
+    for (const w of localWds) {
+      if (w && w.id && new Date(w.created_at).getTime() >= ninetyDaysAgoMs) {
+        map.set(w.id, w);
+      }
+    }
+    for (const w of serverWds) {
+      if (w && w.id && new Date(w.created_at).getTime() >= ninetyDaysAgoMs) {
+        map.set(w.id, w);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
 
   // Announcements

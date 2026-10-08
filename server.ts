@@ -532,6 +532,9 @@ function apply90DayRetentionPolicy(): {
   let purgedReferrals = 0;
 
   for (let i = transactions.length - 1; i >= 0; i--) {
+    // Rule 4: NEVER delete any withdrawal record from database! Lifetime proof for admin.
+    if (transactions[i].source === 'WITHDRAWAL') continue;
+
     if (transactions[i].timestamp < cutoff && transactions[i].status !== 'PENDING') {
       transactions.splice(i, 1);
       purgedTransactions++;
@@ -545,12 +548,8 @@ function apply90DayRetentionPolicy(): {
     }
   }
 
-  for (let i = referralHistory.length - 1; i >= 0; i--) {
-    if (referralHistory[i].timestamp < cutoff && referralHistory[i].status !== 'ACTIVE') {
-      referralHistory.splice(i, 1);
-      purgedReferrals++;
-    }
-  }
+  // Referrals are 100% permanent for life: NEVER purged or deleted
+  purgedReferrals = 0;
 
   for (let i = auditLogs.length - 1; i >= 0; i--) {
     if (auditLogs[i].timestamp < cutoff) {
@@ -680,18 +679,78 @@ async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRec
   return updated;
 }
 
-// In-memory / serverless safe persistence sync (no local file writes)
+const DB_FILE = fs.existsSync('/tmp') ? path.join('/tmp', 'e4f_db.json') : path.join(process.cwd(), 'e4f_db.json');
+
+// Real Production Persistence: Permanently saves users, balances, withdrawals, and referrals
 function persistDatabaseSync() {
-  isDbDirty = false;
+  try {
+    const data = {
+      users: Array.from(users.entries()),
+      balances: Array.from(balances.entries()),
+      transactions,
+      referralHistory,
+      miningSessions,
+      userGiftBoxes: Array.from(userGiftBoxes.entries()),
+      userDailyCheckIns: Array.from(userDailyCheckIns.entries()),
+      spotOrders,
+      auditLogs,
+      timestamp: Date.now(),
+    };
+    fs.writeFileSync(DB_FILE, JSON.stringify(data), 'utf-8');
+    isDbDirty = false;
+  } catch {
+    // Keep in-memory if disk is unwritable
+  }
 }
 
 function scheduleSaveDatabase() {
-  isDbDirty = false;
+  isDbDirty = true;
+  persistDatabaseSync();
 }
 
-// Initial state setup (clean & memory-safe)
+// Initial state setup: Restores all real accounts, permanent referrals, balances, and withdrawals
 function initializeServerState() {
   console.log('[Supabase] Supabase persistence engine initialized.');
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.users)) {
+        for (const [k, v] of data.users) users.set(k, v);
+      }
+      if (Array.isArray(data.balances)) {
+        for (const [k, v] of data.balances) balances.set(k, v);
+      }
+      if (Array.isArray(data.transactions)) {
+        transactions.length = 0;
+        transactions.push(...data.transactions);
+      }
+      if (Array.isArray(data.referralHistory)) {
+        referralHistory.length = 0;
+        referralHistory.push(...data.referralHistory);
+      }
+      if (Array.isArray(data.miningSessions)) {
+        miningSessions.length = 0;
+        miningSessions.push(...data.miningSessions);
+      }
+      if (Array.isArray(data.userGiftBoxes)) {
+        for (const [k, v] of data.userGiftBoxes) userGiftBoxes.set(k, v);
+      }
+      if (Array.isArray(data.userDailyCheckIns)) {
+        for (const [k, v] of data.userDailyCheckIns) userDailyCheckIns.set(k, v);
+      }
+      if (Array.isArray(data.spotOrders)) {
+        spotOrders.length = 0;
+        spotOrders.push(...data.spotOrders);
+      }
+      if (Array.isArray(data.auditLogs)) {
+        auditLogs.length = 0;
+        auditLogs.push(...data.auditLogs);
+      }
+    }
+  } catch (err) {
+    console.warn('[Persistence] Could not load persisted db file:', err);
+  }
   apply90DayRetentionPolicy();
 }
 
@@ -727,8 +786,7 @@ process.on('beforeExit', () => {
   persistDatabaseSync();
 });
 
-// Helper: Ensure user initialization & Welcome Bonus (no fake demo users)
-function getOrCreateUser(telegramId: number, firstName: string, lastName = '', username = '', isDemo = false, referredByCode?: string): UserRecord {
+function getOrCreateUser(telegramId: number, firstName: string, lastName = '', username = '', isDemo = false, referredByCode?: string, existingBalances?: BalanceRecord): UserRecord {
   const userId = `usr_${telegramId}`;
   let user = users.get(userId);
 
@@ -781,18 +839,31 @@ function getOrCreateUser(telegramId: number, firstName: string, lastName = '', u
       });
     }
 
-    // Initial zero balances - strictly 0 for all assets (BTC, ETH, SOL, BNB, USDT, E4F)
-    balances.set(userId, {
-      usdt: 0,
-      e4f: 0,
-      btc: 0,
-      eth: 0,
-      sol: 0,
-      bnb: 0,
-    });
+    // If existing confirmed balances are provided, restore them directly (do NOT re-credit welcome bonus)
+    if (existingBalances && typeof existingBalances.usdt === 'number') {
+      balances.set(userId, {
+        usdt: Number(existingBalances.usdt) || 0,
+        e4f: Number(existingBalances.e4f) || 0,
+        btc: Number(existingBalances.btc) || 0,
+        eth: Number(existingBalances.eth) || 0,
+        sol: Number(existingBalances.sol) || 0,
+        bnb: Number(existingBalances.bnb) || 0,
+      });
+      user.claimedWelcomeBonus = true;
+    } else {
+      // Initial zero balances - strictly 0 for all assets (BTC, ETH, SOL, BNB, USDT, E4F)
+      balances.set(userId, {
+        usdt: 0,
+        e4f: 0,
+        btc: 0,
+        eth: 0,
+        sol: 0,
+        bnb: 0,
+      });
 
-    // Award Welcome Bonus ONLY (strictly what the admin configured)
-    creditWelcomeBonus(userId);
+      // Award Welcome Bonus ONLY for genuine first-time registration
+      creditWelcomeBonus(userId);
+    }
 
     // Initialize 5 Gift Boxes
     userGiftBoxes.set(userId, [
@@ -957,24 +1028,33 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 // 1. Authentication (/api/auth)
 app.post('/api/auth/telegram', async (req: Request, res: Response) => {
-  const { initData, demoUser, storedUserId, referralCode } = req.body;
+  const { initData, demoUser, storedUserId, referralCode, cachedBalances } = req.body;
 
-  // If client provided a storedUserId and that user exists in database, restore immediately!
-  if (storedUserId && typeof storedUserId === 'string' && users.has(storedUserId)) {
-    const existingUser = users.get(storedUserId)!;
-    if (existingUser.firstName === 'Telegram User') {
-      existingUser.firstName = 'E4F User';
+  // If client provided a storedUserId, restore existing account and preserve real balance!
+  if (storedUserId && typeof storedUserId === 'string') {
+    let existingUser = users.get(storedUserId);
+    if (!existingUser) {
+      const rawNum = parseInt(storedUserId.replace('usr_', '')) || 123456789;
+      existingUser = getOrCreateUser(rawNum, 'E4F User', '', 'user', false, referralCode, cachedBalances);
     }
-    if (!existingUser.depositAddress) {
-      existingUser.depositAddress = generateUserDepositAddress(existingUser.id, existingUser.uid);
+    if (existingUser) {
+      if (cachedBalances && typeof cachedBalances.usdt === 'number' && !balances.has(existingUser.id)) {
+        balances.set(existingUser.id, cachedBalances);
+      }
+      if (existingUser.firstName === 'Telegram User') {
+        existingUser.firstName = 'E4F User';
+      }
+      if (!existingUser.depositAddress) {
+        existingUser.depositAddress = generateUserDepositAddress(existingUser.id, existingUser.uid);
+      }
+      const userBalances = await getSupabaseBalance(existingUser.id);
+      return res.json({
+        success: true,
+        user: existingUser,
+        balances: userBalances,
+        serverTime: Date.now(),
+      });
     }
-    const userBalances = await getSupabaseBalance(existingUser.id);
-    return res.json({
-      success: true,
-      user: existingUser,
-      balances: userBalances,
-      serverTime: Date.now(),
-    });
   }
 
   let tgUser: { id: number; first_name: string; last_name?: string; username?: string } | null = null;
@@ -1009,7 +1089,7 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
     }
   }
 
-  const user = getOrCreateUser(tgUser.id, tgUser.first_name, tgUser.last_name, tgUser.username, false, parsedReferral);
+  const user = getOrCreateUser(tgUser.id, tgUser.first_name, tgUser.last_name, tgUser.username, false, parsedReferral, cachedBalances);
   if (user.firstName === 'Telegram User') {
     user.firstName = 'E4F User';
   }
@@ -2630,14 +2710,14 @@ app.get('/api/referrals/:userId', (req: Request, res: Response) => {
   const user = users.get(userId);
   if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-  // 90-day retention cutoff: return referrals within 90 days
-  const cutoff = Date.now() - NINETY_DAYS_MS;
-  const userReferrals = referralHistory.filter(r => r.referrerId === userId && r.timestamp >= cutoff);
+  // Permanent Referrals: Never filtered or deleted, stored permanently for life!
+  const userReferrals = referralHistory.filter(r => r.referrerId === userId);
   const directInvitedUsers = Array.from(users.values()).filter(u => u.referredBy === userId);
 
-  const totalInvited = Math.max(userReferrals.length, directInvitedUsers.length, 12);
-  const qualified = userReferrals.filter(r => r.status === 'QUALIFIED').length || 2;
-  const active = Math.max(1, totalInvited - qualified);
+  // 100% Real User Referral Stats (zero fake/demo numbers)
+  const totalInvited = Math.max(userReferrals.length, directInvitedUsers.length);
+  const qualified = userReferrals.filter(r => r.status === 'QUALIFIED').length;
+  const active = Math.max(0, totalInvited - qualified);
   const pending = 0;
   const totalEarnedUSDT = qualified * systemSettings.referralBonusUSDT;
 
@@ -3302,6 +3382,7 @@ const handleWithdrawRequest = async (req: Request, res: Response) => {
     note: `Withdrawal to ${address ? address.substring(0, 8) + '...' : ''} (${network || 'BEP20'})`,
   };
   transactions.unshift(tx);
+  persistDatabaseSync();
 
   res.json({
     success: true,
@@ -3316,17 +3397,22 @@ app.post('/api/wallet/withdraw', handleWithdrawRequest);
 app.post('/api/withdraw', handleWithdrawRequest);
 
 // 3. User Withdrawals History Route (Directly from Supabase table 'withdrawals')
+// 3. User Withdrawals History Route: Filtered to last 90 days for user app (.gte created_at)
 app.get('/api/withdrawals/:userId', async (req: Request, res: Response) => {
   const { userId } = req.params;
+  const ninetyDaysAgoMs = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  const ninetyDaysAgoISO = new Date(ninetyDaysAgoMs).toISOString();
+
   if (supabase) {
     try {
       const { data, error } = await supabase
         .from('withdrawals')
         .select('*')
         .eq('user_id', userId)
+        .gte('created_at', ninetyDaysAgoISO)
         .order('created_at', { ascending: false });
 
-      if (!error && Array.isArray(data) && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         return res.json({ success: true, withdrawals: data });
       }
     } catch (err) {
@@ -3334,15 +3420,15 @@ app.get('/api/withdrawals/:userId', async (req: Request, res: Response) => {
     }
   }
 
-  // Fallback to in-memory transactions if Supabase table is not yet created or empty
+  // Fallback to in-memory transactions (strictly filtering last 90 days for user app)
   const fallback = transactions
-    .filter(t => t.userId === userId && t.source === 'WITHDRAWAL')
+    .filter(t => t.userId === userId && t.source === 'WITHDRAWAL' && t.timestamp >= ninetyDaysAgoMs)
     .map(t => ({
       id: t.id,
       user_id: t.userId,
       amount: t.amount,
       currency: t.asset,
-      status: t.status === 'COMPLETED' ? 'success' : 'pending',
+      status: t.status === 'COMPLETED' ? 'success' : (t.status === 'REJECTED' ? 'rejected' : 'pending'),
       wallet_address: t.address || '',
       created_at: new Date(t.timestamp).toISOString(),
     }));
@@ -3628,6 +3714,7 @@ app.get('/api/admin/users', requireAdminAuth, (_req: Request, res: Response) => 
   const userList = Array.from(users.values()).map(u => ({
     ...u,
     balances: balances.get(u.id),
+    referralsCount: referralHistory.filter(r => r.referrerId === u.id).length,
   }));
   res.json({ users: userList });
 });
@@ -3651,32 +3738,78 @@ app.post('/api/admin/users/:userId/status', requireAdminAuth, (req: Request, res
   res.json({ success: true, user });
 });
 
-// Admin Withdrawal Management (Manual Verification, Approval & Rejection)
-app.get('/api/admin/withdrawals', requireAdminAuth, (_req: Request, res: Response) => {
-  const withdrawalList = transactions
-    .filter(t => t.source === 'WITHDRAWAL')
-    .map(tx => {
-      const user = users.get(tx.userId);
-      const userBal = balances.get(tx.userId);
-      // Calculate total deposits made by this user
-      const totalDeposited = transactions
-        .filter(t => t.userId === tx.userId && t.source === 'DEPOSIT' && t.status === 'COMPLETED')
-        .reduce((sum, t) => sum + (t.asset === 'USDT' ? t.amount : 0), 0);
-      const depositHistory = transactions
-        .filter(t => t.userId === tx.userId && t.source === 'DEPOSIT')
-        .slice(0, 5);
+// Admin Withdrawal Management (Manual Verification, Approval & Rejection) - ALL TIME LIFETIME, NO FILTER!
+app.get('/api/admin/withdrawals', requireAdminAuth, async (_req: Request, res: Response) => {
+  let dbWithdrawals: any[] = [];
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        dbWithdrawals = data;
+      }
+    } catch (err) {
+      console.warn('[Supabase] Admin withdrawals fetch error:', err);
+    }
+  }
 
-      return {
-        ...tx,
-        userUid: user?.uid || tx.userId,
+  // Merge Supabase withdrawals with in-memory transactions: 100% ALL TIME LIFETIME, NO FILTER!
+  const txWithdrawals = transactions.filter(t => t.source === 'WITHDRAWAL');
+  const allMap = new Map<string, any>();
+
+  // In-memory transactions first
+  for (const tx of txWithdrawals) {
+    const user = users.get(tx.userId);
+    const userBal = balances.get(tx.userId);
+    const totalDeposited = transactions
+      .filter(t => t.userId === tx.userId && t.source === 'DEPOSIT' && t.status === 'COMPLETED')
+      .reduce((sum, t) => sum + (t.asset === 'USDT' ? t.amount : 0), 0);
+    const depositHistory = transactions
+      .filter(t => t.userId === tx.userId && t.source === 'DEPOSIT')
+      .slice(0, 5);
+
+    allMap.set(tx.id, {
+      ...tx,
+      userUid: user?.uid || tx.userId,
+      userName: user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'E4F User',
+      userSpotUsdt: userBal?.usdt ?? 0,
+      userDepositBalance: user?.depositBalance ?? 0,
+      userTotalDeposited: totalDeposited,
+      depositHistory,
+    });
+  }
+
+  // Supabase withdrawals (lifetime proof for admin panel)
+  for (const dbW of dbWithdrawals) {
+    if (!allMap.has(dbW.id)) {
+      const user = users.get(dbW.user_id);
+      const userBal = balances.get(dbW.user_id);
+      allMap.set(dbW.id, {
+        id: dbW.id,
+        userId: dbW.user_id,
+        userUid: user?.uid || dbW.user_id,
         userName: user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'E4F User',
+        asset: dbW.currency || 'USDT',
+        amount: Number(dbW.amount),
+        direction: 'OUT',
+        source: 'WITHDRAWAL',
+        status: dbW.status === 'success' ? 'COMPLETED' : (dbW.status === 'rejected' ? 'REJECTED' : 'PENDING'),
+        timestamp: new Date(dbW.created_at).getTime(),
+        address: dbW.wallet_address || '',
+        network: 'BEP20 (BSC)',
+        fee: 0.5,
         userSpotUsdt: userBal?.usdt ?? 0,
         userDepositBalance: user?.depositBalance ?? 0,
-        userTotalDeposited: totalDeposited,
-        depositHistory,
-      };
-    });
+        userTotalDeposited: 0,
+        depositHistory: [],
+        note: `Withdrawal to ${dbW.wallet_address ? dbW.wallet_address.substring(0, 8) + '...' : ''}`,
+      });
+    }
+  }
 
+  const withdrawalList = Array.from(allMap.values()).sort((a, b) => b.timestamp - a.timestamp);
   res.json({ withdrawals: withdrawalList });
 });
 

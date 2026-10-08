@@ -18,10 +18,10 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ onClose }) => {
     totalEarnedUSDT: number;
     history?: any[];
   }>({
-    totalInvited: 12,
-    qualified: 2,
-    active: 10,
-    totalEarnedUSDT: 10,
+    totalInvited: 0,
+    qualified: 0,
+    active: 0,
+    totalEarnedUSDT: 0,
     history: [],
   });
 
