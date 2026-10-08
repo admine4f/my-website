@@ -11,21 +11,53 @@
   }
 }
 
-@keyframes spin3d {
+@keyframes coinContinuousSpin {
   0% {
-    transform: rotateY(0deg) rotateX(10deg);
-  }
-  50% {
-    transform: rotateY(180deg) rotateX(10deg);
+    transform: perspective(1000px) rotateY(0deg);
   }
   100% {
-    transform: rotateY(360deg) rotateX(10deg);
+    transform: perspective(1000px) rotateY(360deg);
   }
 }
 
-.animate-spin-3d {
-  animation: spin3d 9s infinite linear;
+.animate-coin-spin-normal {
+  animation: coinContinuousSpin 8s linear infinite;
   transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.animate-coin-spin-active {
+  animation: coinContinuousSpin 4s linear infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.animate-spin-3d {
+  animation: coinContinuousSpin 4s linear infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@keyframes gleamSweep {
+  0% {
+    transform: translateX(-150%) rotate(25deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(150%) rotate(25deg);
+    opacity: 0.6;
+  }
+  51%, 100% {
+    transform: translateX(150%) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+.animate-gleam {
+  animation: gleamSweep 2.5s ease-in-out infinite;
 }
 
 @keyframes pulseGoldGlow {
@@ -35,6 +67,21 @@
   50% {
     box-shadow: 0 0 45px 0px rgba(234, 179, 8, 0.65), 0 0 70px -5px rgba(56, 189, 248, 0.4);
   }
+}
+
+@keyframes fireGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px 4px rgba(249, 115, 22, 0.6), 0 0 50px 10px rgba(234, 179, 8, 0.4), inset 0 0 20px rgba(239, 68, 68, 0.4);
+    filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.7));
+  }
+  50% {
+    box-shadow: 0 0 45px 8px rgba(249, 115, 22, 0.85), 0 0 80px 18px rgba(234, 179, 8, 0.65), inset 0 0 30px rgba(239, 68, 68, 0.6);
+    filter: drop-shadow(0 0 25px rgba(234, 179, 8, 0.9));
+  }
+}
+
+.fire-ring-glow {
+  animation: fireGlowPulse 2.5s infinite ease-in-out;
 }
 
 .gold-energy-glow {
