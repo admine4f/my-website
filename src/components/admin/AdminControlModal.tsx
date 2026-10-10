@@ -46,7 +46,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [adminKey, setAdminKey] = useState('B@n+earn4future26');
+  const [adminKey, setAdminKey] = useState('');
   const [authError, setAuthError] = useState('');
   const [authenticating, setAuthenticating] = useState(false);
 
@@ -202,6 +202,10 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   // Users List
   const [userList, setUserList] = useState<any[]>([]);
 
+  // Deposits List & Queue
+  const [depositsList, setDepositsList] = useState<any[]>([]);
+  const [processingDepositId, setProcessingDepositId] = useState<string | null>(null);
+
   // Retention cleanup status
   const [cleaningRetention, setCleaningRetention] = useState(false);
 
@@ -226,35 +230,14 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
         const resolvedKey = res.key || cleanPassword;
         setAdminKey(resolvedKey);
         try {
-          localStorage.setItem('e4f_admin_token', 'e4f_admin_session_valid');
+          if (res.token) {
+            localStorage.setItem('e4f_admin_token', res.token);
+          }
           localStorage.setItem('e4f_admin_key', resolvedKey);
         } catch {}
         loadAdminData(resolvedKey);
       }
     } catch (err: any) {
-      // Vercel serverless / cold-start fallback:
-      // If serverless request failed or had network latency, check against authorized master keys
-      const allowedMasterKeys = [
-        'B@n+earn4future26',
-        'E4F_MASTER_ADMIN_2028',
-        'earn4future26',
-        'admin',
-      ];
-      const isMasterValid = allowedMasterKeys.some(
-        k => k === cleanPassword || k.toLowerCase() === cleanPassword.toLowerCase()
-      );
-
-      if (isMasterValid) {
-        setIsAuthenticated(true);
-        const resolvedKey = 'B@n+earn4future26';
-        setAdminKey(resolvedKey);
-        try {
-          localStorage.setItem('e4f_admin_token', 'e4f_admin_session_valid');
-          localStorage.setItem('e4f_admin_key', resolvedKey);
-        } catch {}
-        loadAdminData(resolvedKey);
-        return;
-      }
       setAuthError(err.message || 'Incorrect Admin Security Password');
     } finally {
       setAuthenticating(false);
@@ -292,15 +275,19 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   const loadAdminData = async (keyToUse = adminKey) => {
     setLoading(true);
     try {
-      const [dash, anns, tasks, subs, users, withdrawalsRes] = await Promise.all([
+      const [dash, anns, tasks, subs, users, withdrawalsRes, depositsRes] = await Promise.all([
         api.getAdminDashboard(keyToUse),
         api.getAdminAnnouncements(keyToUse),
         api.getAdminTasks(keyToUse),
         api.getAdminTaskSubmissions(keyToUse),
         api.getAdminUsers(keyToUse),
         api.getAdminWithdrawals(keyToUse).catch(() => ({ withdrawals: [] })),
+        api.getAdminDeposits(keyToUse).catch(() => ({ deposits: [] })),
       ]);
       setDashboardData(dash);
+      if (depositsRes?.deposits && Array.isArray(depositsRes.deposits)) {
+        setDepositsList(depositsRes.deposits);
+      }
       if (dash?.systemSettings) {
         setAdRequired(dash.systemSettings.rewardedAdRequired ?? true);
         if (dash.systemSettings.miningAdDurationSeconds !== undefined) {
@@ -597,6 +584,26 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
       addToast('Review Failed', err.message || 'Error updating withdrawal', 'error');
     } finally {
       setProcessingWithdrawalId(null);
+    }
+  };
+
+  // Review Deposit (Approve or Reject)
+  const handleReviewDeposit = async (depositId: string, decision: 'APPROVE' | 'REJECT') => {
+    setProcessingDepositId(depositId);
+    try {
+      await api.reviewAdminDeposit(depositId, decision, undefined, adminKey);
+      addToast(
+        decision === 'APPROVE' ? 'Deposit Approved & Credited' : 'Deposit Rejected',
+        decision === 'APPROVE'
+          ? 'Deposit confirmed, verified on ledger, and funds credited to user wallet.'
+          : 'Deposit submission marked REJECTED.',
+        decision === 'APPROVE' ? 'success' : 'info'
+      );
+      await loadAdminData();
+    } catch (err: any) {
+      addToast('Review Failed', err.message || 'Error reviewing deposit', 'error');
+    } finally {
+      setProcessingDepositId(null);
     }
   };
 
@@ -2136,6 +2143,89 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                     >
                       <span>Save Deposit Settings</span>
                     </button>
+                  </div>
+
+                  {/* Deposits Verification Queue */}
+                  <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>External Deposit Submissions Queue ({depositsList.length})</span>
+                      </div>
+                      <button
+                        onClick={() => loadAdminData()}
+                        className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                        title="Refresh"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+
+                    {depositsList.length === 0 ? (
+                      <div className="text-center py-6 text-xs text-slate-500">
+                        No external deposits submitted yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5 max-h-80 overflow-y-auto no-scrollbar">
+                        {depositsList.map((dep: any) => {
+                          const isPending = (dep.status || '').toUpperCase() === 'PENDING';
+                          const isVerified = (dep.status || '').toUpperCase() === 'VERIFIED';
+                          return (
+                            <div
+                              key={dep.id}
+                              className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2 text-xs"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-bold text-white flex items-center gap-1.5">
+                                  <span className="font-mono text-emerald-400">+{dep.amount} {dep.asset || 'USDT'}</span>
+                                  <span className="text-[10px] text-slate-400 uppercase font-mono">({dep.network})</span>
+                                </div>
+                                <span
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                    isPending
+                                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                      : isVerified
+                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                                  }`}
+                                >
+                                  {dep.status}
+                                </span>
+                              </div>
+
+                              <div className="text-[11px] text-slate-400 font-mono break-all bg-slate-900/60 p-1.5 rounded-lg border border-slate-800/80">
+                                <span className="text-slate-500 select-none">TXID: </span>{dep.txid}
+                              </div>
+
+                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                <span>User: {dep.user_id}</span>
+                                <span>{dep.created_at ? new Date(dep.created_at).toLocaleString() : 'Recent'}</span>
+                              </div>
+
+                              {isPending && (
+                                <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
+                                  <button
+                                    onClick={() => handleReviewDeposit(dep.id, 'APPROVE')}
+                                    disabled={processingDepositId === dep.id}
+                                    className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Verify & Credit Balance</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleReviewDeposit(dep.id, 'REJECT')}
+                                    disabled={processingDepositId === dep.id}
+                                    className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold text-[11px] transition-colors cursor-pointer"
+                                  >
+                                    <span>Reject</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

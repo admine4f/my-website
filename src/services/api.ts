@@ -74,26 +74,12 @@ export function saveLocalTransaction(userId: string | undefined, tx: Transaction
   } catch {}
 }
 
-export function getLocalUser(): UserAccount {
+export function getLocalUser(): UserAccount | null {
   try {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('e4f_cached_user') : null;
     if (raw) return JSON.parse(raw);
   } catch {}
-  return {
-    id: 'usr_123456789',
-    uid: '87456802',
-    telegramId: 123456789,
-    firstName: 'E4F User',
-    username: 'user_123',
-    referralCode: 'E4F256926',
-    createdAt: Date.now(),
-    status: 'ACTIVE',
-    claimedWelcomeBonus: true,
-    isDemoUser: false,
-    isVerified: true,
-    depositBalance: 2,
-    depositAddress: '0x187c938bbdfedf58c688b8699a909bd262ed6f20',
-  };
+  return null;
 }
 
 export function saveLocalUser(u: UserAccount) {
@@ -286,6 +272,9 @@ export const api = {
       if (res.ok) {
         const data = await parseResponseJson(res);
         if (data && data.user) {
+          if (data.token && typeof window !== 'undefined') {
+            localStorage.setItem('e4f_session_token', data.token);
+          }
           if (data.balances) saveLocalBalances(data.balances);
           return data;
         }
@@ -294,7 +283,7 @@ export const api = {
       console.warn('Telegram auth temporary network issue, reading local cache:', err);
     }
 
-    // Retrieve genuine cached user and balances from local storage - NEVER synthesize fake demo accounts
+    // Retrieve genuine cached user and balances from local storage if available
     let localUser: UserAccount | null = null;
     let cachedBals: WalletBalances | null = null;
     try {
@@ -308,44 +297,19 @@ export const api = {
       return { user: localUser, balances: cachedBals, serverTime: Date.now() };
     }
 
-    // Only if brand new browser visitor with zero cache: create a clean active non-demo account
-    const cleanUser: UserAccount = {
-      id: storedUserId || 'usr_123456789',
-      uid: '87456802',
-      telegramId: 123456789,
-      firstName: 'E4F User',
-      username: 'user_123',
-      referralCode: 'E4F256926',
-      createdAt: Date.now(),
-      status: 'ACTIVE',
-      claimedWelcomeBonus: true,
-      isDemoUser: false,
-      isVerified: false,
-      depositBalance: 0,
-      depositAddress: '0x187c938bbdfedf58c688b8699a909bd262ed6f20',
+    throw new Error('Telegram authentication required. Please launch E4F Exchange from the official Telegram bot.');
+  },
+
+  getUserAuthHeaders(): Record<string, string> {
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('e4f_session_token') || '') : '';
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
     };
-
-    let welcomeUSDT = 25.0;
-    let welcomeE4F = 10.0;
-    try {
-      const cachedSettings = localStorage.getItem('e4f_cached_public_settings');
-      if (cachedSettings) {
-        const s = JSON.parse(cachedSettings);
-        if (typeof s.welcomeBonusUSDT === 'number') welcomeUSDT = s.welcomeBonusUSDT;
-        if (typeof s.welcomeBonusE4F === 'number') welcomeE4F = s.welcomeBonusE4F;
-      }
-    } catch {}
-
-    const cleanBalances: WalletBalances = {
-      usdt: welcomeUSDT,
-      e4f: welcomeE4F,
-      btc: 0,
-      eth: 0,
-      sol: 0,
-      bnb: 0,
-    };
-
-    return { user: cleanUser, balances: cleanBalances, serverTime: Date.now() };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      headers['x-session-token'] = token;
+    }
+    return headers;
   },
 
   // User Profile & Balances
@@ -361,8 +325,18 @@ export const api = {
 
     const localUser = getLocalUser();
     const localBalances = getLocalBalances();
+    const fallbackUser: UserAccount = localUser || {
+      id: userId,
+      uid: userId.slice(0, 8).toUpperCase(),
+      telegramId: 0,
+      firstName: 'E4F User',
+      referralCode: 'E4F' + Math.floor(100000 + Math.random() * 900000),
+      createdAt: Date.now(),
+      status: 'ACTIVE',
+      claimedWelcomeBonus: false,
+    };
     return {
-      user: localUser,
+      user: fallbackUser,
       balances: localBalances,
       recentTransactions: getLocalTransactions(userId),
       serverTime: Date.now(),
@@ -1151,7 +1125,11 @@ export const api = {
     } catch {}
     try {
       if (typeof window !== 'undefined') {
-        localStorage.clear();
+        localStorage.removeItem('e4f_session_token');
+        localStorage.removeItem('e4f_user_cache');
+        localStorage.removeItem('e4f_user_session');
+        localStorage.removeItem('e4f_auth_token');
+        sessionStorage.clear();
       }
     } catch {}
     return { success: true, message: 'Account successfully reset' };
@@ -1168,9 +1146,12 @@ export const api = {
       if (res.ok && data && data.user) return data;
     } catch {}
     const localUser = getLocalUser();
-    localUser.username = username;
-    saveLocalUser(localUser);
-    return { success: true, user: localUser, message: 'Username updated successfully' };
+    if (localUser) {
+      localUser.username = username;
+      saveLocalUser(localUser);
+      return { success: true, user: localUser, message: 'Username updated successfully' };
+    }
+    return { success: false, user: null, message: 'User not found' };
   },
 
   async verifyAccount(userId: string, txHash?: string): Promise<{ success: boolean; message: string; user: any; balances?: any; depositBalance?: number; isVerified: boolean }> {
@@ -1523,7 +1504,7 @@ export const api = {
   async deposit(userId: string, data: { asset: string; network: string; amount: number; txid: string; senderAddress?: string }): Promise<any> {
     const res = await fetch('/api/wallet/deposit', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getUserAuthHeaders(),
       body: JSON.stringify({ userId, ...data }),
     });
     const resData = await parseResponseJson(res);
@@ -1537,7 +1518,7 @@ export const api = {
   async withdraw(userId: string, data: { asset: string; address: string; network: string; amount: number }): Promise<any> {
     const res = await fetch('/api/wallet/withdraw', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getUserAuthHeaders(),
       body: JSON.stringify({ userId, ...data }),
     });
     const resData = await parseResponseJson(res);
@@ -1681,20 +1662,22 @@ export const api = {
     return data;
   },
 
-  async getAdminDashboard(adminKey = 'B@n+earn4future26'): Promise<any> {
+  async getAdminDashboard(adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/dashboard', {
       headers: this.getAdminHeaders(adminKey),
     });
   },
 
-  getAdminHeaders(adminKey = 'B@n+earn4future26'): Record<string, string> {
-    const token = typeof window !== 'undefined' ? (localStorage.getItem('e4f_admin_token') || 'e4f_admin_session_valid') : 'e4f_admin_session_valid';
+  getAdminHeaders(adminKey?: string): Record<string, string> {
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('e4f_admin_token') || '') : '';
     const savedKey = typeof window !== 'undefined' ? localStorage.getItem('e4f_admin_key') : null;
-    return {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'x-admin-key': (adminKey && adminKey !== 'B@n+earn4future26') ? adminKey : (savedKey || adminKey || 'B@n+earn4future26'),
-      'x-admin-token': token,
     };
+    if (token) headers['x-admin-token'] = token;
+    const effectiveKey = adminKey || savedKey;
+    if (effectiveKey) headers['x-admin-key'] = effectiveKey;
+    return headers;
   },
 
   async safeAdminFetch(url: string, options: RequestInit = {}): Promise<any> {
@@ -1730,7 +1713,7 @@ export const api = {
     return data;
   },
 
-  async updateAdminSettings(settings: any, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async updateAdminSettings(settings: any, adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/settings', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
@@ -1738,7 +1721,7 @@ export const api = {
     });
   },
 
-  async updateAdminAdConfig(config: { enabled: boolean; provider: string; adMiningDurationSeconds?: number; adsterraDirectLink?: string; monetagDirectLink?: string }, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async updateAdminAdConfig(config: { enabled: boolean; provider: string; adMiningDurationSeconds?: number; adsterraDirectLink?: string; monetagDirectLink?: string }, adminKey?: string): Promise<any> {
     return this.updateAdminSettings({
       rewardedAdRequired: config.enabled,
       adProvider: config.provider,
@@ -1749,13 +1732,13 @@ export const api = {
   },
 
   // Announcements CRUD
-  async getAdminAnnouncements(adminKey = 'B@n+earn4future26'): Promise<any> {
+  async getAdminAnnouncements(adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/announcements', {
       headers: this.getAdminHeaders(adminKey),
     });
   },
 
-  async createAnnouncement(ann: { title: string; description: string; ctaText?: string; ctaUrl?: string; imageUrl?: string; priority?: string | number; type?: string; validUntil?: number }, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async createAnnouncement(ann: { title: string; description: string; ctaText?: string; ctaUrl?: string; imageUrl?: string; priority?: string | number; type?: string; validUntil?: number }, adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/announcements', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
@@ -1763,7 +1746,7 @@ export const api = {
     });
   },
 
-  async updateAnnouncement(id: string, updates: any, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async updateAnnouncement(id: string, updates: any, adminKey?: string): Promise<any> {
     return this.safeAdminFetch(`/api/admin/announcements/${id}`, {
       method: 'PUT',
       headers: this.getAdminHeaders(adminKey),
@@ -1771,7 +1754,7 @@ export const api = {
     });
   },
 
-  async deleteAnnouncement(id: string, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async deleteAnnouncement(id: string, adminKey?: string): Promise<any> {
     return this.safeAdminFetch(`/api/admin/announcements/${id}`, {
       method: 'DELETE',
       headers: this.getAdminHeaders(adminKey),
@@ -1779,13 +1762,13 @@ export const api = {
   },
 
   // Dynamic Tasks CRUD
-  async getAdminTasks(adminKey = 'B@n+earn4future26'): Promise<any> {
+  async getAdminTasks(adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/tasks', {
       headers: this.getAdminHeaders(adminKey),
     });
   },
 
-  async createAdminTask(task: any, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async createAdminTask(task: any, adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/tasks', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
@@ -1793,7 +1776,7 @@ export const api = {
     });
   },
 
-  async updateAdminTask(id: string, updates: any, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async updateAdminTask(id: string, updates: any, adminKey?: string): Promise<any> {
     return this.safeAdminFetch(`/api/admin/tasks/${id}`, {
       method: 'PUT',
       headers: this.getAdminHeaders(adminKey),
@@ -1801,7 +1784,7 @@ export const api = {
     });
   },
 
-  async deleteAdminTask(id: string, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async deleteAdminTask(id: string, adminKey?: string): Promise<any> {
     return this.safeAdminFetch(`/api/admin/tasks/${id}`, {
       method: 'DELETE',
       headers: this.getAdminHeaders(adminKey),
@@ -1809,13 +1792,13 @@ export const api = {
   },
 
   // Task Submissions Review
-  async getAdminTaskSubmissions(adminKey = 'B@n+earn4future26'): Promise<any> {
+  async getAdminTaskSubmissions(adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/task-submissions', {
       headers: this.getAdminHeaders(adminKey),
     });
   },
 
-  async reviewTaskSubmission(submissionId: string, decision: 'APPROVE' | 'REJECT', adminNote?: string, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async reviewTaskSubmission(submissionId: string, decision: 'APPROVE' | 'REJECT', adminNote?: string, adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/task-submissions/review', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
@@ -1824,13 +1807,13 @@ export const api = {
   },
 
   // Users Management
-  async getAdminUsers(adminKey = 'B@n+earn4future26'): Promise<any> {
+  async getAdminUsers(adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/users', {
       headers: this.getAdminHeaders(adminKey),
     });
   },
 
-  async updateAdminUserStatus(userId: string, status: string, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async updateAdminUserStatus(userId: string, status: string, adminKey?: string): Promise<any> {
     return this.safeAdminFetch(`/api/admin/users/${userId}/status`, {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
@@ -1838,21 +1821,36 @@ export const api = {
     });
   },
 
-  async deleteAdminUser(userId: string, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async deleteAdminUser(userId: string, adminKey?: string): Promise<any> {
     return this.safeAdminFetch(`/api/admin/users/${userId}`, {
       method: 'DELETE',
       headers: this.getAdminHeaders(adminKey),
     });
   },
 
+  // Deposits Management (Manual Review, Verification & Approval)
+  async getAdminDeposits(adminKey?: string): Promise<{ success: boolean; deposits: any[] }> {
+    return this.safeAdminFetch('/api/admin/deposits', {
+      headers: this.getAdminHeaders(adminKey),
+    });
+  },
+
+  async reviewAdminDeposit(depositId: string, decision: 'APPROVE' | 'REJECT', note?: string, adminKey?: string): Promise<any> {
+    return this.safeAdminFetch(`/api/admin/deposits/${depositId}/review`, {
+      method: 'POST',
+      headers: this.getAdminHeaders(adminKey),
+      body: JSON.stringify({ decision, note }),
+    });
+  },
+
   // Withdrawals Management (Manual Review, Verification & Approval)
-  async getAdminWithdrawals(adminKey = 'B@n+earn4future26'): Promise<{ withdrawals: any[] }> {
+  async getAdminWithdrawals(adminKey?: string): Promise<{ withdrawals: any[] }> {
     return this.safeAdminFetch('/api/admin/withdrawals', {
       headers: this.getAdminHeaders(adminKey),
     });
   },
 
-  async reviewAdminWithdrawal(withdrawalId: string, decision: 'APPROVE' | 'REJECT', note?: string, adminKey = 'B@n+earn4future26'): Promise<any> {
+  async reviewAdminWithdrawal(withdrawalId: string, decision: 'APPROVE' | 'REJECT', note?: string, adminKey?: string): Promise<any> {
     return this.safeAdminFetch(`/api/admin/withdrawals/${withdrawalId}/review`, {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
@@ -1861,7 +1859,7 @@ export const api = {
   },
 
   // Data Retention Cleanup
-  async cleanupRetention(adminKey = 'B@n+earn4future26'): Promise<any> {
+  async cleanupRetention(adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/cleanup-retention', {
       method: 'POST',
       headers: this.getAdminHeaders(adminKey),
@@ -1870,7 +1868,7 @@ export const api = {
   },
 
   // Audit Logs
-  async getAdminAuditLogs(adminKey = 'B@n+earn4future26'): Promise<any> {
+  async getAdminAuditLogs(adminKey?: string): Promise<any> {
     return this.safeAdminFetch('/api/admin/audit-logs', {
       headers: this.getAdminHeaders(adminKey),
     });

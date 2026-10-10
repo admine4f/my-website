@@ -1,15 +1,31 @@
 import React from 'react';
-import { Gift, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Gift, CheckCircle2, ArrowRight, ShieldCheck, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const WelcomeBonusModal: React.FC = () => {
-  const { showWelcomeBonus, setShowWelcomeBonus, setActiveTab, balances } = useApp();
+  const { showWelcomeBonus, setShowWelcomeBonus, setActiveTab, balances, activeModal, closeModal } = useApp();
 
-  if (!showWelcomeBonus) return null;
+  const isVisible = showWelcomeBonus || activeModal === 'WELCOME' || activeModal === 'WELCOME_BONUS';
+  if (!isVisible) return null;
+
+  const handleClose = () => {
+    setShowWelcomeBonus(false);
+    if (activeModal === 'WELCOME' || activeModal === 'WELCOME_BONUS') {
+      closeModal();
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div className="relative w-full max-w-sm bg-gradient-to-b from-[#111A30] to-[#090E1D] border border-amber-500/40 rounded-3xl p-6 text-center shadow-[0_0_50px_rgba(245,158,11,0.25)]">
+        {/* Close Button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+          title="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
         {/* Glow & Badge */}
         <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 p-0.5 shadow-lg shadow-amber-500/30 flex items-center justify-center mb-4">
           <div className="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center">
@@ -67,7 +83,7 @@ export const WelcomeBonusModal: React.FC = () => {
         <div className="flex flex-col gap-2">
           <button
             onClick={() => {
-              setShowWelcomeBonus(false);
+              handleClose();
               setActiveTab('mining');
             }}
             className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-transform active:scale-95"
@@ -76,7 +92,7 @@ export const WelcomeBonusModal: React.FC = () => {
             <ArrowRight className="w-4 h-4" />
           </button>
           <button
-            onClick={() => setShowWelcomeBonus(false)}
+            onClick={handleClose}
             className="w-full py-2.5 text-xs text-slate-400 hover:text-slate-200"
           >
             Continue to Exchange Dashboard

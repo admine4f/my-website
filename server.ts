@@ -13,8 +13,142 @@ export const supabase: SupabaseClient | null = (SUPABASE_URL && SUPABASE_SERVICE
     })
   : null;
 
+export const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL) || Boolean(process.env.VERCEL_ENV);
+
+if (isProduction && (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY)) {
+  console.error('[CRITICAL] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in production! In-memory fallback is disabled to prevent wallet balance loss.');
+}
+
+/**
+ * Ensures Supabase client is initialized.
+ * Throws explicit error instead of falling back to ephemeral memory.
+ */
+export function requireSupabase(): SupabaseClient {
+  if (!supabase) {
+    throw new Error(
+      '[CRITICAL DATABASE EXCEPTION] Supabase connection is required. ' +
+      'In-memory fallback has been removed to prevent wallet balance loss. ' +
+      'Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your environment.'
+    );
+  }
+  return supabase;
+}
+
 const app = express();
 const PORT = 3000;
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const SESSION_SECRET_KEY = process.env.SESSION_SECRET || process.env.ADMIN_SECRET || 'e4f_session_signing_secret_key_2028';
+
+export function verifyTelegramInitData(initData: string, botToken: string): { valid: boolean; user?: any; error?: string } {
+  try {
+    if (!initData || typeof initData !== 'string') {
+      return { valid: false, error: 'initData string is required' };
+    }
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash');
+    if (!hash) {
+      return { valid: false, error: 'Missing hash parameter' };
+    }
+
+    const authDateStr = params.get('auth_date');
+    if (authDateStr) {
+      const authDate = parseInt(authDateStr, 10);
+      const nowSec = Math.floor(Date.now() / 1000);
+      // Reject if older than 24h or in future
+      if (!isNaN(authDate) && (nowSec - authDate > 86400 || authDate - nowSec > 300)) {
+        return { valid: false, error: 'Telegram authentication expired' };
+      }
+    }
+
+    params.delete('hash');
+    const sortedKeys = Array.from(params.keys()).sort();
+    const dataCheckString = sortedKeys.map(k => `${k}=${params.get(k)}`).join('\n');
+
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+    const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+    const hashBuf = Buffer.from(hash, 'utf-8');
+    const calcBuf = Buffer.from(calculatedHash, 'utf-8');
+    if (hashBuf.length !== calcBuf.length || !crypto.timingSafeEqual(hashBuf, calcBuf)) {
+      return { valid: false, error: 'Cryptographic signature mismatch' };
+    }
+
+    const userParam = params.get('user');
+    const user = userParam ? JSON.parse(userParam) : null;
+    return { valid: true, user };
+  } catch (err: any) {
+    return { valid: false, error: err.message || 'Verification exception' };
+  }
+}
+
+export function generateUserSessionToken(userId: string): string {
+  const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
+  const payload = `usr:${userId}:${expiresAt}`;
+  const signature = crypto.createHmac('sha256', SESSION_SECRET_KEY).update(payload).digest('hex');
+  return `${payload}:${signature}`;
+}
+
+export function verifyUserSessionToken(token: string): { valid: boolean; userId?: string } {
+  if (!token || typeof token !== 'string') return { valid: false };
+  const parts = token.split(':');
+  if (parts.length !== 4) return { valid: false };
+  const [prefix, userId, expiresAtStr, signature] = parts;
+  if (prefix !== 'usr' || !userId) return { valid: false };
+  const expiresAt = parseInt(expiresAtStr, 10);
+  if (isNaN(expiresAt) || Date.now() > expiresAt) return { valid: false };
+
+  const expectedSignature = crypto.createHmac('sha256', SESSION_SECRET_KEY).update(`${prefix}:${userId}:${expiresAt}`).digest('hex');
+  const sigBuf = Buffer.from(signature, 'utf-8');
+  const expBuf = Buffer.from(expectedSignature, 'utf-8');
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    return { valid: false };
+  }
+  return { valid: true, userId };
+}
+
+function requireUserAuth(req: Request, res: Response, next: () => void) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7).trim()
+    : ((req.headers['x-session-token'] as string) || '').trim();
+
+  // Admin access bypass for administrative actions
+  const adminKey = ((req.headers['x-admin-key'] as string) || '').trim();
+  const adminToken = ((req.headers['x-admin-token'] as string) || '').trim();
+  if ((adminToken && verifyAdminSessionToken(adminToken)) || (ADMIN_SECRET && adminKey === ADMIN_SECRET)) {
+    return next();
+  }
+
+  if (token) {
+    const verified = verifyUserSessionToken(token);
+    if (verified.valid && verified.userId) {
+      (req as any).verifiedUserId = verified.userId;
+
+      // Strict account ownership check: target user in body, params, or query must match authenticated session
+      const targetUserId = req.body?.userId || req.params?.userId || (req.query?.userId as string);
+      if (targetUserId && targetUserId !== verified.userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden: Account ownership verification failed. You cannot operate on an account that does not belong to you.',
+        });
+      }
+
+      return next();
+    }
+  }
+
+  // Development fallback only when TELEGRAM_BOT_TOKEN is not configured
+  if (process.env.NODE_ENV !== 'production' && !TELEGRAM_BOT_TOKEN) {
+    const targetUserId = req.body?.userId || req.params?.userId || (req.query?.userId as string);
+    if (targetUserId) {
+      (req as any).verifiedUserId = targetUserId;
+      return next();
+    }
+  }
+
+  return res.status(401).json({ success: false, error: 'Unauthorized: Valid user authentication session required.' });
+}
 
 // Body Parsers with Vercel Serverless Stream-Drain Protection
 const jsonParser = express.json({ limit: '10mb' });
@@ -242,6 +376,7 @@ const systemSettings = {
   monetagDirectLink: 'https://omg10.com/4/11442658',
   monetagZoneId: '11442658',
   monetagTelegramSdkEnabled: true,
+  welcomeBonusEnabled: true,
   welcomeBonusUSDT: 25,
   welcomeBonusE4F: 10,
   referralBonusUSDT: 5,
@@ -600,6 +735,10 @@ function parseSupabaseBalance(row: any): BalanceRecord {
 
 // Read balance directly from Supabase table 'balances'
 async function getSupabaseBalance(userId: string): Promise<BalanceRecord> {
+  if (isProduction && !supabase) {
+    throw new Error('[Supabase Error] Database client is required in production. Memory fallback is disabled to prevent balance loss.');
+  }
+
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -608,12 +747,20 @@ async function getSupabaseBalance(userId: string): Promise<BalanceRecord> {
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!error && data) {
+      if (error) {
+        console.error('[Supabase] Failed to fetch balance for user:', userId, error);
+        if (isProduction) {
+          throw new Error(`[Supabase Error] Database error fetching user balance: ${error.message}`);
+        }
+      }
+
+      if (data) {
         const parsed = parseSupabaseBalance(data);
         balances.set(userId, parsed);
         return parsed;
       }
     } catch (err) {
+      if (isProduction) throw err;
       console.warn('[Supabase] Failed to fetch balance for user:', userId, err);
     }
   }
@@ -628,6 +775,10 @@ async function getSupabaseBalance(userId: string): Promise<BalanceRecord> {
 
 // Write balance directly to Supabase table 'balances'
 async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRecord>): Promise<BalanceRecord> {
+  if (isProduction && !supabase) {
+    throw new Error('[Supabase Error] Database client is required in production. Memory fallback is disabled.');
+  }
+
   const current = await getSupabaseBalance(userId);
   const updated: BalanceRecord = {
     usdt: newBalance.usdt !== undefined ? Number(Number(newBalance.usdt).toFixed(6)) : current.usdt,
@@ -669,14 +820,122 @@ async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRec
         .upsert(payload, { onConflict: 'user_id' });
 
       if (error) {
-        console.warn('[Supabase] Warning on balances upsert:', error.message);
+        console.error('[Supabase] Warning on balances upsert:', error.message);
+        if (isProduction) {
+          throw new Error(`[Supabase Error] Failed to persist balance: ${error.message}`);
+        }
       }
     } catch (err) {
+      if (isProduction) throw err;
       console.warn('[Supabase] Failed to persist balance for user:', userId, err);
     }
   }
 
   return updated;
+}
+
+// Fetch authoritative user from Supabase table 'users'
+async function getUserFromSupabase(userId: string): Promise<UserRecord | null> {
+  if (isProduction && !supabase) {
+    throw new Error('[Supabase Error] Database client is required in production. Memory fallback is disabled.');
+  }
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[Supabase] Failed to fetch user from Supabase:', error);
+        if (isProduction) {
+          throw new Error(`[Supabase Error] Database error fetching user: ${error.message}`);
+        }
+      }
+
+      if (data) {
+        const u: UserRecord = {
+          id: data.id,
+          uid: data.uid,
+          telegramId: Number(data.telegram_id),
+          firstName: data.first_name || 'E4F User',
+          lastName: data.last_name || '',
+          username: data.username || 'user',
+          photoUrl: data.photo_url || '',
+          referralCode: data.referral_code,
+          referredBy: data.referred_by || undefined,
+          createdAt: data.created_at ? new Date(data.created_at).getTime() : Date.now(),
+          status: data.status || 'ACTIVE',
+          claimedWelcomeBonus: Boolean(data.claimed_welcome_bonus),
+          isDemoUser: false,
+          isVerified: Boolean(data.is_verified),
+          depositBalance: Number(data.deposit_balance) || 0,
+          depositAddress: data.deposit_address || '',
+        };
+        users.set(userId, u);
+        return u;
+      }
+    } catch (err) {
+      if (isProduction) throw err;
+      console.warn('[Supabase] Failed to fetch user from Supabase:', err);
+    }
+  }
+  return users.get(userId) || null;
+}
+
+// Persist user to Supabase table 'users'
+async function syncUserToSupabase(u: UserRecord) {
+  users.set(u.id, u);
+  if (supabase) {
+    try {
+      await supabase.from('users').upsert({
+        id: u.id,
+        uid: u.uid,
+        telegram_id: u.telegramId,
+        first_name: u.firstName,
+        last_name: u.lastName || '',
+        username: u.username || '',
+        photo_url: u.photoUrl || '',
+        referral_code: u.referralCode,
+        referred_by: u.referredBy || null,
+        status: u.status || 'ACTIVE',
+        claimed_welcome_bonus: u.claimedWelcomeBonus,
+        is_verified: u.isVerified,
+        deposit_balance: u.depositBalance || 0,
+        deposit_address: u.depositAddress || '',
+      });
+    } catch (err) {
+      console.warn('[Supabase] Failed to upsert user to Supabase:', err);
+    }
+  }
+}
+
+// Persist transaction to Supabase table 'transactions'
+async function recordTransaction(tx: TxRecord) {
+  transactions.unshift(tx);
+  if (supabase) {
+    try {
+      await supabase.from('transactions').insert([{
+        id: tx.id,
+        user_id: tx.userId,
+        asset: tx.asset,
+        amount: tx.amount,
+        direction: tx.direction,
+        source: tx.source,
+        status: tx.status || 'COMPLETED',
+        timestamp: tx.timestamp,
+        reference_id: tx.referenceId || '',
+        note: tx.note || '',
+        address: tx.address || '',
+        network: tx.network || '',
+        fee: tx.fee || 0,
+      }]);
+    } catch (err) {
+      console.warn('[Supabase] Failed to insert transaction to Supabase:', err);
+    }
+  }
 }
 
 const DB_FILE = fs.existsSync('/tmp') ? path.join('/tmp', 'e4f_db.json') : path.join(process.cwd(), 'e4f_db.json');
@@ -751,6 +1010,35 @@ function initializeServerState() {
   } catch (err) {
     console.warn('[Persistence] Could not load persisted db file:', err);
   }
+
+  // Load system settings from Supabase if connected
+  if (supabase) {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('system_settings')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+        if (data && data.settings && typeof data.settings === 'object') {
+          Object.assign(systemSettings, data.settings);
+          console.log('[Supabase] Loaded system settings from Supabase.');
+        }
+      } catch (err: any) {
+        console.warn('[Supabase] Failed to load system settings:', err);
+      }
+    })();
+  }
+
+  // Apply welcome bonus if enabled (applied at most once per eligible account)
+  if (systemSettings.welcomeBonusEnabled !== false) {
+    for (const [userId, userObj] of users.entries()) {
+      if (!userObj.claimedWelcomeBonus) {
+        creditWelcomeBonus(userId);
+      }
+    }
+  }
+
   apply90DayRetentionPolicy();
 }
 
@@ -839,8 +1127,8 @@ function getOrCreateUser(telegramId: number, firstName: string, lastName = '', u
       });
     }
 
-    // If existing confirmed balances are provided, restore them directly (do NOT re-credit welcome bonus)
-    if (existingBalances && typeof existingBalances.usdt === 'number') {
+    // If user already has genuine non-zero balance from past activity, restore them
+    if (existingBalances && (Number(existingBalances.usdt) > 0 || Number(existingBalances.e4f) > 0 || Number(existingBalances.btc) > 0 || Number(existingBalances.eth) > 0)) {
       balances.set(userId, {
         usdt: Number(existingBalances.usdt) || 0,
         e4f: Number(existingBalances.e4f) || 0,
@@ -861,8 +1149,10 @@ function getOrCreateUser(telegramId: number, firstName: string, lastName = '', u
         bnb: 0,
       });
 
-      // Award Welcome Bonus ONLY for genuine first-time registration
-      creditWelcomeBonus(userId);
+      // Award Welcome Bonus to eligible new users (applied at most once per account)
+      if (systemSettings.welcomeBonusEnabled !== false && !user.claimedWelcomeBonus) {
+        creditWelcomeBonus(userId);
+      }
     }
 
     // Initialize 5 Gift Boxes
@@ -881,7 +1171,9 @@ function getOrCreateUser(telegramId: number, firstName: string, lastName = '', u
       claimedDays: [],
     });
 
-    // Persist immediately so new account is NEVER lost
+    // Persist immediately to Supabase and memory
+    syncUserToSupabase(user).catch(() => {});
+    setSupabaseBalance(userId, balances.get(userId)!).catch(() => {});
     persistDatabaseSync();
   }
 
@@ -912,31 +1204,41 @@ function calculateMiningBoost(referralCount: number): number {
 function creditWelcomeBonus(userId: string) {
   const user = users.get(userId);
   const userBalance = balances.get(userId);
-  if (!user || !userBalance || user.claimedWelcomeBonus) return;
+  if (!user || !userBalance) return;
+  if (systemSettings.welcomeBonusEnabled === false) return;
+  if (user.claimedWelcomeBonus) return;
 
   const bonusUSDT = Number(systemSettings.welcomeBonusUSDT !== undefined ? systemSettings.welcomeBonusUSDT : 25);
   const bonusE4F = Number(systemSettings.welcomeBonusE4F !== undefined ? systemSettings.welcomeBonusE4F : 10);
 
-  // 1. Credit Admin-configured USDT Welcome Bonus (only if > 0)
+  const hasWelcomeTx = transactions.some(
+    t => t.userId === userId && (t.source === 'WELCOME_BONUS_PROMO' || t.source === 'WELCOME_BONUS_USDT' || t.source === 'WELCOME_BONUS_E4F')
+  );
+  if (hasWelcomeTx) {
+    user.claimedWelcomeBonus = true;
+    return;
+  }
+
+  // 1. Credit Admin-configured USDT Welcome Bonus (Promotional credit)
   if (bonusUSDT > 0) {
     userBalance.usdt = Number((userBalance.usdt + bonusUSDT).toFixed(4));
-    transactions.unshift({
+    recordTransaction({
       id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId,
       asset: 'USDT',
       amount: bonusUSDT,
       direction: 'IN',
-      source: 'WELCOME_BONUS_USDT',
+      source: 'WELCOME_BONUS_PROMO',
       status: 'COMPLETED',
       timestamp: Date.now(),
-      note: 'Initial Verified Welcome Bonus (Spot Available)',
+      note: 'Promotional Welcome Credit (Non-Withdrawable until qualification)',
     });
   }
 
-  // 2. Credit Admin-configured E4F Welcome Bonus (only if > 0)
+  // 2. Credit Admin-configured E4F Welcome Bonus
   if (bonusE4F > 0) {
     userBalance.e4f = Number((userBalance.e4f + bonusE4F).toFixed(4));
-    transactions.unshift({
+    recordTransaction({
       id: `tx_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}`,
       userId,
       asset: 'E4F',
@@ -945,15 +1247,15 @@ function creditWelcomeBonus(userId: string) {
       source: 'WELCOME_BONUS_E4F',
       status: 'COMPLETED',
       timestamp: Date.now(),
-      note: 'Official Pre-Listing E4F Welcome Allocation',
+      note: 'Pre-Listing E4F Welcome Allocation',
     });
   }
 
-  // Strictly ensure all non-bonus assets are 0% extra
-  userBalance.btc = 0;
-  userBalance.eth = 0;
-  userBalance.sol = 0;
-  userBalance.bnb = 0;
+  // Ensure non-bonus assets default safely
+  if (userBalance.btc === undefined) userBalance.btc = 0;
+  if (userBalance.eth === undefined) userBalance.eth = 0;
+  if (userBalance.sol === undefined) userBalance.sol = 0;
+  if (userBalance.bnb === undefined) userBalance.bnb = 0;
 
   user.claimedWelcomeBonus = true;
 
@@ -962,9 +1264,13 @@ function creditWelcomeBonus(userId: string) {
     adminId: 'SYSTEM',
     action: 'WELCOME_BONUS_GRANTED',
     target: userId,
-    details: `Granted welcome bonus: ${bonusUSDT} USDT + ${bonusE4F} E4F (All other balances: 0)`,
+    details: `Granted promotional welcome bonus: ${bonusUSDT} USDT + ${bonusE4F} E4F`,
     timestamp: Date.now(),
   });
+
+  syncUserToSupabase(user).catch(() => {});
+  setSupabaseBalance(userId, userBalance).catch(() => {});
+  persistDatabaseSync();
 }
 
 // ----------------------------------------------------
@@ -1030,78 +1336,155 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.post('/api/auth/telegram', async (req: Request, res: Response) => {
   const { initData, demoUser, storedUserId, referralCode, cachedBalances } = req.body;
 
-  // If client provided a storedUserId, restore existing account and preserve real balance!
+  // If client provided a storedUserId with valid session token, restore existing authenticated account
   if (storedUserId && typeof storedUserId === 'string') {
-    let existingUser = users.get(storedUserId);
-    if (!existingUser) {
-      const rawNum = parseInt(storedUserId.replace('usr_', '')) || 123456789;
-      existingUser = getOrCreateUser(rawNum, 'E4F User', '', 'user', false, referralCode, cachedBalances);
-    }
-    if (existingUser) {
-      if (cachedBalances && typeof cachedBalances.usdt === 'number' && !balances.has(existingUser.id)) {
-        balances.set(existingUser.id, cachedBalances);
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7).trim()
+      : ((req.headers['x-session-token'] as string) || (req.body.token as string) || '').trim();
+
+    if (token) {
+      const verified = verifyUserSessionToken(token);
+      if (verified.valid && verified.userId === storedUserId) {
+        let existingUser = await getUserFromSupabase(storedUserId);
+        if (!existingUser) {
+          const rawNum = parseInt(storedUserId.replace('usr_', '')) || 123456789;
+          existingUser = getOrCreateUser(rawNum, 'E4F User', '', 'user', false, referralCode, cachedBalances);
+        }
+        if (existingUser) {
+          const userBalances = await getSupabaseBalance(existingUser.id);
+          return res.json({
+            success: true,
+            user: existingUser,
+            balances: userBalances,
+            token,
+            serverTime: Date.now(),
+          });
+        }
       }
-      if (existingUser.firstName === 'Telegram User') {
-        existingUser.firstName = 'E4F User';
-      }
-      if (!existingUser.depositAddress) {
-        existingUser.depositAddress = generateUserDepositAddress(existingUser.id, existingUser.uid);
-      }
-      const userBalances = await getSupabaseBalance(existingUser.id);
-      return res.json({
-        success: true,
-        user: existingUser,
-        balances: userBalances,
-        serverTime: Date.now(),
-      });
     }
   }
 
   let tgUser: { id: number; first_name: string; last_name?: string; username?: string } | null = null;
   let parsedReferral = referralCode;
 
-  if (initData && typeof initData === 'string') {
-    try {
-      const urlParams = new URLSearchParams(initData);
-      const userParam = urlParams.get('user');
-      if (userParam) {
-        tgUser = JSON.parse(userParam);
+  // Cryptographic Verification of Telegram initData
+  if (initData && typeof initData === 'string' && initData.trim().length > 0) {
+    if (TELEGRAM_BOT_TOKEN) {
+      const verifiedTg = verifyTelegramInitData(initData, TELEGRAM_BOT_TOKEN);
+      if (!verifiedTg.valid || !verifiedTg.user) {
+        return res.status(401).json({
+          success: false,
+          error: `Telegram authentication verification failed: ${verifiedTg.error || 'Cryptographic signature mismatch'}`,
+        });
       }
-      const startParam = urlParams.get('start_param') || urlParams.get('start') || urlParams.get('ref');
-      if (startParam && !parsedReferral) {
-        parsedReferral = startParam;
+      tgUser = verifiedTg.user;
+      try {
+        const urlParams = new URLSearchParams(initData);
+        const startParam = urlParams.get('start_param') || urlParams.get('start') || urlParams.get('ref');
+        if (startParam && !parsedReferral) parsedReferral = startParam;
+      } catch {}
+    } else {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({
+          success: false,
+          error: 'TELEGRAM_BOT_TOKEN environment variable is not configured on the production server.',
+        });
       }
-    } catch {
-      // ignore parse error
+      // Development mode fallback
+      try {
+        const urlParams = new URLSearchParams(initData);
+        const userParam = urlParams.get('user');
+        if (userParam) tgUser = JSON.parse(userParam);
+        const startParam = urlParams.get('start_param') || urlParams.get('start') || urlParams.get('ref');
+        if (startParam && !parsedReferral) parsedReferral = startParam;
+      } catch {}
     }
   }
 
   if (!tgUser) {
-    if (demoUser && demoUser.id) {
+    if (demoUser && demoUser.id && (process.env.NODE_ENV !== 'production' || !TELEGRAM_BOT_TOKEN)) {
       tgUser = {
         id: demoUser.id,
         first_name: demoUser.first_name || 'E4F User',
         last_name: demoUser.last_name || '',
         username: demoUser.username || 'user',
       };
-    } else {
+    } else if (process.env.NODE_ENV !== 'production' && !TELEGRAM_BOT_TOKEN) {
       tgUser = { id: 123456789, first_name: 'E4F User', username: 'user_123' };
+    } else {
+      return res.status(401).json({
+        success: false,
+        error: 'Telegram authentication required. Please launch E4F Exchange from the official Telegram bot.',
+      });
     }
   }
 
+  // 1. Supabase Authoritative Authentication via get_or_restore_user RPC
+  if (supabase && tgUser) {
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_or_restore_user', {
+        p_telegram_id: tgUser.id,
+        p_first_name: tgUser.first_name || 'E4F User',
+        p_last_name: tgUser.last_name || '',
+        p_username: tgUser.username || '',
+        p_photo_url: (tgUser as any).photo_url || '',
+        p_referral_code: parsedReferral || null,
+        p_device_hash: req.body.deviceHash || req.body.device_hash || null,
+      });
+
+      if (rpcError) {
+        console.error('[Supabase RPC Error] get_or_restore_user failed:', rpcError);
+        if (isProduction) {
+          return res.status(500).json({
+            success: false,
+            error: `Database authentication failed: ${rpcError.message}`,
+          });
+        }
+      } else if (rpcData && rpcData.success && rpcData.user) {
+        const u = rpcData.user;
+        const b = rpcData.balances;
+        users.set(u.id, u);
+        balances.set(u.id, b);
+        const sessionToken = generateUserSessionToken(u.id);
+
+        return res.json({
+          success: true,
+          user: u,
+          balances: b,
+          token: sessionToken,
+          serverTime: Date.now(),
+          welcomeBonusGranted: Boolean(rpcData.welcome_bonus_granted),
+        });
+      }
+    } catch (err: any) {
+      console.error('[Supabase Error] Exception in get_or_restore_user RPC:', err);
+      if (isProduction) {
+        return res.status(500).json({
+          success: false,
+          error: `Database connection error: ${err.message || 'Supabase unavailable'}`,
+        });
+      }
+    }
+  }
+
+  // Refuse fallback if in production without database
+  if (isProduction && !supabase) {
+    return res.status(500).json({
+      success: false,
+      error: 'Supabase database is required in production. Memory fallback is disabled to protect wallet balances.',
+    });
+  }
+
   const user = getOrCreateUser(tgUser.id, tgUser.first_name, tgUser.last_name, tgUser.username, false, parsedReferral, cachedBalances);
-  if (user.firstName === 'Telegram User') {
-    user.firstName = 'E4F User';
-  }
-  if (!user.depositAddress) {
-    user.depositAddress = generateUserDepositAddress(user.id, user.uid);
-  }
   const userBalances = await getSupabaseBalance(user.id);
+  const sessionToken = generateUserSessionToken(user.id);
 
   res.json({
     success: true,
     user,
     balances: userBalances,
+    token: sessionToken,
     serverTime: Date.now(),
   });
 });
@@ -1144,6 +1527,17 @@ app.get('/api/user/:userId/profile', async (req: Request, res: Response) => {
   const { userId } = req.params;
   const parsedTelegramId = parseInt(userId.replace(/\D/g, '')) || 123456789;
   const user = users.get(userId) || getOrCreateUser(parsedTelegramId, 'E4F User');
+  let currentBal = balances.get(user.id);
+  if (!currentBal) {
+    currentBal = { usdt: 0, e4f: 0, btc: 0, eth: 0, sol: 0, bnb: 0 };
+    balances.set(user.id, currentBal);
+  }
+  const hasWelcome = transactions.some(
+    t => t.userId === user.id && (t.source === 'WELCOME_BONUS_USDT' || t.source === 'WELCOME_BONUS_E4F')
+  );
+  if (!hasWelcome && currentBal.usdt === 0 && currentBal.e4f === 0) {
+    creditWelcomeBonus(user.id);
+  }
   if (user.firstName === 'Telegram User') {
     user.firstName = 'E4F User';
   }
@@ -1164,7 +1558,7 @@ app.get('/api/user/:userId/profile', async (req: Request, res: Response) => {
 });
 
 // Self-Account Deletion
-app.post('/api/user/:userId/delete', (req: Request, res: Response) => {
+app.post('/api/user/:userId/delete', async (req: Request, res: Response) => {
   const { userId } = req.params;
   const { confirmText } = req.body;
 
@@ -1174,6 +1568,18 @@ app.post('/api/user/:userId/delete', (req: Request, res: Response) => {
 
   const user = users.get(userId);
   if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+  // Call Supabase authoritative permanent deletion RPC
+  if (supabase) {
+    try {
+      const tgId = user.telegramId || (userId.startsWith('usr_') ? parseInt(userId.replace('usr_', ''), 10) : null);
+      if (tgId) {
+        await supabase.rpc('delete_user_permanently', { p_telegram_id: tgId });
+      }
+    } catch (dbErr) {
+      console.warn('[Supabase] Warning invoking delete_user_permanently RPC:', dbErr);
+    }
+  }
 
   user.status = 'SUSPENDED';
   balances.set(userId, { usdt: 0, e4f: 0, btc: 0, eth: 0, sol: 0, bnb: 0 });
@@ -1274,7 +1680,7 @@ app.post('/api/user/:userId/verify-account', async (req: Request, res: Response)
   if (systemSettings.depositsEnabled === false) {
     return res.status(403).json({
       success: false,
-      error: 'Account verification deposits are currently turned off by administrator.'
+      error: 'Account verification deposits are currently turned off.'
     });
   }
 
@@ -3059,7 +3465,7 @@ function isValidExternalTxid(txid: string, network: string): boolean {
 }
 
 // 9. Wallet Operations (Deposit & Withdrawal)
-app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
+app.post('/api/wallet/deposit', requireUserAuth, async (req: Request, res: Response) => {
   const { userId, asset, network, amount, txid, senderAddress } = req.body;
   if (asset === 'E4F') {
     return res.status(400).json({ success: false, error: 'E4F is not listed yet. Deposits not available.' });
@@ -3069,11 +3475,10 @@ app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
     return res.status(403).json({ success: false, error: 'Open soon.' });
   }
 
-  const user = users.get(userId);
+  const user = await getUserFromSupabase(userId);
   if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
   // STRICT RULE: Require external blockchain transaction hash (TXID)
-  // Deposit CANNOT be executed from inside this app to this same app without external proof!
   if (!txid || typeof txid !== 'string' || txid.trim().length < 40) {
     return res.status(400).json({
       success: false,
@@ -3096,7 +3501,6 @@ app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
   const { addresses, ids, withdrawalHashes } = getAllE4FInternalEntities();
 
   // ANTI-SELF DEPOSIT & ANTI-INTERNAL TRANSFER RULE:
-  // 1. Cannot use any E4F internal deposit address (own address, another user's address, official address)
   if (addresses.has(cleanTxid) || addresses.has(cleanSender)) {
     return res.status(400).json({
       success: false,
@@ -3104,7 +3508,6 @@ app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
     });
   }
 
-  // 2. Cannot use internal E4F user IDs, referral codes, or transaction IDs (Anti-same app & anti-internal transfer)
   if (
     ids.has(cleanTxid) ||
     ids.has(cleanSender) ||
@@ -3118,7 +3521,6 @@ app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
     });
   }
 
-  // 3. Cannot use an internal E4F withdrawal hash as a deposit hash
   if (withdrawalHashes.has(cleanTxid)) {
     return res.status(400).json({
       success: false,
@@ -3126,7 +3528,6 @@ app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
     });
   }
 
-  // 4. Sender address/exchange cannot be E4F or internal
   if (
     cleanSender.includes('e4f') ||
     cleanSender.includes('earn4future') ||
@@ -3139,7 +3540,23 @@ app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
     });
   }
 
-  // 5. Prevent duplicate TXID usage
+  // Prevent duplicate TXID in Supabase and memory
+  if (supabase) {
+    try {
+      const { data: dupDeposit } = await supabase
+        .from('deposits')
+        .select('id')
+        .eq('txid', cleanTxid)
+        .maybeSingle();
+      if (dupDeposit) {
+        return res.status(400).json({
+          success: false,
+          error: 'This external Transaction Hash (TXID) has already been submitted.',
+        });
+      }
+    } catch {}
+  }
+
   const isDuplicate = transactions.some(
     t => (t.source === 'DEPOSIT' && t.referenceId && t.referenceId.toLowerCase() === cleanTxid) ||
          (t.txHash && t.txHash.toLowerCase() === cleanTxid)
@@ -3150,9 +3567,6 @@ app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
       error: 'This external Transaction Hash (TXID) has already been submitted and processed.',
     });
   }
-
-  const userBalance = await getSupabaseBalance(userId);
-  if (!userBalance) return res.status(404).json({ success: false, error: 'User balance record not found' });
 
   const num = parseFloat(amount);
   if (isNaN(num) || num <= 0) return res.status(400).json({ success: false, error: 'Invalid deposit amount' });
@@ -3170,67 +3584,52 @@ app.post('/api/wallet/deposit', async (req: Request, res: Response) => {
   if (!user.depositAddress) {
     user.depositAddress = generateUserDepositAddress(user.id, user.uid);
   }
-  if (asset === 'USDT') {
-    user.depositBalance = Number(((user.depositBalance || 0) + num).toFixed(4));
+
+  const depositId = `dep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const depositRecord = {
+    id: depositId,
+    user_id: userId,
+    asset,
+    network: network || 'BEP20',
+    amount: num,
+    txid: cleanTxid,
+    sender_address: cleanSender || 'External Wallet',
+    status: 'PENDING',
+    created_at: new Date().toISOString(),
+  };
+
+  // Insert into Supabase deposits table
+  if (supabase) {
+    try {
+      await supabase.from('deposits').insert([depositRecord]);
+    } catch (err) {
+      console.warn('[Supabase] Warning inserting deposit record:', err);
+    }
   }
 
-  if (asset === 'USDT') userBalance.usdt = Number((userBalance.usdt + num).toFixed(6));
-  if (asset === 'BTC') userBalance.btc = Number((userBalance.btc + num).toFixed(6));
-  if (asset === 'ETH') userBalance.eth = Number((userBalance.eth + num).toFixed(6));
-  if (asset === 'SOL') userBalance.sol = Number((userBalance.sol + num).toFixed(6));
-
-  // Sync updated balance to Supabase
-  await setSupabaseBalance(userId, userBalance);
-
   const tx: TxRecord = {
-    id: `tx_${Date.now()}_dep`,
+    id: depositId,
     userId,
     asset,
     amount: num,
     direction: 'IN',
     source: 'DEPOSIT',
-    status: 'COMPLETED',
+    status: 'PENDING',
     timestamp: Date.now(),
     referenceId: cleanTxid,
     address: senderAddress || 'External Wallet',
     network: network || 'BEP20 (BSC)',
-    note: `External ${network} Deposit (TXID: ${txid.substring(0, 10)}...) to ${user.depositAddress.slice(0, 10)}...`,
+    note: `External ${network} Deposit (TXID: ${txid.substring(0, 10)}...) pending verification`,
   };
-  transactions.unshift(tx);
-
-  // Check first-deposit qualifying bonus (customizable by admin without app update)
-  let bonusAwarded = 0;
-  const configuredBonus = typeof systemSettings.depositFirstBonusUSDT === 'number' ? systemSettings.depositFirstBonusUSDT : 10.0;
-  if (asset === 'USDT' && num >= minDepositLimit && !userFirstDepositClaimed.has(userId) && configuredBonus > 0) {
-    userFirstDepositClaimed.add(userId);
-    bonusAwarded = configuredBonus;
-    userBalance.usdt = Number((userBalance.usdt + bonusAwarded).toFixed(6));
-    await setSupabaseBalance(userId, userBalance);
-
-    const bonusTx: TxRecord = {
-      id: `tx_${Date.now() + 1}_depbonus`,
-      userId,
-      asset: 'USDT',
-      amount: bonusAwarded,
-      direction: 'IN',
-      source: 'DEPOSIT',
-      status: 'COMPLETED',
-      timestamp: Date.now(),
-      note: `Qualifying BSC Deposit Welcome Bonus (+${bonusAwarded} USDT Spot)`,
-    };
-    transactions.unshift(bonusTx);
-  }
-
+  await recordTransaction(tx);
   persistDatabaseSync();
 
+  // Return pending verification response without crediting unverified funds
   res.json({
     success: true,
-    balances: userBalance,
-    user,
-    depositBalance: user?.depositBalance,
-    transaction: tx,
-    bonusAwarded,
-    firstDepositBonus: bonusAwarded > 0,
+    message: 'Deposit submitted for blockchain verification. Your funds will be credited once confirmed by the system.',
+    deposit: depositRecord,
+    status: 'PENDING',
   });
 });
 
@@ -3317,6 +3716,39 @@ const handleWithdrawRequest = async (req: Request, res: Response) => {
     });
   }
 
+  const withdrawalId = `wd_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+  // Use Atomic PostgreSQL Stored Procedure in Supabase with FOR UPDATE lock
+  if (supabase) {
+    try {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('execute_atomic_withdrawal', {
+        p_withdrawal_id: withdrawalId,
+        p_user_id: userId,
+        p_amount: num,
+        p_fee: fee,
+        p_currency: asset,
+        p_network: network || 'TRC20',
+        p_wallet_address: address || '',
+      });
+
+      if (rpcErr) {
+        return res.status(400).json({ success: false, error: rpcErr.message || 'Withdrawal failed' });
+      }
+
+      const updatedBalance = await getSupabaseBalance(userId);
+      return res.json({
+        success: true,
+        message: 'Withdrawal request submitted for security review',
+        withdrawalId,
+        balances: updatedBalance,
+      });
+    } catch (err: any) {
+      console.warn('[Supabase] Atomic withdrawal exception:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Withdrawal processing error' });
+    }
+  }
+
+  // In-memory fallback (when Supabase is not yet connected in dev)
   if (asset === 'USDT') {
     if (userBalance.usdt < num + fee) {
       return res.status(400).json({ success: false, error: `Insufficient balance (including ${fee} USDT network fee)` });
@@ -3331,10 +3763,6 @@ const handleWithdrawRequest = async (req: Request, res: Response) => {
     (userBalance as any)[assetKey] = Number((currentAmt - (num + fee)).toFixed(6));
   }
 
-  // Write updated balance directly to Supabase
-  await setSupabaseBalance(userId, userBalance);
-
-  const withdrawalId = `wd_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const withdrawalRecord = {
     id: withdrawalId,
     user_id: userId,
@@ -3344,27 +3772,6 @@ const handleWithdrawRequest = async (req: Request, res: Response) => {
     wallet_address: address || '',
     created_at: new Date().toISOString(),
   };
-
-  if (supabase) {
-    try {
-      const { error: wdErr } = await supabase
-        .from('withdrawals')
-        .insert([withdrawalRecord]);
-
-      if (wdErr) {
-        console.warn('[Supabase] Warning inserting into withdrawals table:', wdErr.message);
-      } else {
-        console.log('[Supabase] Saved withdrawal record to Supabase:', withdrawalId);
-      }
-    } catch (err) {
-      console.warn('[Supabase] Failed to insert withdrawal record:', err);
-    }
-  }
-
-  // Calculate user total deposits for admin verification reference
-  const userDepositTotal = transactions
-    .filter(t => t.userId === userId && t.source === 'DEPOSIT' && t.status === 'COMPLETED')
-    .reduce((sum, t) => sum + (t.asset === 'USDT' ? t.amount : 0), 0);
 
   const tx: TxRecord = {
     id: withdrawalId,
@@ -3378,7 +3785,6 @@ const handleWithdrawRequest = async (req: Request, res: Response) => {
     address: address || '',
     network: network || 'BEP20 (BSC)',
     fee,
-    userDepositTotal,
     note: `Withdrawal to ${address ? address.substring(0, 8) + '...' : ''} (${network || 'BEP20'})`,
   };
   transactions.unshift(tx);
@@ -3393,8 +3799,8 @@ const handleWithdrawRequest = async (req: Request, res: Response) => {
   });
 };
 
-app.post('/api/wallet/withdraw', handleWithdrawRequest);
-app.post('/api/withdraw', handleWithdrawRequest);
+app.post('/api/wallet/withdraw', requireUserAuth, handleWithdrawRequest);
+app.post('/api/withdraw', requireUserAuth, handleWithdrawRequest);
 
 // 3. User Withdrawals History Route (Directly from Supabase table 'withdrawals')
 // 3. User Withdrawals History Route: Filtered to last 90 days for user app (.gte created_at)
@@ -3460,31 +3866,49 @@ app.post('/api/support/create', (req: Request, res: Response) => {
   res.json({ success: true, ticket });
 });
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || 'B@n+earn4future26';
+const ADMIN_SECRET = process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || 'E4F_DevAdmin_Secret_2028';
+const SESSION_SECRET = process.env.SESSION_SECRET || ADMIN_SECRET || 'e4f_session_signing_secret_key';
+
+function generateAdminSessionToken(): string {
+  const expiresAt = Date.now() + 4 * 60 * 60 * 1000; // 4 hours
+  const payload = `admin:${expiresAt}`;
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+  return `${payload}:${signature}`;
+}
+
+function verifyAdminSessionToken(token: string): boolean {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split(':');
+  if (parts.length !== 3) return false;
+  const [role, expiresAtStr, signature] = parts;
+  if (role !== 'admin') return false;
+  const expiresAt = parseInt(expiresAtStr, 10);
+  if (isNaN(expiresAt) || Date.now() > expiresAt) return false;
+
+  const expectedSignature = crypto.createHmac('sha256', SESSION_SECRET).update(`${role}:${expiresAt}`).digest('hex');
+  const sigBuffer = Buffer.from(signature, 'utf-8');
+  const expBuffer = Buffer.from(expectedSignature, 'utf-8');
+  if (sigBuffer.length !== expBuffer.length || !crypto.timingSafeEqual(sigBuffer, expBuffer)) {
+    return false;
+  }
+  return true;
+}
 
 function requireAdminAuth(req: Request, res: Response, next: () => void) {
   const adminKey = ((req.headers['x-admin-key'] as string) || (req.query.adminKey as string) || (req.query.key as string) || '').trim();
   const adminToken = ((req.headers['x-admin-token'] as string) || (req.query.adminToken as string) || (req.query.token as string) || '').trim();
 
-  const allowedKeys = [
-    ADMIN_SECRET,
-    'B@n+earn4future26',
-    'E4F_MASTER_ADMIN_2028',
-    'earn4future26',
-    'admin',
-    process.env.ADMIN_SECRET,
-    process.env.ADMIN_PASSWORD,
-    process.env.ADMIN_PIN,
-    process.env.ADMIN_KEY,
-  ].filter(Boolean) as string[];
-
-  if (
-    adminToken === 'e4f_admin_session_valid' ||
-    (adminKey && allowedKeys.some(k => k.trim() === adminKey || k.toLowerCase() === adminKey.toLowerCase()))
-  ) {
+  // Check valid signed token first
+  if (adminToken && verifyAdminSessionToken(adminToken)) {
     return next();
   }
-  return res.status(401).json({ success: false, error: 'Unauthorized: Admin authentication required.' });
+
+  // Check valid ADMIN_SECRET key
+  if (adminKey && adminKey === ADMIN_SECRET) {
+    return next();
+  }
+
+  return res.status(401).json({ success: false, error: 'Unauthorized: Valid Admin authentication token or secret key required.' });
 }
 
 const handleAdminLogin = (req: Request, res: Response) => {
@@ -3516,31 +3940,16 @@ const handleAdminLogin = (req: Request, res: Response) => {
     '';
   const input = typeof rawInput === 'string' ? rawInput.trim() : String(rawInput).trim();
 
-  const allowedKeys = [
-    ADMIN_SECRET,
-    'B@n+earn4future26',
-    'E4F_MASTER_ADMIN_2028',
-    'earn4future26',
-    'admin',
-    process.env.ADMIN_SECRET,
-    process.env.ADMIN_PASSWORD,
-    process.env.ADMIN_PIN,
-    process.env.ADMIN_KEY,
-  ].filter(Boolean) as string[];
-
-  const isMatch = Boolean(
-    input &&
-    allowedKeys.some(k => k && (k.trim() === input || k === input || k.toLowerCase() === input.toLowerCase()))
-  );
-
-  if (isMatch) {
+  if (input && input === ADMIN_SECRET) {
+    const signedToken = generateAdminSessionToken();
     return res.json({
       success: true,
-      token: 'e4f_admin_session_valid',
+      token: signedToken,
       key: ADMIN_SECRET,
       role: 'SUPER_ADMIN',
     });
   }
+
   return res.status(401).json({ success: false, error: 'Invalid Admin Secret Password' });
 };
 
@@ -4135,15 +4544,30 @@ app.post('/api/admin/task-submissions/review', requireAdminAuth, (req: Request, 
 });
 
 // Data Retention Policy: 90-day progressive purge for history records
-app.post('/api/admin/cleanup-retention', requireAdminAuth, (_req: Request, res: Response) => {
-  const stats = apply90DayRetentionPolicy();
+app.post('/api/admin/cleanup-retention', requireAdminAuth, async (_req: Request, res: Response) => {
+  const stats: any = apply90DayRetentionPolicy();
+  let supabasePurgedWithdrawals = 0;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.rpc('cleanup_old_withdrawals');
+      if (!error && typeof data === 'number') {
+        supabasePurgedWithdrawals = data;
+        stats.purgedOldWithdrawals = supabasePurgedWithdrawals;
+      } else if (error) {
+        console.warn('[Supabase] Warning executing cleanup_old_withdrawals RPC:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('[Supabase] Exception running cleanup_old_withdrawals:', err);
+    }
+  }
 
   auditLogs.unshift({
     id: `audit_${Date.now()}`,
     adminId: 'ADMIN_SUPER',
     action: 'PURGE_EXPIRED_RECORDS_90_DAYS',
     target: 'DATABASE',
-    details: `Cleaned up records older than 90 days (${stats.purgedTransactions} transactions, ${stats.purgedOrders} trade orders, ${stats.purgedReferrals} referrals, ${stats.purgedLogs} logs, ${stats.purgedSubmissions} task submissions). All history under 90 days strictly preserved.`,
+    details: `Cleaned up records older than 90 days (${stats.purgedTransactions} transactions, ${stats.purgedOrders} trade orders, ${stats.purgedReferrals} referrals, ${stats.purgedLogs} logs, ${stats.purgedSubmissions} task submissions, ${supabasePurgedWithdrawals} completed/rejected withdrawals). Pending/Processing withdrawals and history under 90 days are strictly preserved.`,
     timestamp: Date.now(),
   });
 
@@ -4151,7 +4575,7 @@ app.post('/api/admin/cleanup-retention', requireAdminAuth, (_req: Request, res: 
 
   res.json({
     success: true,
-    message: `90-Day Retention Policy Executed: Records older than 90 days sequentially purged. All records under 90 days strictly preserved.`,
+    message: `90-Day Retention Policy Executed: Records older than 90 days sequentially purged. Pending and processing withdrawals are strictly preserved.`,
     stats,
   });
 });
@@ -4159,6 +4583,168 @@ app.post('/api/admin/cleanup-retention', requireAdminAuth, (_req: Request, res: 
 app.get('/api/admin/audit-logs', requireAdminAuth, (_req: Request, res: Response) => {
   res.json({ logs: auditLogs });
 });
+
+// Admin Deposits Management (Manual Verification, Approval & Rejection)
+app.get('/api/admin/deposits', requireAdminAuth, async (_req: Request, res: Response) => {
+  let dbDeposits: any[] = [];
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('deposits')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        dbDeposits = data;
+      }
+    } catch (err) {
+      console.warn('[Supabase] Warning fetching deposits for admin:', err);
+    }
+  }
+
+  // Merge with any in-memory deposit transactions
+  const allMap = new Map<string, any>();
+  for (const dep of dbDeposits) {
+    allMap.set(dep.id, {
+      id: dep.id,
+      user_id: dep.user_id,
+      asset: dep.asset || 'USDT',
+      network: dep.network || 'BEP20',
+      amount: Number(dep.amount) || 0,
+      txid: dep.txid,
+      sender_address: dep.sender_address,
+      status: dep.status || 'PENDING',
+      created_at: dep.created_at,
+    });
+  }
+
+  for (const t of transactions) {
+    if (t.source === 'DEPOSIT' && !allMap.has(t.id)) {
+      allMap.set(t.id, {
+        id: t.id,
+        user_id: t.userId,
+        asset: t.asset || 'USDT',
+        network: t.network || 'BEP20',
+        amount: t.amount,
+        txid: t.referenceId || t.txHash || '',
+        sender_address: t.address || '',
+        status: t.status || 'PENDING',
+        created_at: new Date(t.timestamp).toISOString(),
+      });
+    }
+  }
+
+  const depositList = Array.from(allMap.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  res.json({ success: true, deposits: depositList });
+});
+
+app.post('/api/admin/deposits/:id/review', requireAdminAuth, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { decision, note } = req.body; // 'APPROVE' | 'REJECT'
+
+  if (decision !== 'APPROVE' && decision !== 'REJECT') {
+    return res.status(400).json({ success: false, error: 'Decision must be APPROVE or REJECT' });
+  }
+
+  // 1. Try atomic Supabase verification if Supabase is connected
+  if (supabase) {
+    try {
+      if (decision === 'APPROVE') {
+        const { data, error } = await supabase.rpc('verify_atomic_deposit', {
+          p_deposit_id: id,
+          p_admin_id: 'ADMIN_SUPER',
+        });
+        if (error) {
+          console.warn('[Supabase] Error running verify_atomic_deposit:', error);
+        } else if (data && data.success) {
+          // Sync local in-memory state
+          const tx = transactions.find(t => t.id === id);
+          if (tx) tx.status = 'COMPLETED';
+          return res.json({ success: true, message: 'Deposit verified and balance credited via Supabase', data });
+        }
+      } else {
+        await supabase.from('deposits').update({ status: 'REJECTED' }).eq('id', id);
+        await supabase.from('transactions').update({ status: 'REJECTED' }).eq('id', id);
+        const tx = transactions.find(t => t.id === id);
+        if (tx) tx.status = 'REJECTED';
+        return res.json({ success: true, message: 'Deposit rejected in Supabase' });
+      }
+    } catch (err: any) {
+      console.warn('[Supabase] Exception reviewing deposit:', err);
+    }
+  }
+
+  // 2. In-memory fallback
+  const tx = transactions.find(t => t.id === id && t.source === 'DEPOSIT');
+  if (!tx) {
+    return res.status(404).json({ success: false, error: 'Deposit record not found' });
+  }
+
+  if (tx.status !== 'PENDING') {
+    return res.status(400).json({ success: false, error: `Deposit has already been marked as ${tx.status}` });
+  }
+
+  const user = users.get(tx.userId);
+  let userBalance = balances.get(tx.userId);
+  if (!userBalance) {
+    userBalance = { usdt: 0, e4f: 0, bnb: 0, btc: 0, eth: 0, sol: 0, ton: 0, xrp: 0, doge: 0, ada: 0, trx: 0, ltc: 0 };
+    balances.set(tx.userId, userBalance);
+  }
+
+  if (decision === 'APPROVE') {
+    tx.status = 'COMPLETED';
+    tx.note = note || `Verified by Admin. Blockchain TX confirmed.`;
+
+    if (tx.asset === 'USDT') {
+      userBalance.usdt = Number(((userBalance.usdt || 0) + tx.amount).toFixed(6));
+      if (user) {
+        user.depositBalance = Number(((user.depositBalance || 0) + tx.amount).toFixed(6));
+        if (user.depositBalance >= 10.0) {
+          user.isVerified = true;
+        }
+      }
+    } else {
+      const assetKey = tx.asset.toLowerCase() as keyof BalanceRecord;
+      if (assetKey in userBalance) {
+        (userBalance as any)[assetKey] = Number((((userBalance as any)[assetKey] || 0) + tx.amount).toFixed(6));
+      }
+    }
+    setSupabaseBalance(tx.userId, userBalance);
+
+    auditLogs.unshift({
+      id: `audit_${Date.now()}`,
+      adminId: 'ADMIN_SUPER',
+      action: 'APPROVE_DEPOSIT',
+      target: tx.id,
+      details: `Approved external deposit of ${tx.amount} ${tx.asset} for user ${user?.uid || tx.userId} (TXID: ${tx.referenceId || ''})`,
+      timestamp: Date.now(),
+    });
+  } else {
+    tx.status = 'REJECTED';
+    tx.note = note || 'Rejected by Administrator during manual blockchain verification';
+
+    auditLogs.unshift({
+      id: `audit_${Date.now()}`,
+      adminId: 'ADMIN_SUPER',
+      action: 'REJECT_DEPOSIT',
+      target: tx.id,
+      details: `Rejected deposit ${tx.id} for user ${user?.uid || tx.userId}. Note: ${tx.note}`,
+      timestamp: Date.now(),
+    });
+  }
+
+  persistDatabaseSync();
+
+  res.json({
+    success: true,
+    message: decision === 'APPROVE' ? 'Deposit approved and balance credited' : 'Deposit marked as rejected',
+    transaction: tx,
+    balances: userBalance,
+  });
+});
+
 
 // ====================================================
 // Vite Integration (Dev vs Prod) & Serverless Guard

@@ -23,7 +23,7 @@ import { SpinWheelModal } from './components/rewards/SpinWheelModal';
 import { GiftBoxesModal } from './components/rewards/GiftBoxesModal';
 
 const AppContent: React.FC = () => {
-  const { activeTab, activeModal, closeModal, toasts, removeToast } = useApp();
+  const { activeTab, activeModal, closeModal, toasts, removeToast, showWelcomeBonus } = useApp();
 
   return (
     <div className="min-h-screen bg-[#070B14] text-slate-100 font-sans flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
@@ -45,7 +45,7 @@ const AppContent: React.FC = () => {
       <BottomNav />
 
       {/* Global Modals */}
-      {activeModal === 'WELCOME' && <WelcomeBonusModal />}
+      {(showWelcomeBonus || activeModal === 'WELCOME' || activeModal === 'WELCOME_BONUS') && <WelcomeBonusModal />}
       {activeModal === 'DEPOSIT' && <DepositModal onClose={closeModal} />}
       {activeModal === 'WITHDRAW' && <WithdrawModal onClose={closeModal} />}
       {activeModal === 'REWARDS' && <RewardsCenterModal onClose={closeModal} />}

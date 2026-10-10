@@ -114,7 +114,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
         txid: txid.trim(),
         senderAddress: senderExchange || 'External Exchange/Wallet',
       });
-      addToast('External Deposit Confirmed!', `+${amountVal} ${selectedAsset} external deposit successfully credited!`, 'success');
+      addToast('Deposit Submitted', `Your deposit of ${amountVal} ${selectedAsset} (TXID: ${txid.trim().substring(0, 8)}...) has been submitted for verification. Funds will be credited once confirmed.`, 'info');
       await refreshProfile();
       onClose();
     } catch (err: any) {

@@ -225,5 +225,6 @@
   "mining_02_monetag": "11442658",
   "mining_03_onclicka": "mining_03_onclicka",
   "mining_04_richads": "mining_04_richads",
-  "mining_05_adexora": "mining_05_adexora"
+  "mining_05_adexora": "mining_05_adexora",
+  "welcomeBonusEnabled": true
 }

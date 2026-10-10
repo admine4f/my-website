@@ -159,12 +159,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setBalances(res.balances);
           localStorage.setItem('e4f_cached_balances', JSON.stringify(res.balances));
         }
-        // Show welcome bonus modal if newly awarded
-        if (res.user.claimedWelcomeBonus) {
-          const shown = localStorage.getItem('e4f_welcome_modal_shown');
+        // Show welcome bonus modal if newly awarded or available
+        if (res.user?.claimedWelcomeBonus && (res.balances?.usdt > 0 || res.balances?.e4f > 0)) {
+          const shown = localStorage.getItem('e4f_welcome_bonus_awarded_v2');
           if (!shown) {
             setShowWelcomeBonus(true);
-            localStorage.setItem('e4f_welcome_modal_shown', 'true');
+            localStorage.setItem('e4f_welcome_bonus_awarded_v2', 'true');
           }
         }
       })

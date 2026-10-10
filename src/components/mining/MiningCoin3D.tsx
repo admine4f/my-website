@@ -24,7 +24,7 @@ export const MiningCoin3D: React.FC<MiningCoin3DProps> = ({ isActive, isComplete
         }`}
       />
 
-      {/* Burning Ring of Fire Container (আগুনের গোল রিং) */}
+      {/* Burning Ring of Fire Container */}
       <div
         className={`relative w-52 h-52 sm:w-60 sm:h-60 rounded-full flex items-center justify-center p-3 transition-all duration-500 ${
           isActive

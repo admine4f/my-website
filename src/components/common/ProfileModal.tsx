@@ -139,7 +139,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const handleVerifyAccount = async (useExternal = false) => {
     if (!user?.id) return;
     if (!depositsEnabled) {
-      addToast('Deposits Disabled', 'Account verification deposits are currently turned off by admin.', 'error');
+      addToast('Deposits Disabled', 'Account verification deposits are currently turned off.', 'error');
       return;
     }
 
@@ -231,7 +231,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
             {!depositsEnabled && (
               <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>Deposits are currently disabled by Admin.</span>
+                <span>Deposits are currently disabled.</span>
               </div>
             )}
 
