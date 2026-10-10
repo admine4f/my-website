@@ -2418,7 +2418,7 @@ app.post('/api/mining/start', handleStartMining);
 app.post('/api/start-mining', handleStartMining);
 
 // Claim Mining Reward (Manual Claim after 8 Hours)
-app.post('/api/mining/claim', (req: Request, res: Response) => {
+app.post('/api/mining/claim', async (req: Request, res: Response) => {
   const { userId, sessionId } = req.body;
   const now = Date.now();
 
@@ -2442,7 +2442,7 @@ app.post('/api/mining/claim', (req: Request, res: Response) => {
     return res.status(404).json({ success: false, error: 'User wallet balance not found' });
   }
 
-  userBalance.e4f += session.estimatedReward;
+  userBalance.e4f = Number((userBalance.e4f + session.estimatedReward).toFixed(6));
   session.status = 'CLAIMED';
   session.claimedAt = now;
 
@@ -2459,7 +2459,11 @@ app.post('/api/mining/claim', (req: Request, res: Response) => {
     referenceId: session.id,
     note: `8-Hour Session Mined (+${session.estimatedReward.toFixed(2)} E4F)`,
   };
-  transactions.unshift(tx);
+
+  // Authoritative persistence to Supabase and disk
+  await recordTransaction(tx);
+  await setSupabaseBalance(userId, userBalance).catch(() => {});
+  scheduleSaveDatabase();
 
   res.json({
     success: true,
@@ -2508,7 +2512,7 @@ app.get('/api/rewards/:userId/daily-checkin', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/rewards/daily-checkin/claim', (req: Request, res: Response) => {
+app.post('/api/rewards/daily-checkin/claim', async (req: Request, res: Response) => {
   const { userId } = req.body;
   const userBalance = balances.get(userId);
   if (!userBalance) return res.status(404).json({ success: false, error: 'User not found' });
@@ -2551,7 +2555,7 @@ app.post('/api/rewards/daily-checkin/claim', (req: Request, res: Response) => {
     userBalance.e4f = Math.round((userBalance.e4f + reward.amount) * 10000) / 10000;
   }
 
-  transactions.unshift({
+  const checkinTx: TxRecord = {
     id: `tx_${Date.now()}_checkin`,
     userId,
     asset: reward.asset,
@@ -2561,7 +2565,9 @@ app.post('/api/rewards/daily-checkin/claim', (req: Request, res: Response) => {
     status: 'COMPLETED',
     timestamp: Date.now(),
     note: `Day ${targetDay} Check-in Reward (+${reward.amount} ${reward.asset})`,
-  });
+  };
+  await recordTransaction(checkinTx);
+  await setSupabaseBalance(userId, userBalance).catch(() => {});
 
   // Ensure 0% data loss by persisting immediately
   persistDatabaseSync();
@@ -2601,7 +2607,7 @@ app.get('/api/rewards/:userId/spin-status', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/rewards/spin', (req: Request, res: Response) => {
+app.post('/api/rewards/spin', async (req: Request, res: Response) => {
   const { userId, adSessionId, claimToken } = req.body;
   const userBalance = balances.get(userId);
   if (!userBalance) return res.status(404).json({ success: false, error: 'User not found' });
@@ -2695,7 +2701,8 @@ app.post('/api/rewards/spin', (req: Request, res: Response) => {
     timestamp: Date.now(),
     note: `Spin & Win Prize: ${prize.label} (${spinData.count}/${maxSpins})`,
   };
-  transactions.unshift(tx);
+  await recordTransaction(tx);
+  await setSupabaseBalance(userId, userBalance).catch(() => {});
   scheduleSaveDatabase();
 
   res.json({
@@ -2758,7 +2765,7 @@ app.get('/api/rewards/:userId/gift-boxes', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/rewards/gift-box/open', (req: Request, res: Response) => {
+app.post('/api/rewards/gift-box/open', async (req: Request, res: Response) => {
   const { userId, boxId, adSessionId, claimToken } = req.body;
   const userBalance = balances.get(userId);
   if (!userBalance) return res.status(404).json({ success: false, error: 'User not found' });
@@ -2877,7 +2884,8 @@ app.post('/api/rewards/gift-box/open', (req: Request, res: Response) => {
     timestamp: Date.now(),
     note: `${boxConfig.name} Opened (+${boxConfig.rewardAmount} ${boxConfig.rewardAsset}) [${dailyOpen.count}/${maxBoxes}]`,
   };
-  transactions.unshift(tx);
+  await recordTransaction(tx);
+  await setSupabaseBalance(userId, userBalance).catch(() => {});
   scheduleSaveDatabase();
 
   res.json({
@@ -2948,7 +2956,7 @@ app.post('/api/tasks/start-timer', (req: Request, res: Response) => {
 });
 
 // Verify Website / Video Task Timer
-app.post('/api/tasks/verify-timer', (req: Request, res: Response) => {
+app.post('/api/tasks/verify-timer', async (req: Request, res: Response) => {
   const { userId, taskId, accumulatedSeconds } = req.body;
   const user = users.get(userId);
   const userBalance = balances.get(userId);
@@ -3017,7 +3025,8 @@ app.post('/api/tasks/verify-timer', (req: Request, res: Response) => {
     timestamp: Date.now(),
     note: `Website Visit Completed: ${task.title} (${requiredSeconds}s verified)`,
   };
-  transactions.unshift(tx);
+  await recordTransaction(tx);
+  await setSupabaseBalance(userId, userBalance).catch(() => {});
   scheduleSaveDatabase();
 
   res.json({
@@ -3111,17 +3120,33 @@ app.post('/api/tasks/submit', (req: Request, res: Response) => {
 });
 
 // 6. Referral API (/api/referrals)
-app.get('/api/referrals/:userId', (req: Request, res: Response) => {
+app.get('/api/referrals/:userId', async (req: Request, res: Response) => {
   const { userId } = req.params;
-  const user = users.get(userId);
+  const user = await getUserFromSupabase(userId);
   if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
   // Permanent Referrals: Never filtered or deleted, stored permanently for life!
+  let dbReferrals: any[] = [];
+  if (supabase) {
+    try {
+      const tgId = user.telegramId;
+      const { data, error } = await supabase
+        .from('referrals')
+        .select('*')
+        .eq('referrer_id', tgId);
+      if (!error && Array.isArray(data)) {
+        dbReferrals = data;
+      }
+    } catch (err) {
+      console.warn('[Supabase] Warning fetching referrals from DB:', err);
+    }
+  }
+
   const userReferrals = referralHistory.filter(r => r.referrerId === userId);
   const directInvitedUsers = Array.from(users.values()).filter(u => u.referredBy === userId);
 
   // 100% Real User Referral Stats (zero fake/demo numbers)
-  const totalInvited = Math.max(userReferrals.length, directInvitedUsers.length);
+  const totalInvited = Math.max(userReferrals.length, directInvitedUsers.length, dbReferrals.length);
   const qualified = userReferrals.filter(r => r.status === 'QUALIFIED').length;
   const active = Math.max(0, totalInvited - qualified);
   const pending = 0;
@@ -3302,7 +3327,7 @@ app.get('/api/market/orderbook', (req: Request, res: Response) => {
 });
 
 // 8. Spot Trading Engine (/api/trade/order)
-app.post('/api/trade/order', (req: Request, res: Response) => {
+app.post('/api/trade/order', async (req: Request, res: Response) => {
   const { userId, pair, side, type, price, amount } = req.body;
   if (pair.startsWith('E4F')) {
     return res.status(400).json({ success: false, error: 'E4F is not listed yet. Trading unavailable.' });
@@ -3362,7 +3387,7 @@ app.post('/api/trade/order', (req: Request, res: Response) => {
   };
   spotOrders.unshift(order);
 
-  transactions.unshift({
+  const tradeTx: TxRecord = {
     id: `tx_${Date.now()}_trade`,
     userId,
     asset: side === 'BUY' ? 'USDT' : (pair.split('/')[0] as any),
@@ -3373,7 +3398,9 @@ app.post('/api/trade/order', (req: Request, res: Response) => {
     timestamp: Date.now(),
     referenceId: orderId,
     note: `${side} ${amount} ${pair} @ ${executionPrice.toFixed(2)}`,
-  });
+  };
+  await recordTransaction(tradeTx);
+  await setSupabaseBalance(userId, userBalance).catch(() => {});
 
   // Immediately persist trade order & updated balances to disk atomically
   persistDatabaseSync();
@@ -4222,11 +4249,33 @@ app.get('/api/admin/withdrawals', requireAdminAuth, async (_req: Request, res: R
   res.json({ withdrawals: withdrawalList });
 });
 
-app.post('/api/admin/withdrawals/:id/review', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/withdrawals/:id/review', requireAdminAuth, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { decision, note } = req.body; // 'APPROVE' or 'REJECT'
 
-  const tx = transactions.find(t => t.id === id && t.source === 'WITHDRAWAL');
+  let tx = transactions.find(t => t.id === id && t.source === 'WITHDRAWAL');
+  if (!tx && supabase) {
+    try {
+      const { data } = await supabase.from('withdrawals').select('*').eq('id', id).maybeSingle();
+      if (data) {
+        tx = {
+          id: data.id,
+          userId: data.user_id || `usr_${data.telegram_id}`,
+          asset: (data.currency || 'USDT') as any,
+          amount: Number(data.amount),
+          direction: 'OUT',
+          source: 'WITHDRAWAL',
+          status: data.status === 'success' ? 'COMPLETED' : (data.status === 'rejected' ? 'REJECTED' : 'PENDING'),
+          timestamp: new Date(data.created_at).getTime(),
+          address: data.wallet_address || '',
+          network: data.network || 'BEP20',
+          fee: Number(data.fee) || 0,
+        };
+        transactions.unshift(tx);
+      }
+    } catch {}
+  }
+
   if (!tx) {
     return res.status(404).json({ success: false, error: 'Withdrawal transaction not found' });
   }
@@ -4494,12 +4543,12 @@ app.post('/api/admin/task-submissions/review', requireAdminAuth, (req: Request, 
 
     if (userBalance) {
       if (sub.rewardAsset === 'USDT') {
-        userBalance.usdt += sub.rewardAmount;
+        userBalance.usdt = Number((userBalance.usdt + sub.rewardAmount).toFixed(6));
       } else {
-        userBalance.e4f += sub.rewardAmount;
+        userBalance.e4f = Number((userBalance.e4f + sub.rewardAmount).toFixed(6));
       }
 
-      transactions.unshift({
+      const taskSubTx: TxRecord = {
         id: `tx_${Date.now()}_tasksub`,
         userId: sub.userId,
         asset: sub.rewardAsset,
@@ -4509,7 +4558,9 @@ app.post('/api/admin/task-submissions/review', requireAdminAuth, (req: Request, 
         status: 'COMPLETED',
         timestamp: Date.now(),
         note: `Proof Approved: ${sub.taskTitle}`,
-      });
+      };
+      recordTransaction(taskSubTx);
+      setSupabaseBalance(sub.userId, userBalance).catch(() => {});
     }
 
     auditLogs.unshift({
