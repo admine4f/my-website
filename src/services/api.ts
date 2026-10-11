@@ -264,20 +264,27 @@ export const api = {
   ): Promise<{ user: UserAccount; balances: WalletBalances; serverTime: number }> {
     const localBalances = getLocalBalances();
     try {
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('e4f_session_token') || '') : '';
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        headers['x-session-token'] = token;
+      }
+
       const res = await fetch('/api/auth/telegram', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData, demoUser, storedUserId, referralCode, cachedBalances: localBalances }),
+        headers,
+        body: JSON.stringify({ initData, demoUser, storedUserId, referralCode, token, cachedBalances: localBalances }),
       });
-      if (res.ok) {
-        const data = await parseResponseJson(res);
-        if (data && data.user) {
-          if (data.token && typeof window !== 'undefined') {
-            localStorage.setItem('e4f_session_token', data.token);
-          }
-          if (data.balances) saveLocalBalances(data.balances);
-          return data;
+      const data = await parseResponseJson(res);
+      if (res.ok && data && data.user) {
+        if (data.token && typeof window !== 'undefined') {
+          localStorage.setItem('e4f_session_token', data.token);
         }
+        if (data.balances) saveLocalBalances(data.balances);
+        return data;
+      } else if (data && data.error) {
+        console.warn('Telegram auth returned error:', data.error);
       }
     } catch (err) {
       console.warn('Telegram auth temporary network issue, reading local cache:', err);
