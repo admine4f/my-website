@@ -840,6 +840,9 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                     onChange={e => setAdminPassword(e.target.value)}
                     placeholder="Enter confidential password"
                     className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono tracking-wider"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                     autoFocus
                   />
                   <button

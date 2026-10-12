@@ -1421,6 +1421,15 @@ export const api = {
       const data = await parseResponseJson(res);
       if (res.ok && data && data.success) {
         if (data.balances) saveLocalBalances(data.balances);
+        if (data.order && typeof window !== 'undefined') {
+          try {
+            const key = `e4f_orders_${userId}`;
+            const raw = localStorage.getItem(key);
+            const existing = raw ? JSON.parse(raw) : [];
+            existing.unshift(data.order);
+            localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+          } catch {}
+        }
         return data;
       }
     } catch {}
@@ -1493,18 +1502,33 @@ export const api = {
   },
 
   async getOrders(userId: string): Promise<{ orders: SpotOrder[] }> {
+    let serverOrders: SpotOrder[] = [];
     try {
       const res = await fetch(`/api/trade/${userId}/orders`);
       const data = await parseResponseJson(res);
-      if (res.ok && data && Array.isArray(data.orders)) return data;
+      if (res.ok && data && Array.isArray(data.orders)) {
+        serverOrders = data.orders;
+      }
     } catch {}
+
+    let localOrders: SpotOrder[] = [];
     try {
       if (typeof window !== 'undefined') {
         const raw = localStorage.getItem(`e4f_orders_${userId}`);
-        if (raw) return { orders: JSON.parse(raw) };
+        if (raw) localOrders = JSON.parse(raw);
       }
     } catch {}
-    return { orders: [] };
+
+    const seen = new Set<string>();
+    const merged: SpotOrder[] = [];
+    for (const o of [...serverOrders, ...localOrders]) {
+      if (o && o.id && !seen.has(o.id)) {
+        seen.add(o.id);
+        merged.push(o);
+      }
+    }
+    merged.sort((a, b) => b.timestamp - a.timestamp);
+    return { orders: merged };
   },
 
   // Wallet Actions
