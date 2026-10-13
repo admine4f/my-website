@@ -22,7 +22,24 @@ export default function handler(req: any, res: any) {
                            req.headers['x-vercel-matched-path'];
 
       if (vercelPath) {
-        req.url = vercelPath.startsWith('/') ? `/api${vercelPath}` : `/api/${vercelPath}`;
+        let queryStr = '';
+        try {
+          const u = new URL(req.url || '/', 'http://localhost');
+          u.searchParams.delete('vercel_path');
+          u.searchParams.delete('path');
+          u.searchParams.delete('__route_path');
+          const remaining = u.searchParams.toString();
+          if (remaining) queryStr = `?${remaining}`;
+        } catch {}
+        if (req.query) {
+          delete req.query.vercel_path;
+          delete req.query.path;
+          delete req.query.__route_path;
+        }
+        let cleanPath = vercelPath.trim();
+        if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+        const finalPath = cleanPath.startsWith('/api/') ? cleanPath : `/api${cleanPath}`;
+        req.url = `${finalPath}${queryStr}`;
       } else if (typeof forwardedUri === 'string' && forwardedUri.startsWith('/api')) {
         req.url = forwardedUri;
       } else if (req.url) {
@@ -32,7 +49,10 @@ export default function handler(req: any, res: any) {
             try {
               const params = new URLSearchParams(match);
               const p = params.get('1');
-              if (p) req.url = `/api/${decodeURIComponent(p)}`;
+              if (p) {
+                const dec = decodeURIComponent(p);
+                req.url = dec.startsWith('/') ? `/api${dec}` : `/api/${dec}`;
+              }
             } catch {}
           }
         } else if (!req.url.startsWith('/api') && (

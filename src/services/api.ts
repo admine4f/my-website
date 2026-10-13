@@ -1218,8 +1218,6 @@ export const api = {
         const cached = localStorage.getItem('e4f_cached_public_settings');
         if (cached) {
           const parsed = JSON.parse(cached);
-          parsed.depositsEnabled = false;
-          parsed.withdrawalsEnabled = true;
           return parsed;
         }
       }
@@ -1663,9 +1661,9 @@ export const api = {
   },
 
   // Admin
-  async adminLogin(pin: string, key?: string): Promise<{ success: boolean; token: string; key: string; role: string }> {
-    const cleanPin = (pin || '').trim();
-    const payload = JSON.stringify({ pin: cleanPin, key: key ? key.trim() : cleanPin, password: cleanPin });
+  async adminLogin(pin: string, key?: string): Promise<{ success: boolean; token: string; key?: string; role: string }> {
+    const cleanPassword = (pin || key || '').trim();
+    const payload = JSON.stringify({ password: cleanPassword });
     let res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

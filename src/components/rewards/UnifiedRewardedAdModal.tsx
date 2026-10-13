@@ -414,7 +414,11 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
-      api.startAdWatching(adSession.sessionId, adSession.token, userId).catch(console.warn);
+      try {
+        await api.startAdWatching(adSession.sessionId, adSession.token, userId);
+      } catch (err) {
+        console.warn('startAdWatching error:', err);
+      }
     }
 
     // Determine target URL for the active network

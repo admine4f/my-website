@@ -21,9 +21,22 @@ import { AdminControlModal } from './components/admin/AdminControlModal';
 import { ProfileModal } from './components/common/ProfileModal';
 import { SpinWheelModal } from './components/rewards/SpinWheelModal';
 import { GiftBoxesModal } from './components/rewards/GiftBoxesModal';
+import { AccountCreationModal } from './components/common/AccountCreationModal';
 
 const AppContent: React.FC = () => {
-  const { activeTab, activeModal, closeModal, toasts, removeToast, showWelcomeBonus } = useApp();
+  const {
+    activeTab,
+    activeModal,
+    closeModal,
+    toasts,
+    removeToast,
+    showWelcomeBonus,
+    showAccountCreation,
+    pendingReferralCode,
+    creatingAccount,
+    confirmAccountCreation,
+    dismissAccountCreation,
+  } = useApp();
 
   return (
     <div className="min-h-screen bg-[#070B14] text-slate-100 font-sans flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
@@ -43,6 +56,16 @@ const AppContent: React.FC = () => {
 
       {/* Bottom Sticky Navigation */}
       <BottomNav />
+
+      {/* Referral Onboarding Account Creation Popup */}
+      {showAccountCreation && (
+        <AccountCreationModal
+          referralCode={pendingReferralCode}
+          loading={creatingAccount}
+          onConfirm={confirmAccountCreation}
+          onDismiss={dismissAccountCreation}
+        />
+      )}
 
       {/* Global Modals */}
       {(showWelcomeBonus || activeModal === 'WELCOME' || activeModal === 'WELCOME_BONUS') && <WelcomeBonusModal />}

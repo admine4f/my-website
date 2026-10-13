@@ -224,18 +224,18 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
     setAuthenticating(true);
     setAuthError('');
     try {
-      const res = await api.adminLogin(cleanPassword, cleanPassword);
+      const res = await api.adminLogin(cleanPassword);
       if (res.success) {
         setIsAuthenticated(true);
-        const resolvedKey = res.key || cleanPassword;
-        setAdminKey(resolvedKey);
+        const resolvedKey = res.key || '';
+        if (resolvedKey) setAdminKey(resolvedKey);
         try {
           if (res.token) {
             localStorage.setItem('e4f_admin_token', res.token);
           }
-          localStorage.setItem('e4f_admin_key', resolvedKey);
         } catch {}
-        loadAdminData(resolvedKey);
+        setAdminPassword('');
+        loadAdminData(resolvedKey || adminKey);
       }
     } catch (err: any) {
       setAuthError(err.message || 'Incorrect Admin Security Password');

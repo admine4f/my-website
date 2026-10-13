@@ -48,6 +48,11 @@ interface AppContextType {
   showWelcomeBonus: boolean;
   setShowWelcomeBonus: (show: boolean) => void;
   toast: { title: string; message: string; type: 'info' | 'success' | 'error' } | null;
+  showAccountCreation: boolean;
+  pendingReferralCode: string;
+  creatingAccount: boolean;
+  confirmAccountCreation: () => Promise<void>;
+  dismissAccountCreation: () => Promise<void>;
 }
 
 const defaultBalances: WalletBalances = {
@@ -87,6 +92,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [showWelcomeBonus, setShowWelcomeBonus] = useState<boolean>(false);
   const [toast, setToast] = useState<{ title: string; message: string; type: 'info' | 'success' | 'error' } | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [showAccountCreation, setShowAccountCreation] = useState(false);
+  const [pendingReferralCode, setPendingReferralCode] = useState('');
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const initDataRef = React.useRef('');
+  const tgUserRef = React.useRef<any>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([
     {
       id: 'notif-1',
@@ -123,6 +133,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const openModal = (modal: ModalType) => setActiveModal(modal);
   const closeModal = () => setActiveModal(null);
 
+  const confirmAccountCreation = async () => {
+    if (creatingAccount) return;
+    setCreatingAccount(true);
+    try {
+      const res = await api.loginTelegram(initDataRef.current, tgUserRef.current, undefined, pendingReferralCode);
+      setUser(res.user);
+      if (res.user?.id) {
+        localStorage.setItem('e4f_user_id', res.user.id);
+        localStorage.setItem('e4f_user_registered', 'true');
+        localStorage.setItem('e4f_cached_user', JSON.stringify(res.user));
+      }
+      if (res.balances) {
+        setBalances(res.balances);
+        localStorage.setItem('e4f_cached_balances', JSON.stringify(res.balances));
+      }
+      setShowAccountCreation(false);
+      setShowWelcomeBonus(true);
+      addToast('Account Created!', `Welcome to E4F! Referral ${pendingReferralCode} activated with 25 USDT + 10 E4F bonus.`, 'success');
+    } catch (err: any) {
+      addToast('Registration Error', err.message || 'Could not create account', 'error');
+    } finally {
+      setCreatingAccount(false);
+    }
+  };
+
+  const dismissAccountCreation = async () => {
+    if (creatingAccount) return;
+    setShowAccountCreation(false);
+    setCreatingAccount(true);
+    try {
+      const res = await api.loginTelegram(initDataRef.current, tgUserRef.current, undefined, undefined);
+      setUser(res.user);
+      if (res.user?.id) {
+        localStorage.setItem('e4f_user_id', res.user.id);
+        localStorage.setItem('e4f_user_registered', 'true');
+        localStorage.setItem('e4f_cached_user', JSON.stringify(res.user));
+      }
+      if (res.balances) {
+        setBalances(res.balances);
+        localStorage.setItem('e4f_cached_balances', JSON.stringify(res.balances));
+      }
+    } catch {} finally {
+      setCreatingAccount(false);
+    }
+  };
+
   // Initialize Telegram User with persistent user ID retention and referral tracking
   useEffect(() => {
     let initData = '';
@@ -145,7 +201,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    initDataRef.current = initData;
+    tgUserRef.current = tgUser;
+
     const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('e4f_user_id') || undefined : undefined;
+    const isAlreadyRegistered = typeof window !== 'undefined' ? Boolean(localStorage.getItem('e4f_user_registered')) : false;
+
+    // Show popup modal for new users joining via referral code
+    if (referralCodeParam && !storedUserId && !isAlreadyRegistered) {
+      setPendingReferralCode(referralCodeParam);
+      setShowAccountCreation(true);
+      return;
+    }
 
     api
       .loginTelegram(initData, tgUser, storedUserId, referralCodeParam)
@@ -153,6 +220,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUser(res.user);
         if (res.user?.id) {
           localStorage.setItem('e4f_user_id', res.user.id);
+          localStorage.setItem('e4f_user_registered', 'true');
           localStorage.setItem('e4f_cached_user', JSON.stringify(res.user));
         }
         if (res.balances) {
@@ -277,6 +345,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         showWelcomeBonus,
         setShowWelcomeBonus,
         toast,
+        showAccountCreation,
+        pendingReferralCode,
+        creatingAccount,
+        confirmAccountCreation,
+        dismissAccountCreation,
       }}
     >
       {children}

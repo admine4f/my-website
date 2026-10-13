@@ -290,6 +290,29 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON public.audit_logs(timestamp DESC);
 
+CREATE TABLE IF NOT EXISTS public.spot_orders (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  pair TEXT NOT NULL,
+  side TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'MARKET',
+  price NUMERIC NOT NULL DEFAULT 0,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  total_usdt NUMERIC NOT NULL DEFAULT 0,
+  filled_amount NUMERIC NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'FILLED',
+  timestamp BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_spot_orders_user ON public.spot_orders(user_id, timestamp DESC);
+
+CREATE TABLE IF NOT EXISTS public.system_settings (
+  id TEXT PRIMARY KEY DEFAULT 'global_settings',
+  settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- =====================================================================
 -- 8. FUNCTION 1: get_or_restore_user
 -- SECURITY DEFINER, SET search_path = public, pg_temp
