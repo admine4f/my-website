@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Upgrade existing profiles table if previously created (Idempotent Bug C Fix)
+-- Upgrade existing profiles table if previously created (Idempotent)
 DO $$
 BEGIN
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS telegram_id BIGINT;
@@ -58,21 +58,18 @@ BEGIN
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
-  -- Ensure telegram_id unique constraint exists
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'profiles_telegram_id_key'
   ) THEN
     ALTER TABLE public.profiles ADD CONSTRAINT profiles_telegram_id_key UNIQUE (telegram_id);
   END IF;
 
-  -- Ensure uid unique constraint exists
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'profiles_uid_key'
   ) THEN
     ALTER TABLE public.profiles ADD CONSTRAINT profiles_uid_key UNIQUE (uid);
   END IF;
 
-  -- Ensure referral_code unique constraint exists
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'profiles_referral_code_key'
   ) THEN
@@ -246,7 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_device_locks_created_at ON public.device_locks(cr
 
 -- =====================================================================
 -- 7. REPO COMPATIBILITY TABLES
--- (users, balances, transactions, deposits, mining_sessions, audit_logs, spot_orders, system_settings)
+-- (users, balances, transactions, deposits, mining_sessions, audit_logs, spot_orders, system_settings, market_prices)
 -- Preserves existing server.ts and src/services/api.ts functionality with 0% data/feature loss
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS public.users (
@@ -268,11 +265,28 @@ CREATE TABLE IF NOT EXISTS public.users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Upgrade existing users table
+DO $$
+BEGIN
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS uid TEXT;
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS telegram_id BIGINT;
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS referral_code TEXT;
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS referred_by TEXT;
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE';
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS claimed_welcome_bonus BOOLEAN DEFAULT FALSE;
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deposit_balance NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deposit_address TEXT DEFAULT '';
+  ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON public.users(telegram_id);
 CREATE INDEX IF NOT EXISTS idx_users_referral_code ON public.users(referral_code);
 
 CREATE TABLE IF NOT EXISTS public.balances (
-  user_id TEXT PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id TEXT PRIMARY KEY,
   "USDT" NUMERIC(20, 6) NOT NULL DEFAULT 0.000000 CHECK ("USDT" >= 0),
   "E4F"  NUMERIC(20, 6) NOT NULL DEFAULT 0.000000 CHECK ("E4F" >= 0),
   "BNB"  NUMERIC(20, 6) NOT NULL DEFAULT 0.000000 CHECK ("BNB" >= 0),
@@ -288,9 +302,29 @@ CREATE TABLE IF NOT EXISTS public.balances (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Upgrade existing balances table
+DO $$
+BEGIN
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "USDT" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "E4F" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "BNB" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "BTC" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "ETH" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "SOL" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "TON" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "XRP" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "DOGE" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "ADA" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "TRX" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS "LTC" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.balances ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.transactions (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
   asset TEXT NOT NULL,
   amount NUMERIC(20, 6) NOT NULL CHECK (amount > 0),
   direction TEXT NOT NULL CHECK (direction IN ('IN', 'OUT')),
@@ -305,12 +339,32 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Upgrade existing transactions table
+DO $$
+BEGIN
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS user_id TEXT;
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS asset TEXT;
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS amount NUMERIC(20, 6) DEFAULT 0;
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS direction TEXT;
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS source TEXT;
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'COMPLETED';
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS timestamp BIGINT;
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS reference_id TEXT DEFAULT '';
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS note TEXT DEFAULT '';
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS address TEXT DEFAULT '';
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS network TEXT DEFAULT '';
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS fee NUMERIC(20, 6) DEFAULT 0;
+  ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON public.transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON public.transactions(timestamp DESC);
 
 CREATE TABLE IF NOT EXISTS public.deposits (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
   asset TEXT NOT NULL DEFAULT 'USDT',
   network TEXT NOT NULL,
   amount NUMERIC(20, 6) NOT NULL CHECK (amount > 0),
@@ -321,12 +375,28 @@ CREATE TABLE IF NOT EXISTS public.deposits (
   verified_at TIMESTAMPTZ
 );
 
+-- Upgrade existing deposits table
+DO $$
+BEGIN
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS user_id TEXT;
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS asset TEXT DEFAULT 'USDT';
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS network TEXT;
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS amount NUMERIC(20, 6);
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS txid TEXT;
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS sender_address TEXT DEFAULT '';
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDING';
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+  ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_deposits_user_id ON public.deposits(user_id);
 CREATE INDEX IF NOT EXISTS idx_deposits_txid ON public.deposits(txid);
 
 CREATE TABLE IF NOT EXISTS public.mining_sessions (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
   start_time BIGINT NOT NULL,
   end_time BIGINT NOT NULL,
   duration_seconds INTEGER NOT NULL DEFAULT 28800,
@@ -339,6 +409,24 @@ CREATE TABLE IF NOT EXISTS public.mining_sessions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Upgrade existing mining_sessions table
+DO $$
+BEGIN
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS user_id TEXT;
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS start_time BIGINT;
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS end_time BIGINT;
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS duration_seconds INTEGER DEFAULT 28800;
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS mining_rate_per_hour NUMERIC(20, 6) DEFAULT 0.250000;
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS estimated_reward NUMERIC(20, 6) DEFAULT 2.000000;
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE';
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS ad_verified BOOLEAN DEFAULT FALSE;
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS ad_session_id TEXT DEFAULT '';
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS claimed_at BIGINT;
+  ALTER TABLE public.mining_sessions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_mining_sessions_user_id ON public.mining_sessions(user_id);
 
 CREATE TABLE IF NOT EXISTS public.audit_logs (
@@ -350,6 +438,19 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
   timestamp BIGINT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Upgrade existing audit_logs table
+DO $$
+BEGIN
+  ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS admin_id TEXT;
+  ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS action TEXT;
+  ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS target TEXT;
+  ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS details TEXT;
+  ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS timestamp BIGINT;
+  ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON public.audit_logs(timestamp DESC);
 
@@ -368,6 +469,24 @@ CREATE TABLE IF NOT EXISTS public.spot_orders (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Upgrade existing spot_orders table
+DO $$
+BEGIN
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS user_id TEXT;
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS pair TEXT;
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS side TEXT;
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'MARKET';
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0;
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS amount NUMERIC DEFAULT 0;
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS total_usdt NUMERIC DEFAULT 0;
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS filled_amount NUMERIC DEFAULT 0;
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'FILLED';
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS timestamp BIGINT;
+  ALTER TABLE public.spot_orders ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_spot_orders_user ON public.spot_orders(user_id, timestamp DESC);
 
 CREATE TABLE IF NOT EXISTS public.system_settings (
@@ -375,6 +494,16 @@ CREATE TABLE IF NOT EXISTS public.system_settings (
   settings JSONB NOT NULL DEFAULT '{}'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Upgrade existing system_settings table
+DO $$
+BEGIN
+  ALTER TABLE public.system_settings ADD COLUMN IF NOT EXISTS id TEXT DEFAULT 'global_settings';
+  ALTER TABLE public.system_settings ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}'::jsonb;
+  ALTER TABLE public.system_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
 
 -- Seed default global system settings if not present
 INSERT INTO public.system_settings (id, settings, updated_at)
@@ -386,7 +515,49 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================================
--- 8. FUNCTION 1: get_or_restore_user
+-- 8. MARKET PRICES TABLE (Requirement 1)
+-- Live real-time market prices table for spot trading & portfolio valuation
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS public.market_prices (
+  symbol TEXT PRIMARY KEY,
+  price NUMERIC NOT NULL,
+  change_24h NUMERIC DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Upgrade existing market_prices table
+DO $$
+BEGIN
+  ALTER TABLE public.market_prices ADD COLUMN IF NOT EXISTS symbol TEXT;
+  ALTER TABLE public.market_prices ADD COLUMN IF NOT EXISTS price NUMERIC;
+  ALTER TABLE public.market_prices ADD COLUMN IF NOT EXISTS change_24h NUMERIC DEFAULT 0;
+  ALTER TABLE public.market_prices ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_market_prices_symbol ON public.market_prices(symbol);
+
+-- Seed initial market prices for live trading pairs
+INSERT INTO public.market_prices (symbol, price, change_24h, updated_at)
+VALUES
+  ('BTC/USDT', 81650.00, -2.26, NOW()),
+  ('ETH/USDT', 2430.50, -3.57, NOW()),
+  ('SOL/USDT', 103.80, -3.63, NOW()),
+  ('BNB/USDT', 729.30, -2.15, NOW()),
+  ('XRP/USDT', 1.3270, -3.41, NOW()),
+  ('DOGE/USDT', 0.1650, -1.85, NOW()),
+  ('TON/USDT', 4.8500, -2.10, NOW()),
+  ('ADA/USDT', 0.2267, -3.28, NOW()),
+  ('TRX/USDT', 0.3332, 1.68, NOW()),
+  ('LTC/USDT', 59.01, -3.48, NOW())
+ON CONFLICT (symbol) DO UPDATE SET
+  price = EXCLUDED.price,
+  change_24h = EXCLUDED.change_24h,
+  updated_at = NOW();
+
+-- =====================================================================
+-- 9. FUNCTION 1: get_or_restore_user
 -- SECURITY DEFINER, SET search_path = public, pg_temp
 --
 -- Rules Enforced:
@@ -746,9 +917,9 @@ BEGIN
       id, user_id, asset, amount, direction, source, status, timestamp, note
     ) VALUES
     ('tx_wb_usdt_' || p_telegram_id::TEXT, v_user_id, 'USDT', 25.000000, 'IN', 'WELCOME_BONUS', 'COMPLETED',
-     EXTRACT(EPOCH FROM NOW() * 1000)::BIGINT, 'Welcome Registration Bonus (USDT) credited'),
+     (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT, 'Welcome Registration Bonus (USDT) credited'),
     ('tx_wb_e4f_' || p_telegram_id::TEXT, v_user_id, 'E4F', 10.000000, 'IN', 'WELCOME_BONUS', 'COMPLETED',
-     EXTRACT(EPOCH FROM NOW() * 1000)::BIGINT, 'Welcome Registration Bonus (E4F) credited');
+     (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT, 'Welcome Registration Bonus (E4F) credited');
   END IF;
 
   RETURN jsonb_build_object(
@@ -790,13 +961,9 @@ END;
 $$;
 
 -- =====================================================================
--- 9. FUNCTION 2: cleanup_old_withdrawals
--- RETURNS INTEGER
+-- 10. FUNCTION 2: cleanup_old_withdrawals
+-- Strict 90-day retention cleanup for finished records
 -- SECURITY DEFINER, SET search_path = public, pg_temp
--- STRICT FINANCIAL RULE:
--- Pending, processing, and in_review withdrawals are NEVER deleted.
--- ONLY finalized (completed, success, rejected, failed, cancelled) older than 90 days are deleted.
--- Returns count of purged records.
 -- =====================================================================
 CREATE OR REPLACE FUNCTION public.cleanup_old_withdrawals()
 RETURNS INTEGER
@@ -822,10 +989,8 @@ END;
 $$;
 
 -- =====================================================================
--- 10. FUNCTION 3: delete_user_permanently
--- RETURNS BOOLEAN
+-- 11. FUNCTION 3: delete_user_permanently
 -- SECURITY DEFINER, SET search_path = public, pg_temp
--- The ONLY authorized method for permanent deletion.
 -- Safely cleans up all foreign-key dependent rows in exact order (referrals, withdrawals, wallets, profiles).
 -- =====================================================================
 CREATE OR REPLACE FUNCTION public.delete_user_permanently(
@@ -875,7 +1040,7 @@ END;
 $$;
 
 -- =====================================================================
--- 11. AUXILIARY RPC: execute_atomic_withdrawal (Referenced by server.ts)
+-- 12. FUNCTION 4: execute_atomic_withdrawal
 -- SECURITY DEFINER, SET search_path = public, pg_temp
 -- =====================================================================
 CREATE OR REPLACE FUNCTION public.execute_atomic_withdrawal(
@@ -957,7 +1122,7 @@ BEGIN
     id, user_id, asset, amount, direction, source, status, timestamp, address, network, fee, note
   ) VALUES (
     p_withdrawal_id, p_user_id, v_curr, p_amount, 'OUT', 'WITHDRAW', 'PENDING',
-    EXTRACT(EPOCH FROM NOW() * 1000)::BIGINT, p_wallet_address, p_network, p_fee, 'Withdrawal request initiated'
+    (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT, p_wallet_address, p_network, p_fee, 'Withdrawal request initiated'
   );
 
   RETURN jsonb_build_object(
@@ -971,7 +1136,7 @@ END;
 $$;
 
 -- =====================================================================
--- 12. AUXILIARY RPC: verify_atomic_deposit (Referenced by server.ts)
+-- 13. FUNCTION 5: verify_atomic_deposit
 -- SECURITY DEFINER, SET search_path = public, pg_temp
 -- =====================================================================
 CREATE OR REPLACE FUNCTION public.verify_atomic_deposit(
@@ -1044,10 +1209,10 @@ BEGIN
   INSERT INTO public.audit_logs (
     id, admin_id, action, target, details, timestamp
   ) VALUES (
-    'audit_' || EXTRACT(EPOCH FROM NOW() * 1000)::BIGINT,
+    'audit_' || (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT,
     p_admin_id, 'VERIFY_DEPOSIT', p_deposit_id,
     'Verified deposit of ' || v_amount || ' ' || v_curr || ' (TXID: ' || v_txid || ') for user ' || v_user_id,
-    EXTRACT(EPOCH FROM NOW() * 1000)::BIGINT
+    (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
   );
 
   RETURN jsonb_build_object(
@@ -1061,7 +1226,294 @@ END;
 $$;
 
 -- =====================================================================
--- 13. ROW LEVEL SECURITY (RLS) & SERVICE ROLE POLICIES
+-- 14. FUNCTION 6: execute_atomic_trade (Requirements 2 & 3)
+-- Live Market Spot Trading Engine using real-time market_prices table
+-- Dynamic Calculation: Current market price from market_prices is used.
+-- Example: User buys with 25 USDT; when price is 18 USDT upon sell, user receives 18 USDT.
+-- Atomic execution with row locks (FOR UPDATE) across balances & wallets.
+-- =====================================================================
+CREATE OR REPLACE FUNCTION public.execute_atomic_trade(
+  p_user_id TEXT,
+  p_pair TEXT,
+  p_side TEXT,
+  p_amount NUMERIC,
+  p_type TEXT DEFAULT 'MARKET'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_pair TEXT;
+  v_side TEXT;
+  v_base_asset TEXT;
+  v_quote_asset TEXT;
+  v_current_price NUMERIC;
+  v_total_usdt NUMERIC;
+  v_tg_id BIGINT;
+  v_curr_usdt NUMERIC := 0;
+  v_curr_base NUMERIC := 0;
+  v_new_usdt NUMERIC := 0;
+  v_new_base NUMERIC := 0;
+  v_order_id TEXT;
+BEGIN
+  IF p_user_id IS NULL OR TRIM(p_user_id) = '' THEN
+    RAISE EXCEPTION 'Invalid user_id';
+  END IF;
+
+  IF p_amount IS NULL OR p_amount <= 0 THEN
+    RAISE EXCEPTION 'Trade amount must be greater than 0';
+  END IF;
+
+  v_pair := UPPER(TRIM(p_pair));
+  IF NOT v_pair LIKE '%/%' THEN
+    v_pair := v_pair || '/USDT';
+  END IF;
+
+  IF v_pair LIKE 'E4F/%' THEN
+    RAISE EXCEPTION 'E4F Token is not listed yet. Spot trading unavailable until official listing.';
+  END IF;
+
+  v_side := UPPER(TRIM(p_side));
+  IF v_side NOT IN ('BUY', 'SELL') THEN
+    RAISE EXCEPTION 'Trade side must be BUY or SELL';
+  END IF;
+
+  v_base_asset := SPLIT_PART(v_pair, '/', 1);
+  v_quote_asset := SPLIT_PART(v_pair, '/', 2);
+
+  IF v_quote_asset <> 'USDT' THEN
+    RAISE EXCEPTION 'Only USDT quote pairs are supported';
+  END IF;
+
+  -- 1. Fetch live market price from market_prices table
+  SELECT price INTO v_current_price
+  FROM public.market_prices
+  WHERE symbol = v_pair;
+
+  IF v_current_price IS NULL OR v_current_price <= 0 THEN
+    RAISE EXCEPTION 'Live market price for % is currently unavailable', v_pair;
+  END IF;
+
+  v_total_usdt := ROUND((v_current_price * p_amount), 4);
+
+  IF p_user_id LIKE 'usr_%' THEN
+    v_tg_id := NULLIF(SUBSTRING(p_user_id FROM 5), '')::BIGINT;
+  END IF;
+
+  -- Ensure balance row exists with row lock (FOR UPDATE)
+  PERFORM 1 FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
+    INSERT INTO public.balances (user_id, "USDT", updated_at)
+    VALUES (p_user_id, 0, NOW())
+    ON CONFLICT (user_id) DO NOTHING;
+  END IF;
+
+  -- Read balances for USDT and base asset
+  SELECT "USDT" INTO v_curr_usdt FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  v_curr_usdt := COALESCE(v_curr_usdt, 0);
+
+  IF v_base_asset = 'BTC' THEN
+    SELECT COALESCE("BTC", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'ETH' THEN
+    SELECT COALESCE("ETH", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'SOL' THEN
+    SELECT COALESCE("SOL", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'BNB' THEN
+    SELECT COALESCE("BNB", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'XRP' THEN
+    SELECT COALESCE("XRP", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'DOGE' THEN
+    SELECT COALESCE("DOGE", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'TON' THEN
+    SELECT COALESCE("TON", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'ADA' THEN
+    SELECT COALESCE("ADA", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'TRX' THEN
+    SELECT COALESCE("TRX", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSIF v_base_asset = 'LTC' THEN
+    SELECT COALESCE("LTC", 0) INTO v_curr_base FROM public.balances WHERE user_id = p_user_id FOR UPDATE;
+  ELSE
+    RAISE EXCEPTION 'Unsupported base asset %', v_base_asset;
+  END IF;
+
+  -- Execute BUY or SELL logic
+  IF v_side = 'BUY' THEN
+    IF v_curr_usdt < v_total_usdt THEN
+      RAISE EXCEPTION 'Insufficient USDT balance. Available: % USDT, Required: % USDT', v_curr_usdt, v_total_usdt;
+    END IF;
+    v_new_usdt := v_curr_usdt - v_total_usdt;
+    v_new_base := v_curr_base + p_amount;
+  ELSE
+    -- SELL: sell base asset, credit USDT at live market price
+    IF v_curr_base < p_amount THEN
+      RAISE EXCEPTION 'Insufficient % balance. Available: %, Required: %', v_base_asset, v_curr_base, p_amount;
+    END IF;
+    v_new_base := v_curr_base - p_amount;
+    v_new_usdt := v_curr_usdt + v_total_usdt;
+  END IF;
+
+  -- Update public.balances
+  IF v_base_asset = 'BTC' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "BTC" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'ETH' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "ETH" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'SOL' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "SOL" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'BNB' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "BNB" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'XRP' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "XRP" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'DOGE' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "DOGE" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'TON' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "TON" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'ADA' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "ADA" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'TRX' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "TRX" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  ELSIF v_base_asset = 'LTC' THEN
+    UPDATE public.balances SET "USDT" = v_new_usdt, "LTC" = v_new_base, updated_at = NOW() WHERE user_id = p_user_id;
+  END IF;
+
+  -- Synchronize with public.wallets if telegram_id exists
+  IF v_tg_id IS NOT NULL THEN
+    IF v_base_asset = 'BTC' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "BTC" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'ETH' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "ETH" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'SOL' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "SOL" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'BNB' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "BNB" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'XRP' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "XRP" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'DOGE' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "DOGE" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'TON' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "TON" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'ADA' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "ADA" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'TRX' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "TRX" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    ELSIF v_base_asset = 'LTC' THEN
+      UPDATE public.wallets SET "USDT" = v_new_usdt, balance = v_new_usdt, "LTC" = v_new_base, updated_at = NOW() WHERE telegram_id = v_tg_id;
+    END IF;
+  END IF;
+
+  -- Create Spot Order Record
+  v_order_id := 'ord_' || (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT || '_' || SUBSTRING(gen_random_uuid()::TEXT FROM 1 FOR 6);
+  INSERT INTO public.spot_orders (
+    id, user_id, pair, side, type, price, amount, total_usdt, filled_amount, status, timestamp, created_at
+  ) VALUES (
+    v_order_id, p_user_id, v_pair, v_side, p_type, v_current_price, p_amount, v_total_usdt, p_amount, 'FILLED',
+    (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT, NOW()
+  );
+
+  -- Record Transaction in Ledger
+  INSERT INTO public.transactions (
+    id, user_id, asset, amount, direction, source, status, timestamp, reference_id, note
+  ) VALUES (
+    'tx_' || v_order_id,
+    p_user_id,
+    CASE WHEN v_side = 'BUY' THEN 'USDT' ELSE v_base_asset END,
+    CASE WHEN v_side = 'BUY' THEN v_total_usdt ELSE p_amount END,
+    CASE WHEN v_side = 'BUY' THEN 'OUT' ELSE 'IN' END,
+    'SPOT_TRADE_' || v_side,
+    'COMPLETED',
+    (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT,
+    v_order_id,
+    v_side || ' ' || p_amount::TEXT || ' ' || v_pair || ' @ ' || v_current_price::TEXT || ' USDT'
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'order_id', v_order_id,
+    'pair', v_pair,
+    'side', v_side,
+    'price', v_current_price,
+    'amount', p_amount,
+    'total_usdt', v_total_usdt,
+    'new_usdt_balance', v_new_usdt,
+    'new_coin_balance', v_new_base,
+    'timestamp', (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
+  );
+END;
+$$;
+
+-- =====================================================================
+-- 15. FUNCTION 7: get_portfolio_value (Requirements 2 & 3)
+-- Calculates real-time total net worth in USDT based on market_prices table
+-- SECURITY DEFINER, SET search_path = public, pg_temp
+-- =====================================================================
+CREATE OR REPLACE FUNCTION public.get_portfolio_value(
+  p_user_id TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_bal RECORD;
+  v_total_usdt NUMERIC := 0;
+  v_btc_price NUMERIC := 0;
+  v_eth_price NUMERIC := 0;
+  v_sol_price NUMERIC := 0;
+  v_bnb_price NUMERIC := 0;
+  v_xrp_price NUMERIC := 0;
+  v_doge_price NUMERIC := 0;
+  v_ton_price NUMERIC := 0;
+  v_ada_price NUMERIC := 0;
+  v_trx_price NUMERIC := 0;
+  v_ltc_price NUMERIC := 0;
+BEGIN
+  -- Get user balances
+  SELECT * INTO v_bal FROM public.balances WHERE user_id = p_user_id;
+
+  -- Get current market prices
+  SELECT COALESCE(price, 0) INTO v_btc_price FROM public.market_prices WHERE symbol = 'BTC/USDT';
+  SELECT COALESCE(price, 0) INTO v_eth_price FROM public.market_prices WHERE symbol = 'ETH/USDT';
+  SELECT COALESCE(price, 0) INTO v_sol_price FROM public.market_prices WHERE symbol = 'SOL/USDT';
+  SELECT COALESCE(price, 0) INTO v_bnb_price FROM public.market_prices WHERE symbol = 'BNB/USDT';
+  SELECT COALESCE(price, 0) INTO v_xrp_price FROM public.market_prices WHERE symbol = 'XRP/USDT';
+  SELECT COALESCE(price, 0) INTO v_doge_price FROM public.market_prices WHERE symbol = 'DOGE/USDT';
+  SELECT COALESCE(price, 0) INTO v_ton_price FROM public.market_prices WHERE symbol = 'TON/USDT';
+  SELECT COALESCE(price, 0) INTO v_ada_price FROM public.market_prices WHERE symbol = 'ADA/USDT';
+  SELECT COALESCE(price, 0) INTO v_trx_price FROM public.market_prices WHERE symbol = 'TRX/USDT';
+  SELECT COALESCE(price, 0) INTO v_ltc_price FROM public.market_prices WHERE symbol = 'LTC/USDT';
+
+  IF FOUND AND v_bal IS NOT NULL THEN
+    v_total_usdt := COALESCE(v_bal."USDT", 0)
+      + (COALESCE(v_bal."BTC", 0) * v_btc_price)
+      + (COALESCE(v_bal."ETH", 0) * v_eth_price)
+      + (COALESCE(v_bal."SOL", 0) * v_sol_price)
+      + (COALESCE(v_bal."BNB", 0) * v_bnb_price)
+      + (COALESCE(v_bal."XRP", 0) * v_xrp_price)
+      + (COALESCE(v_bal."DOGE", 0) * v_doge_price)
+      + (COALESCE(v_bal."TON", 0) * v_ton_price)
+      + (COALESCE(v_bal."ADA", 0) * v_ada_price)
+      + (COALESCE(v_bal."TRX", 0) * v_trx_price)
+      + (COALESCE(v_bal."LTC", 0) * v_ltc_price);
+  END IF;
+
+  RETURN jsonb_build_object(
+    'user_id', p_user_id,
+    'total_value_usdt', ROUND(v_total_usdt, 2),
+    'usdt_balance', COALESCE(v_bal."USDT", 0),
+    'e4f_balance', COALESCE(v_bal."E4F", 0),
+    'btc_balance', COALESCE(v_bal."BTC", 0),
+    'eth_balance', COALESCE(v_bal."ETH", 0),
+    'sol_balance', COALESCE(v_bal."SOL", 0),
+    'bnb_balance', COALESCE(v_bal."BNB", 0),
+    'timestamp', (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
+  );
+END;
+$$;
+
+-- =====================================================================
+-- 16. ROW LEVEL SECURITY (RLS) & SERVICE ROLE POLICIES
 -- Service role key has full access; client anon/authenticated has safe access
 -- =====================================================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -1077,6 +1529,7 @@ ALTER TABLE public.mining_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spot_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.market_prices ENABLE ROW LEVEL SECURITY;
 
 -- Idempotent RLS Policy Application
 DO $$
@@ -1134,14 +1587,23 @@ BEGIN
   CREATE POLICY service_role_all_system_settings ON public.system_settings FOR ALL TO service_role USING (true) WITH CHECK (true);
   DROP POLICY IF EXISTS anon_select_system_settings ON public.system_settings;
   CREATE POLICY anon_select_system_settings ON public.system_settings FOR SELECT TO anon, authenticated USING (true);
+
+  -- Market Prices
+  DROP POLICY IF EXISTS service_role_all_market_prices ON public.market_prices;
+  CREATE POLICY service_role_all_market_prices ON public.market_prices FOR ALL TO service_role USING (true) WITH CHECK (true);
+  DROP POLICY IF EXISTS anon_select_market_prices ON public.market_prices;
+  CREATE POLICY anon_select_market_prices ON public.market_prices FOR SELECT TO anon, authenticated USING (true);
 END $$;
 
--- 14. PERMISSIONS & GRANTS
+-- 17. PERMISSIONS & GRANTS
 GRANT EXECUTE ON FUNCTION public.get_or_restore_user TO service_role, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.cleanup_old_withdrawals TO service_role;
 GRANT EXECUTE ON FUNCTION public.delete_user_permanently TO service_role;
 GRANT EXECUTE ON FUNCTION public.execute_atomic_withdrawal TO service_role;
 GRANT EXECUTE ON FUNCTION public.verify_atomic_deposit TO service_role;
+GRANT EXECUTE ON FUNCTION public.execute_atomic_trade TO service_role, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_portfolio_value TO service_role, anon, authenticated;
 
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT SELECT ON TABLE public.market_prices TO anon, authenticated;

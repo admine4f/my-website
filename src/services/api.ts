@@ -300,8 +300,8 @@ export const api = {
       if (cachedB) cachedBals = JSON.parse(cachedB);
     } catch {}
 
-    if (localUser && cachedBals) {
-      return { user: localUser, balances: cachedBals, serverTime: Date.now() };
+    if (localUser) {
+      return { user: localUser, balances: cachedBals || getLocalBalances(), serverTime: Date.now() };
     }
 
     throw new Error('Telegram authentication required. Please launch E4F Exchange from the official Telegram bot.');

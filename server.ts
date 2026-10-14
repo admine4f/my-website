@@ -816,6 +816,16 @@ async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRec
             balance: updated.usdt,
             "USDT": updated.usdt,
             "E4F": updated.e4f,
+            "BNB": updated.bnb,
+            "BTC": updated.btc,
+            "ETH": updated.eth,
+            "SOL": updated.sol,
+            "TON": updated.ton || 0,
+            "XRP": updated.xrp || 0,
+            "DOGE": updated.doge || 0,
+            "ADA": updated.ada || 0,
+            "TRX": updated.trx || 0,
+            "LTC": updated.ltc || 0,
             updated_at: new Date().toISOString(),
           }).eq('telegram_id', tgId);
         }
@@ -828,63 +838,104 @@ async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRec
   return updated;
 }
 
-// Fetch authoritative user from Supabase table 'users'
+// Fetch authoritative user from Supabase tables ('profiles' first, then 'users')
 async function getUserFromSupabase(userId: string): Promise<UserRecord | null> {
+  const tgId = parseInt(userId.replace(/\D/g, '')) || 0;
+
   if (supabase) {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.warn('[Supabase] Warning fetching user from Supabase:', error.message);
+      // 1. Check authoritative 'profiles' table first (by telegram_id and id)
+      let profileData: any = null;
+      if (tgId > 0) {
+        const { data: pByTg } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('telegram_id', tgId)
+          .maybeSingle();
+        profileData = pByTg;
+      }
+      if (!profileData) {
+        const { data: pById } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        profileData = pById;
       }
 
-      if (data) {
-        if (!data.referral_code && supabase) {
-          try {
-            const { data: pData } = await supabase
-              .from('profiles')
-              .select('referral_code')
-              .eq('telegram_id', Number(data.telegram_id))
-              .maybeSingle();
-            if (pData?.referral_code) {
-              data.referral_code = pData.referral_code;
-            }
-          } catch {}
+      // 2. Check legacy 'users' table
+      let userData: any = null;
+      if (!profileData) {
+        if (tgId > 0) {
+          const { data: uByTg } = await supabase
+            .from('users')
+            .select('*')
+            .eq('telegram_id', tgId)
+            .maybeSingle();
+          userData = uByTg;
+        }
+        if (!userData) {
+          const { data: uById } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+          userData = uById;
+        }
+      }
+
+      const rec = profileData || userData;
+      if (rec) {
+        let permanentRefCode = rec.referral_code;
+
+        // If referral_code is missing in one table, check the other table
+        if (!permanentRefCode && profileData && tgId > 0) {
+          const { data: uRec } = await supabase
+            .from('users')
+            .select('referral_code')
+            .eq('telegram_id', tgId)
+            .maybeSingle();
+          if (uRec?.referral_code) permanentRefCode = uRec.referral_code;
+        } else if (!permanentRefCode && userData && tgId > 0) {
+          const { data: pRec } = await supabase
+            .from('profiles')
+            .select('referral_code')
+            .eq('telegram_id', tgId)
+            .maybeSingle();
+          if (pRec?.referral_code) permanentRefCode = pRec.referral_code;
         }
 
-        if (!data.referral_code) {
-          data.referral_code = generateUniqueReferralCode();
-          if (supabase) {
-            supabase.from('users').update({ referral_code: data.referral_code }).eq('id', userId).then(() => {});
-            if (data.telegram_id) {
-              supabase.from('profiles').update({ referral_code: data.referral_code }).eq('telegram_id', Number(data.telegram_id)).then(() => {});
-            }
+        // Only if completely missing in database, generate once and persist forever!
+        if (!permanentRefCode) {
+          permanentRefCode = generateUniqueReferralCode();
+          if (tgId > 0) {
+            supabase.from('profiles').update({ referral_code: permanentRefCode }).eq('telegram_id', tgId).then(() => {});
+            supabase.from('users').update({ referral_code: permanentRefCode }).eq('telegram_id', tgId).then(() => {});
+          } else {
+            supabase.from('users').update({ referral_code: permanentRefCode }).eq('id', userId).then(() => {});
           }
         }
 
+        const effectiveTgId = Number(rec.telegram_id) || tgId;
         const u: UserRecord = {
-          id: data.id,
-          uid: data.uid,
-          telegramId: Number(data.telegram_id),
-          firstName: data.first_name || 'E4F User',
-          lastName: data.last_name || '',
-          username: data.username || 'user',
-          photoUrl: data.photo_url || '',
-          referralCode: data.referral_code,
-          referredBy: data.referred_by || undefined,
-          createdAt: data.created_at ? new Date(data.created_at).getTime() : Date.now(),
-          status: data.status || 'ACTIVE',
-          claimedWelcomeBonus: Boolean(data.claimed_welcome_bonus),
+          id: rec.id || (effectiveTgId > 0 ? `usr_${effectiveTgId}` : userId),
+          uid: rec.uid || `8${Math.abs(effectiveTgId % 8999999 + 1000000)}`,
+          telegramId: effectiveTgId,
+          firstName: rec.first_name || 'E4F User',
+          lastName: rec.last_name || '',
+          username: rec.username || 'user',
+          photoUrl: rec.photo_url || '',
+          referralCode: permanentRefCode,
+          referredBy: rec.referred_by || undefined,
+          createdAt: rec.created_at ? new Date(rec.created_at).getTime() : Date.now(),
+          status: rec.status || 'ACTIVE',
+          claimedWelcomeBonus: Boolean(rec.claimed_welcome_bonus),
           isDemoUser: false,
-          isVerified: Boolean(data.is_verified),
-          depositBalance: Number(data.deposit_balance) || 0,
-          depositAddress: data.deposit_address || '',
+          isVerified: Boolean(rec.is_verified),
+          depositBalance: Number(rec.deposit_balance) || 0,
+          depositAddress: rec.deposit_address || generateUserDepositAddress(userId, rec.uid || '81234567'),
         };
-        users.set(userId, u);
+        users.set(u.id, u);
         return u;
       }
     } catch (err) {
@@ -893,9 +944,8 @@ async function getUserFromSupabase(userId: string): Promise<UserRecord | null> {
   }
 
   let existing = users.get(userId);
-  if (!existing && typeof userId === 'string') {
-    const rawNum = parseInt(userId.replace(/\D/g, '')) || 123456789;
-    existing = getOrCreateUser(rawNum, 'E4F User');
+  if (!existing && tgId > 0) {
+    existing = users.get(`usr_${tgId}`);
   }
   return existing || null;
 }
@@ -1340,21 +1390,41 @@ interface PriceTicker {
 }
 
 const marketCache: Record<string, PriceTicker> = {
-  'BTC/USDT': { symbol: 'BTC/USDT', price: 68432.50, change24h: 2.45, high24h: 69210.45, low24h: 66102.30, volume24h: 34125.8, lastUpdated: Date.now() },
-  'ETH/USDT': { symbol: 'ETH/USDT', price: 3485.20, change24h: 3.12, high24h: 3520.00, low24h: 3380.10, volume24h: 184520.4, lastUpdated: Date.now() },
-  'SOL/USDT': { symbol: 'SOL/USDT', price: 152.80, change24h: 4.85, high24h: 156.40, low24h: 145.20, volume24h: 895400.2, lastUpdated: Date.now() },
-  'BNB/USDT': { symbol: 'BNB/USDT', price: 582.30, change24h: -0.42, high24h: 589.90, low24h: 578.10, volume24h: 42100.5, lastUpdated: Date.now() },
-  'XRP/USDT': { symbol: 'XRP/USDT', price: 0.5840, change24h: 1.15, high24h: 0.5980, low24h: 0.5720, volume24h: 1254300.0, lastUpdated: Date.now() },
+  'BTC/USDT': { symbol: 'BTC/USDT', price: 81650.00, change24h: -2.26, high24h: 84150.00, low24h: 81500.00, volume24h: 16768.2, lastUpdated: Date.now() },
+  'ETH/USDT': { symbol: 'ETH/USDT', price: 2430.50, change24h: -3.57, high24h: 2530.00, low24h: 2410.00, volume24h: 245745.9, lastUpdated: Date.now() },
+  'SOL/USDT': { symbol: 'SOL/USDT', price: 103.80, change24h: -3.63, high24h: 108.60, low24h: 103.50, volume24h: 2137943.0, lastUpdated: Date.now() },
+  'BNB/USDT': { symbol: 'BNB/USDT', price: 729.30, change24h: -2.15, high24h: 747.00, low24h: 728.50, volume24h: 72959.8, lastUpdated: Date.now() },
+  'XRP/USDT': { symbol: 'XRP/USDT', price: 1.3270, change24h: -3.41, high24h: 1.3860, low24h: 1.3260, volume24h: 120404137.0, lastUpdated: Date.now() },
+  'DOGE/USDT': { symbol: 'DOGE/USDT', price: 0.0820, change24h: -2.85, high24h: 0.0856, low24h: 0.0818, volume24h: 547276990.0, lastUpdated: Date.now() },
+  'TON/USDT': { symbol: 'TON/USDT', price: 1.6000, change24h: 0.95, high24h: 1.6410, low24h: 1.5800, volume24h: 4800378.0, lastUpdated: Date.now() },
+  'ADA/USDT': { symbol: 'ADA/USDT', price: 0.2267, change24h: -3.28, high24h: 0.2391, low24h: 0.2266, volume24h: 93258506.0, lastUpdated: Date.now() },
+  'TRX/USDT': { symbol: 'TRX/USDT', price: 0.3332, change24h: 1.68, high24h: 0.3342, low24h: 0.3272, volume24h: 157926040.0, lastUpdated: Date.now() },
+  'LTC/USDT': { symbol: 'LTC/USDT', price: 59.01, change24h: -3.48, high24h: 62.45, low24h: 58.70, volume24h: 333873.0, lastUpdated: Date.now() },
 };
 
 // Try fetching fresh prices from Binance API periodically
 async function refreshMarketPrices() {
   try {
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr`);
-    if (res.ok) {
-      const data = (await res.json()) as Array<{ symbol: string; lastPrice: string; priceChangePercent: string; highPrice: string; lowPrice: string; volume: string }>;
-      for (const item of data) {
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'TONUSDT', 'ADAUSDT', 'TRXUSDT', 'LTCUSDT'];
+    const query = encodeURIComponent(JSON.stringify(symbols));
+    const urls = [
+      `https://api.binance.com/api/v3/ticker/24hr?symbols=${query}`,
+      `https://data-api.binance.vision/api/v3/ticker/24hr?symbols=${query}`,
+    ];
+
+    let fetchedData: any[] | null = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+        if (res.ok) {
+          fetchedData = await res.json();
+          if (Array.isArray(fetchedData) && fetchedData.length > 0) break;
+        }
+      } catch {}
+    }
+
+    if (Array.isArray(fetchedData)) {
+      for (const item of fetchedData) {
         if (symbols.includes(item.symbol)) {
           const pair = item.symbol.replace('USDT', '/USDT');
           marketCache[pair] = {
@@ -1373,7 +1443,7 @@ async function refreshMarketPrices() {
     // Graceful fallback to cached tickers
   }
 }
-const marketTimer = setInterval(refreshMarketPrices, 30000);
+const marketTimer = setInterval(refreshMarketPrices, 15000);
 marketTimer.unref?.();
 refreshMarketPrices();
 
