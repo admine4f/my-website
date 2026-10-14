@@ -259,6 +259,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const tg = (window as any).Telegram.WebApp;
           const u = tg.initDataUnsafe?.user;
           const tgId = u?.id ? Number(u.id) : (parseInt(storedUserId?.replace('usr_', '') || '') || 123456789);
+
+          let cachedUser: UserAccount | null = null;
+          try {
+            const raw = localStorage.getItem('e4f_cached_user');
+            if (raw) cachedUser = JSON.parse(raw);
+          } catch {}
+
+          if (cachedUser && cachedUser.referralCode) {
+            setUser(prev => prev || cachedUser);
+            return;
+          }
+
           const fallbackUser: UserAccount = {
             id: `usr_${tgId}`,
             uid: `8${Math.abs(tgId % 8999999 + 1000000)}`,
@@ -267,7 +279,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             lastName: u?.last_name || '',
             username: u?.username || 'user',
             photoUrl: u?.photo_url || '',
-            referralCode: `E4F${Math.floor(100000 + Math.random() * 900000)}`,
+            referralCode: cachedUser?.referralCode || '',
             createdAt: Date.now(),
             status: 'ACTIVE',
             claimedWelcomeBonus: true,

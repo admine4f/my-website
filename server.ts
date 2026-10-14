@@ -843,6 +843,29 @@ async function getUserFromSupabase(userId: string): Promise<UserRecord | null> {
       }
 
       if (data) {
+        if (!data.referral_code && supabase) {
+          try {
+            const { data: pData } = await supabase
+              .from('profiles')
+              .select('referral_code')
+              .eq('telegram_id', Number(data.telegram_id))
+              .maybeSingle();
+            if (pData?.referral_code) {
+              data.referral_code = pData.referral_code;
+            }
+          } catch {}
+        }
+
+        if (!data.referral_code) {
+          data.referral_code = generateUniqueReferralCode();
+          if (supabase) {
+            supabase.from('users').update({ referral_code: data.referral_code }).eq('id', userId).then(() => {});
+            if (data.telegram_id) {
+              supabase.from('profiles').update({ referral_code: data.referral_code }).eq('telegram_id', Number(data.telegram_id)).then(() => {});
+            }
+          }
+        }
+
         const u: UserRecord = {
           id: data.id,
           uid: data.uid,
@@ -1475,6 +1498,15 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
             .maybeSingle();
 
           if (profileData) {
+            let refCode = profileData.referral_code;
+            if (!refCode) {
+              refCode = generateUniqueReferralCode();
+              if (supabase) {
+                supabase.from('profiles').update({ referral_code: refCode }).eq('telegram_id', tgUser.id).then(() => {});
+                supabase.from('users').update({ referral_code: refCode }).eq('telegram_id', tgUser.id).then(() => {});
+              }
+            }
+
             const fallbackU: UserRecord = {
               id: profileData.id || `usr_${tgUser.id}`,
               uid: profileData.uid || `8${Math.abs(tgUser.id % 8999999 + 1000000)}`,
@@ -1483,7 +1515,7 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
               lastName: profileData.last_name || tgUser.last_name || '',
               username: profileData.username || tgUser.username || '',
               photoUrl: profileData.photo_url || (tgUser as any).photo_url || '',
-              referralCode: profileData.referral_code || generateUniqueReferralCode(),
+              referralCode: refCode,
               referredBy: profileData.referred_by || undefined,
               createdAt: profileData.created_at ? new Date(profileData.created_at).getTime() : Date.now(),
               status: profileData.status || 'ACTIVE',

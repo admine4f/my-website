@@ -361,6 +361,19 @@ BEGIN
   FOR UPDATE;
 
   IF FOUND THEN
+    -- If existing user does not yet have a permanent referral code, generate one once and save it
+    IF v_profile.referral_code IS NULL OR TRIM(v_profile.referral_code) = '' THEN
+      LOOP
+        v_new_ref_code := 'E4F' || LPAD(FLOOR(100000 + RANDOM() * 900000)::TEXT, 6, '0');
+        EXIT WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE referral_code = v_new_ref_code)
+             AND NOT EXISTS (SELECT 1 FROM public.users WHERE referral_code = v_new_ref_code);
+      END LOOP;
+      UPDATE public.profiles
+      SET referral_code = v_new_ref_code
+      WHERE telegram_id = p_telegram_id
+      RETURNING * INTO v_profile;
+    END IF;
+
     -- Account exists: If marked deleted, restore it; NEVER zero balance!
     IF v_profile.is_deleted = TRUE THEN
       UPDATE public.profiles
@@ -410,19 +423,21 @@ BEGIN
     ) VALUES (
       v_user_id, COALESCE(v_profile.uid, '8' || LPAD((ABS(p_telegram_id % 8999999) + 1000000)::TEXT, 7, '0')),
       p_telegram_id, v_profile.first_name, v_profile.last_name, v_profile.username, v_profile.photo_url,
-      COALESCE(v_profile.referral_code, UPPER(SUBSTRING(MD5(p_telegram_id::TEXT || 'E4F') FROM 1 FOR 8))),
+      v_profile.referral_code,
       v_profile.referred_by, v_profile.status, v_profile.claimed_welcome_bonus, v_profile.is_verified,
       v_profile.created_at, NOW()
     )
     ON CONFLICT (telegram_id) DO UPDATE SET
       username = EXCLUDED.username,
       first_name = EXCLUDED.first_name,
+      referral_code = COALESCE(public.users.referral_code, EXCLUDED.referral_code),
       updated_at = NOW();
 
     INSERT INTO public.balances (
       user_id, "USDT", "E4F", "BNB", "BTC", "ETH", "SOL", "TON", "XRP", "DOGE", "ADA", "TRX", "LTC", updated_at
     ) VALUES (
       v_user_id, COALESCE(v_wallet."USDT", v_wallet.balance, 0), COALESCE(v_wallet."E4F", 0),
+
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NOW()
     )
     ON CONFLICT (user_id) DO UPDATE SET
@@ -469,7 +484,8 @@ BEGIN
   -- Generate unique E4F + 6 random digits referral code
   LOOP
     v_new_ref_code := 'E4F' || LPAD(FLOOR(100000 + RANDOM() * 900000)::TEXT, 6, '0');
-    EXIT WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE referral_code = v_new_ref_code);
+    EXIT WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE referral_code = v_new_ref_code)
+         AND NOT EXISTS (SELECT 1 FROM public.users WHERE referral_code = v_new_ref_code);
   END LOOP;
 
   -- Look up referrer by referral code

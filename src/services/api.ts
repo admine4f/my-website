@@ -337,7 +337,7 @@ export const api = {
       uid: userId.slice(0, 8).toUpperCase(),
       telegramId: 0,
       firstName: 'E4F User',
-      referralCode: 'E4F' + Math.floor(100000 + Math.random() * 900000),
+      referralCode: '',
       createdAt: Date.now(),
       status: 'ACTIVE',
       claimedWelcomeBonus: false,
@@ -1251,6 +1251,7 @@ export const api = {
       const data = await parseResponseJson(res);
       if (res.ok && data) return data;
     } catch {}
+    const cachedRefCode = getLocalUser()?.referralCode || '';
     return {
       success: true,
       referrals: [],
@@ -1259,8 +1260,10 @@ export const api = {
       earnedUSDT: 0,
       boostTier: 'Tier 1 (0%)',
       boostPercent: 0,
-      referralCode: 'E4F' + Math.floor(100000 + Math.random() * 900000),
-      referralLink: 'https://t.me/E4F_Web3_mining_bot/app?startapp=E4F256926',
+      referralCode: cachedRefCode,
+      referralLink: cachedRefCode
+        ? `https://t.me/E4F_Web3_mining_bot/app?startapp=${cachedRefCode}`
+        : 'https://t.me/E4F_Web3_mining_bot/app',
     };
   },
 

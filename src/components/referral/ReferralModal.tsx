@@ -52,8 +52,10 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ onClose }) => {
     }
   }, [user]);
 
-  const referralCode = user?.referralCode || (user?.id ? `E4F${Math.abs(parseInt(user.id.replace(/\D/g, '')) || 100000) % 900000 + 100000}` : 'E4F894102');
-  const referralLink = `https://t.me/E4F_Web3_mining_bot/app?startapp=${referralCode}`;
+  const referralCode = user?.referralCode || '';
+  const referralLink = referralCode
+    ? `https://t.me/E4F_Web3_mining_bot/app?startapp=${referralCode}`
+    : 'https://t.me/E4F_Web3_mining_bot/app';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);
@@ -64,7 +66,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ onClose }) => {
 
   const handleTelegramShare = () => {
     const text = encodeURIComponent(
-      `🚀 Join E4F Web3 Exchange & Telegram Mini App! Mine E4F tokens, trade spot pairs, and earn instant crypto rewards. Use my VIP invite: ${referralCode}`
+      `🚀 Join E4F Web3 Exchange & Telegram Mini App! Mine E4F tokens, trade spot pairs, and earn instant crypto rewards.${referralCode ? ` Use my VIP invite: ${referralCode}` : ''}`
     );
     const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${text}`;
     window.open(url, '_blank');
@@ -138,7 +140,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ onClose }) => {
         <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 mb-3">
           <div className="flex justify-between items-center text-[10px] text-slate-400 mb-1">
             <span>YOUR VIP REFERRAL CODE</span>
-            <span className="font-mono font-bold text-amber-400">{referralCode}</span>
+            <span className="font-mono font-bold text-amber-400">{referralCode || '...'}</span>
           </div>
           <div className="text-[11px] font-mono text-slate-300 truncate bg-slate-900 px-2 py-1.5 rounded border border-slate-800">
             {referralLink}
