@@ -1,12 +1,12 @@
 -- =====================================================================
 -- E4F Web3 Exchange - Official Supabase PostgreSQL Database Setup
 -- File: supabase_setup.sql
--- Production Ready | Idempotent | 100% Financial & Balance Integrity
+-- Production Ready | 100% Idempotent | Zero Financial & Balance Loss
 --
 -- Instructions:
 -- 1. Open your Supabase Dashboard: https://supabase.com/dashboard
--- 2. Navigate to SQL Editor -> New Query
--- 3. Paste this ENTIRE script and click "Run" (Single click setup)
+-- 2. Select your Project -> SQL Editor -> New Query
+-- 3. Select All -> Copy -> Paste this entire script -> Click "RUN"
 -- =====================================================================
 
 -- 1. EXTENSIONS
@@ -37,15 +37,24 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Upgrade existing profiles table if previously created
+-- Upgrade existing profiles table if previously created (Idempotent Bug C Fix)
 DO $$
 BEGIN
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS telegram_id BIGINT;
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username TEXT DEFAULT '';
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS first_name TEXT DEFAULT 'E4F User';
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_name TEXT DEFAULT '';
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT '';
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS id TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS uid TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referred_by TEXT;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS device_hash TEXT DEFAULT '';
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE';
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS claimed_welcome_bonus BOOLEAN DEFAULT FALSE;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
@@ -55,11 +64,27 @@ BEGIN
   ) THEN
     ALTER TABLE public.profiles ADD CONSTRAINT profiles_telegram_id_key UNIQUE (telegram_id);
   END IF;
+
+  -- Ensure uid unique constraint exists
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'profiles_uid_key'
+  ) THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_uid_key UNIQUE (uid);
+  END IF;
+
+  -- Ensure referral_code unique constraint exists
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'profiles_referral_code_key'
+  ) THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_referral_code_key UNIQUE (referral_code);
+  END IF;
 EXCEPTION WHEN OTHERS THEN
   NULL;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_profiles_telegram_id ON public.profiles(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_uid ON public.profiles(uid);
+CREATE INDEX IF NOT EXISTS idx_profiles_referral_code ON public.profiles(referral_code);
 CREATE INDEX IF NOT EXISTS idx_profiles_is_deleted ON public.profiles(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON public.profiles(created_at DESC);
 
@@ -97,8 +122,20 @@ BEGIN
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS balance NUMERIC(20, 6) DEFAULT 0.000000;
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS total_mined NUMERIC(20, 6) DEFAULT 0.000000;
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS referral_earnings NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS id TEXT;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS user_id TEXT;
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "USDT" NUMERIC(20, 6) DEFAULT 0.000000;
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "E4F" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "BNB" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "BTC" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "ETH" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "SOL" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "TON" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "XRP" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "DOGE" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "ADA" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "TRX" NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "LTC" NUMERIC(20, 6) DEFAULT 0.000000;
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 EXCEPTION WHEN OTHERS THEN
   NULL;
@@ -108,12 +145,12 @@ CREATE INDEX IF NOT EXISTS idx_wallets_telegram_id ON public.wallets(telegram_id
 
 -- =====================================================================
 -- 4. REFERRALS TABLE
--- Immutable referral history with ON DELETE RESTRICT on referrer and referee.
+-- Rule 2: referee_id UNIQUE NOT NULL. Referral bonus awarded 1 time only.
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS public.referrals (
   id TEXT PRIMARY KEY DEFAULT ('ref_' || gen_random_uuid()::text),
   referrer_id BIGINT REFERENCES public.profiles(telegram_id) ON DELETE RESTRICT,
-  referee_id BIGINT UNIQUE REFERENCES public.profiles(telegram_id) ON DELETE RESTRICT,
+  referee_id BIGINT UNIQUE NOT NULL REFERENCES public.profiles(telegram_id) ON DELETE RESTRICT,
   bonus_amount NUMERIC(20, 6) NOT NULL DEFAULT 0.000000 CHECK (bonus_amount >= 0),
   status TEXT NOT NULL DEFAULT 'ACTIVE',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -122,8 +159,17 @@ CREATE TABLE IF NOT EXISTS public.referrals (
 -- Upgrade existing referrals table if previously created
 DO $$
 BEGIN
+  ALTER TABLE public.referrals ADD COLUMN IF NOT EXISTS referrer_id BIGINT;
+  ALTER TABLE public.referrals ADD COLUMN IF NOT EXISTS referee_id BIGINT;
   ALTER TABLE public.referrals ADD COLUMN IF NOT EXISTS bonus_amount NUMERIC(20, 6) DEFAULT 0.000000;
+  ALTER TABLE public.referrals ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE';
   ALTER TABLE public.referrals ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'referrals_referee_id_key'
+  ) THEN
+    ALTER TABLE public.referrals ADD CONSTRAINT referrals_referee_id_key UNIQUE (referee_id);
+  END IF;
 EXCEPTION WHEN OTHERS THEN
   NULL;
 END $$;
@@ -135,7 +181,6 @@ CREATE INDEX IF NOT EXISTS idx_referrals_created_at ON public.referrals(created_
 -- =====================================================================
 -- 5. WITHDRAWALS TABLE
 -- Complete withdrawal records with ON DELETE RESTRICT on profiles(telegram_id).
--- Validates allowed status values via strict CHECK constraint.
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS public.withdrawals (
   id TEXT PRIMARY KEY DEFAULT ('wd_' || gen_random_uuid()::text),
@@ -169,21 +214,39 @@ CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON public.withdrawals(status);
 CREATE INDEX IF NOT EXISTS idx_withdrawals_created_at ON public.withdrawals(created_at DESC);
 
 -- =====================================================================
--- 6. DEVICE LOCKS TABLE (24h Anti-Sybil Welcome Bonus Protection)
+-- 6. DEVICE LOCKS TABLE
+-- Rule 1: 24h Anti-Sybil Welcome Bonus Protection.
+-- Tracks created_at, is_permanent, last_claim_at, and claim_count.
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS public.device_locks (
   device_hash TEXT PRIMARY KEY,
   telegram_id BIGINT,
   last_claim_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   claim_count INTEGER NOT NULL DEFAULT 1,
+  is_permanent BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Upgrade existing device_locks table if previously created
+DO $$
+BEGIN
+  ALTER TABLE public.device_locks ADD COLUMN IF NOT EXISTS device_hash TEXT;
+  ALTER TABLE public.device_locks ADD COLUMN IF NOT EXISTS telegram_id BIGINT;
+  ALTER TABLE public.device_locks ADD COLUMN IF NOT EXISTS last_claim_at TIMESTAMPTZ DEFAULT NOW();
+  ALTER TABLE public.device_locks ADD COLUMN IF NOT EXISTS claim_count INTEGER DEFAULT 1;
+  ALTER TABLE public.device_locks ADD COLUMN IF NOT EXISTS is_permanent BOOLEAN DEFAULT FALSE;
+  ALTER TABLE public.device_locks ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_device_locks_last_claim ON public.device_locks(last_claim_at DESC);
 CREATE INDEX IF NOT EXISTS idx_device_locks_telegram_id ON public.device_locks(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_device_locks_created_at ON public.device_locks(created_at DESC);
 
 -- =====================================================================
--- 7. REPO COMPATIBILITY TABLES (users, balances, transactions, deposits, mining_sessions, audit_logs)
+-- 7. REPO COMPATIBILITY TABLES
+-- (users, balances, transactions, deposits, mining_sessions, audit_logs, spot_orders, system_settings)
 -- Preserves existing server.ts and src/services/api.ts functionality with 0% data/feature loss
 -- =====================================================================
 CREATE TABLE IF NOT EXISTS public.users (
@@ -313,13 +376,28 @@ CREATE TABLE IF NOT EXISTS public.system_settings (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Seed default global system settings if not present
+INSERT INTO public.system_settings (id, settings, updated_at)
+VALUES (
+  'global_settings',
+  '{"depositsEnabled": false, "welcomeBonusEnabled": true, "welcomeBonusUSDT": 25, "welcomeBonusE4F": 10, "referralBonusUSDT": 5, "bscDepositAddress": "0x63562945f7845aa1130a5b1499720b29788c82db"}'::jsonb,
+  NOW()
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- =====================================================================
 -- 8. FUNCTION 1: get_or_restore_user
 -- SECURITY DEFINER, SET search_path = public, pg_temp
--- Row-level FOR UPDATE locking prevents concurrency race conditions.
--- Guarantees that wallet balance is NEVER overwritten with 0 during reconnection.
--- Automatically restores account if is_deleted = TRUE.
--- Enforces 24-hour device lock with database time NOW() - INTERVAL '24 hours'.
+--
+-- Rules Enforced:
+-- 1. New user gets 25 USDT + 10 E4F welcome bonus ONCE in a lifetime.
+--    Checked via claimed_welcome_bonus. Device checked via device_locks table:
+--    WHERE created_at > NOW() - INTERVAL '24 hours' AND is_permanent = FALSE
+-- 2. Referrer bonus is 1 time only. referee_id is UNIQUE NOT NULL.
+--    INSERT INTO referrals ... ON CONFLICT (referee_id) DO NOTHING.
+-- 3. v_uid set cleanly before v_is_new := true:
+--    v_uid := '8' || LPAD((ABS(p_telegram_id % 8999999) + 1000000)::TEXT, 7, '0');
+-- 4. referral_code is 100% permanent and NEVER updated once assigned.
 -- =====================================================================
 CREATE OR REPLACE FUNCTION public.get_or_restore_user(
   p_telegram_id BIGINT,
@@ -341,7 +419,7 @@ DECLARE
   v_profile RECORD;
   v_wallet RECORD;
   v_can_claim_bonus BOOLEAN := false;
-  v_device_last_claim TIMESTAMPTZ;
+  v_device_lock_exists BOOLEAN := false;
   v_new_ref_code TEXT;
   v_referrer_tg_id BIGINT := NULL;
   v_is_new BOOLEAN := false;
@@ -374,22 +452,34 @@ BEGIN
       RETURNING * INTO v_profile;
     END IF;
 
+    -- Ensure UID is set for existing profile
+    v_uid := COALESCE(v_profile.uid, '8' || LPAD((ABS(p_telegram_id % 8999999) + 1000000)::TEXT, 7, '0'));
+    IF v_profile.uid IS NULL OR v_profile.uid = '' THEN
+      UPDATE public.profiles
+      SET uid = v_uid
+      WHERE telegram_id = p_telegram_id
+      RETURNING * INTO v_profile;
+    END IF;
+
     -- Account exists: If marked deleted, restore it; NEVER zero balance!
+    -- Note: referral_code is permanent and NEVER updated!
     IF v_profile.is_deleted = TRUE THEN
       UPDATE public.profiles
       SET is_deleted = FALSE,
           deleted_at = NULL,
           username = COALESCE(NULLIF(p_username, ''), username),
           first_name = COALESCE(NULLIF(p_first_name, ''), first_name),
+          last_name = COALESCE(NULLIF(p_last_name, ''), last_name),
           photo_url = COALESCE(NULLIF(p_photo_url, ''), photo_url),
           updated_at = NOW()
       WHERE telegram_id = p_telegram_id
       RETURNING * INTO v_profile;
     ELSE
-      -- Normal reconnect/login: update metadata without touching balance
+      -- Normal reconnect/login: update metadata without touching balance or referral_code
       UPDATE public.profiles
       SET username = COALESCE(NULLIF(p_username, ''), username),
           first_name = COALESCE(NULLIF(p_first_name, ''), first_name),
+          last_name = COALESCE(NULLIF(p_last_name, ''), last_name),
           photo_url = COALESCE(NULLIF(p_photo_url, ''), photo_url),
           updated_at = NOW()
       WHERE telegram_id = p_telegram_id
@@ -417,11 +507,12 @@ BEGIN
     END IF;
 
     -- Sync to legacy users/balances tables for full repo backwards compatibility
+    -- Note: referral_code is NEVER overwritten on conflict
     INSERT INTO public.users (
       id, uid, telegram_id, first_name, last_name, username, photo_url, referral_code,
       referred_by, status, claimed_welcome_bonus, is_verified, created_at, updated_at
     ) VALUES (
-      v_user_id, COALESCE(v_profile.uid, '8' || LPAD((ABS(p_telegram_id % 8999999) + 1000000)::TEXT, 7, '0')),
+      v_user_id, v_uid,
       p_telegram_id, v_profile.first_name, v_profile.last_name, v_profile.username, v_profile.photo_url,
       v_profile.referral_code,
       v_profile.referred_by, v_profile.status, v_profile.claimed_welcome_bonus, v_profile.is_verified,
@@ -430,14 +521,13 @@ BEGIN
     ON CONFLICT (telegram_id) DO UPDATE SET
       username = EXCLUDED.username,
       first_name = EXCLUDED.first_name,
-      referral_code = COALESCE(public.users.referral_code, EXCLUDED.referral_code),
+      last_name = EXCLUDED.last_name,
       updated_at = NOW();
 
     INSERT INTO public.balances (
       user_id, "USDT", "E4F", "BNB", "BTC", "ETH", "SOL", "TON", "XRP", "DOGE", "ADA", "TRX", "LTC", updated_at
     ) VALUES (
       v_user_id, COALESCE(v_wallet."USDT", v_wallet.balance, 0), COALESCE(v_wallet."E4F", 0),
-
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NOW()
     )
     ON CONFLICT (user_id) DO UPDATE SET
@@ -446,9 +536,10 @@ BEGIN
     RETURN jsonb_build_object(
       'success', true,
       'is_new_user', false,
+      'welcome_bonus_granted', false,
       'user', jsonb_build_object(
         'id', v_user_id,
-        'uid', v_profile.uid,
+        'uid', v_uid,
         'telegramId', v_profile.telegram_id,
         'firstName', v_profile.first_name,
         'lastName', v_profile.last_name,
@@ -480,7 +571,10 @@ BEGIN
   END IF;
 
   -- 2. New User Registration:
+  -- Set unique 8-digit UID (Bug A Fix)
+  v_uid := '8' || LPAD((ABS(p_telegram_id % 8999999) + 1000000)::TEXT, 7, '0');
   v_is_new := true;
+
   -- Generate unique E4F + 6 random digits referral code
   LOOP
     v_new_ref_code := 'E4F' || LPAD(FLOOR(100000 + RANDOM() * 900000)::TEXT, 6, '0');
@@ -503,26 +597,62 @@ BEGIN
     END IF;
   END IF;
 
-  -- 3. Enforce 24-Hour Device Lock using database time NOW()
-  IF p_device_hash IS NOT NULL AND TRIM(p_device_hash) <> '' THEN
-    SELECT last_claim_at INTO v_device_last_claim
-    FROM public.device_locks
-    WHERE device_hash = p_device_hash
-    FOR UPDATE;
+  -- 3. Enforce 24-Hour Device Lock using device_locks table (Rule 1)
+  -- Checks: WHERE created_at > NOW() - INTERVAL '24 hours' AND is_permanent = FALSE
+  -- Plus checks claimed_welcome_bonus
+  v_can_claim_bonus := true;
 
-    IF FOUND AND (NOW() - v_device_last_claim) < INTERVAL '24 hours' THEN
+  IF p_device_hash IS NOT NULL AND TRIM(p_device_hash) <> '' THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.device_locks
+      WHERE device_hash = TRIM(p_device_hash)
+        AND created_at > NOW() - INTERVAL '24 hours'
+        AND is_permanent = FALSE
+    ) INTO v_device_lock_exists;
+
+    IF v_device_lock_exists THEN
       v_can_claim_bonus := false;
     ELSE
-      v_can_claim_bonus := true;
-      INSERT INTO public.device_locks (device_hash, telegram_id, last_claim_at, claim_count, created_at)
-      VALUES (p_device_hash, p_telegram_id, NOW(), 1, NOW())
-      ON CONFLICT (device_hash) DO UPDATE SET
-        last_claim_at = NOW(),
-        telegram_id = EXCLUDED.telegram_id,
-        claim_count = public.device_locks.claim_count + 1;
+      -- Check if device has permanent lock
+      SELECT EXISTS (
+        SELECT 1 FROM public.device_locks
+        WHERE device_hash = TRIM(p_device_hash)
+          AND is_permanent = TRUE
+      ) INTO v_device_lock_exists;
+
+      IF v_device_lock_exists THEN
+        v_can_claim_bonus := false;
+      END IF;
     END IF;
+
+    -- Record device lock
+    INSERT INTO public.device_locks (
+      device_hash, telegram_id, last_claim_at, claim_count, is_permanent, created_at
+    ) VALUES (
+      TRIM(p_device_hash), p_telegram_id, NOW(), 1, FALSE, NOW()
+    )
+    ON CONFLICT (device_hash) DO UPDATE SET
+      last_claim_at = NOW(),
+      telegram_id = EXCLUDED.telegram_id,
+      claim_count = public.device_locks.claim_count + 1;
   ELSE
-    v_can_claim_bonus := true;
+    -- If no device_hash passed, check telegram_id in device_locks
+    SELECT EXISTS (
+      SELECT 1 FROM public.device_locks
+      WHERE telegram_id = p_telegram_id
+        AND created_at > NOW() - INTERVAL '24 hours'
+        AND is_permanent = FALSE
+    ) INTO v_device_lock_exists;
+
+    IF v_device_lock_exists THEN
+      v_can_claim_bonus := false;
+    END IF;
+  END IF;
+
+  -- Check if user has already claimed welcome bonus anywhere
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE telegram_id = p_telegram_id AND claimed_welcome_bonus = TRUE) OR
+     EXISTS (SELECT 1 FROM public.users WHERE telegram_id = p_telegram_id AND claimed_welcome_bonus = TRUE) THEN
+    v_can_claim_bonus := false;
   END IF;
 
   IF v_can_claim_bonus THEN
@@ -603,10 +733,10 @@ BEGIN
   ON CONFLICT (user_id) DO UPDATE SET
     updated_at = NOW();
 
-  -- 7. If referred, record in public.referrals
-  IF v_referrer_tg_id IS NOT NULL THEN
-    INSERT INTO public.referrals (referrer_id, referee_id, bonus_amount, status, created_at)
-    VALUES (v_referrer_tg_id, p_telegram_id, 0.500000, 'ACTIVE', NOW())
+  -- 7. If referred, record in public.referrals (Rule 2: referee_id UNIQUE NOT NULL, 1 time only)
+  IF v_referrer_tg_id IS NOT NULL AND v_referrer_tg_id <> p_telegram_id THEN
+    INSERT INTO public.referrals (id, referrer_id, referee_id, bonus_amount, status, created_at)
+    VALUES ('ref_' || p_telegram_id::TEXT, v_referrer_tg_id, p_telegram_id, 0.500000, 'ACTIVE', NOW())
     ON CONFLICT (referee_id) DO NOTHING;
   END IF;
 
@@ -746,6 +876,7 @@ $$;
 
 -- =====================================================================
 -- 11. AUXILIARY RPC: execute_atomic_withdrawal (Referenced by server.ts)
+-- SECURITY DEFINER, SET search_path = public, pg_temp
 -- =====================================================================
 CREATE OR REPLACE FUNCTION public.execute_atomic_withdrawal(
   p_withdrawal_id TEXT,
@@ -841,6 +972,7 @@ $$;
 
 -- =====================================================================
 -- 12. AUXILIARY RPC: verify_atomic_deposit (Referenced by server.ts)
+-- SECURITY DEFINER, SET search_path = public, pg_temp
 -- =====================================================================
 CREATE OR REPLACE FUNCTION public.verify_atomic_deposit(
   p_deposit_id TEXT,
@@ -943,6 +1075,8 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deposits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mining_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.spot_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
 
 -- Idempotent RLS Policy Application
 DO $$
@@ -990,6 +1124,16 @@ BEGIN
   -- Audit Logs
   DROP POLICY IF EXISTS service_role_all_audit ON public.audit_logs;
   CREATE POLICY service_role_all_audit ON public.audit_logs FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+  -- Spot Orders
+  DROP POLICY IF EXISTS service_role_all_spot_orders ON public.spot_orders;
+  CREATE POLICY service_role_all_spot_orders ON public.spot_orders FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+  -- System Settings
+  DROP POLICY IF EXISTS service_role_all_system_settings ON public.system_settings;
+  CREATE POLICY service_role_all_system_settings ON public.system_settings FOR ALL TO service_role USING (true) WITH CHECK (true);
+  DROP POLICY IF EXISTS anon_select_system_settings ON public.system_settings;
+  CREATE POLICY anon_select_system_settings ON public.system_settings FOR SELECT TO anon, authenticated USING (true);
 END $$;
 
 -- 14. PERMISSIONS & GRANTS
