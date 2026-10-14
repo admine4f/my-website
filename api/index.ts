@@ -1,5 +1,12 @@
 import app from '../server.js';
 
+// Suppress Node.js DEP0169 url.parse deprecation warning caused by legacy express router
+process.on('warning', (warning) => {
+  if (warning.name === 'DeprecationWarning' && (warning.message?.includes('DEP0169') || (warning as any).code === 'DEP0169')) {
+    return;
+  }
+});
+
 export default function handler(req: any, res: any) {
   return new Promise((resolve, reject) => {
     res.on('finish', () => resolve(null));

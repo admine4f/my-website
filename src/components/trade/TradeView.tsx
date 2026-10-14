@@ -10,7 +10,7 @@ export const TradeView: React.FC = () => {
   const [selectedPair, setSelectedPair] = useState<string>('BTC/USDT');
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
   const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT'>('MARKET');
-  const [priceInput, setPriceInput] = useState<string>('68432.50');
+  const [priceInput, setPriceInput] = useState<string>('81650.00');
   const [amountInput, setAmountInput] = useState<string>('0.001');
   const [orderBook, setOrderBook] = useState<OrderBook | null>(null);
   const [orders, setOrders] = useState<SpotOrder[]>([]);
@@ -21,10 +21,10 @@ export const TradeView: React.FC = () => {
 
   // Sync default price when pair switches
   useEffect(() => {
-    let defaultPrice = '68432.50';
-    if (selectedPair.includes('ETH')) defaultPrice = '3485.20';
-    else if (selectedPair.includes('SOL')) defaultPrice = '152.80';
-    else if (selectedPair.includes('BNB')) defaultPrice = '582.30';
+    let defaultPrice = '81650.00';
+    if (selectedPair.includes('ETH')) defaultPrice = '2430.50';
+    else if (selectedPair.includes('SOL')) defaultPrice = '103.80';
+    else if (selectedPair.includes('BNB')) defaultPrice = '729.30';
     else if (selectedPair.includes('E4F')) defaultPrice = '3.50';
     if (orderType === 'MARKET') {
       setPriceInput(defaultPrice);

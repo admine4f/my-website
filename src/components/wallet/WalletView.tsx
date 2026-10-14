@@ -55,14 +55,38 @@ export const WalletView: React.FC = () => {
     openModal('WITHDRAW');
   };
 
+  const [marketPrices, setMarketPrices] = useState<Record<string, number>>({
+    BTC: 81650.0,
+    ETH: 2430.5,
+    SOL: 103.8,
+    BNB: 729.3,
+  });
+
+  useEffect(() => {
+    api.getMarketAssets().then(res => {
+      if (res && Array.isArray(res.assets)) {
+        const pMap: Record<string, number> = {};
+        for (const a of res.assets) {
+          if (a.price) pMap[a.baseAsset] = a.price;
+        }
+        setMarketPrices(prev => ({ ...prev, ...pMap }));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const btcPrice = marketPrices['BTC'] || 81650.0;
+  const ethPrice = marketPrices['ETH'] || 2430.5;
+  const solPrice = marketPrices['SOL'] || 103.8;
+  const bnbPrice = marketPrices['BNB'] || 729.3;
+
   // Exact coin USD calculations matching individual cards:
   const usdtVal = Number((balances.usdt || 0).toFixed(2));
   const depositVal = Number(((user?.depositBalance || 0)).toFixed(2));
   const e4fVal = Number(((balances.e4f || 0) * 3.5).toFixed(2));
-  const btcVal = Number(((balances.btc || 0) * 68432.5).toFixed(2));
-  const ethVal = Number(((balances.eth || 0) * 3485.2).toFixed(2));
-  const solVal = Number(((balances.sol || 0) * 152.8).toFixed(2));
-  const bnbVal = Number(((balances.bnb || 0) * 582.3).toFixed(2));
+  const btcVal = Number(((balances.btc || 0) * btcPrice).toFixed(2));
+  const ethVal = Number(((balances.eth || 0) * ethPrice).toFixed(2));
+  const solVal = Number(((balances.sol || 0) * solPrice).toFixed(2));
+  const bnbVal = Number(((balances.bnb || 0) * bnbPrice).toFixed(2));
 
   // Total Spot calculation: exact mathematical sum of all coins and available balance
   const totalSpotUSD = (usdtVal + depositVal + e4fVal + btcVal + ethVal + solVal + bnbVal).toFixed(2);

@@ -53,11 +53,11 @@ export const HomeView: React.FC = () => {
     return () => clearInterval(interval);
   }, [activeMiningSession]);
 
-  // Calculate Spot Assets in USDT (BTC, ETH, SOL, BNB, USDT, Deposit Balance, E4F)
-  const btcPrice = 68432.5;
-  const ethPrice = 3485.2;
-  const solPrice = 152.8;
-  const bnbPrice = 582.3;
+  // Calculate Spot Assets in USDT with live market prices (BTC, ETH, SOL, BNB, USDT, Deposit Balance, E4F)
+  const btcPrice = marketAssets.find(a => a.baseAsset === 'BTC')?.price || 81650.0;
+  const ethPrice = marketAssets.find(a => a.baseAsset === 'ETH')?.price || 2430.5;
+  const solPrice = marketAssets.find(a => a.baseAsset === 'SOL')?.price || 103.8;
+  const bnbPrice = marketAssets.find(a => a.baseAsset === 'BNB')?.price || 729.3;
   const e4fPrice = 3.5;
   const usdtVal = Number((balances.usdt || 0).toFixed(2));
   const depositVal = Number(((user?.depositBalance || 0)).toFixed(2));
