@@ -898,6 +898,23 @@ async function syncUserToSupabase(u: UserRecord) {
         deposit_balance: u.depositBalance || 0,
         deposit_address: u.depositAddress || '',
       });
+
+      if (u.telegramId) {
+        await supabase.from('profiles').upsert({
+          telegram_id: u.telegramId,
+          id: u.id,
+          uid: u.uid,
+          first_name: u.firstName,
+          last_name: u.lastName || '',
+          username: u.username || '',
+          photo_url: u.photoUrl || '',
+          referral_code: u.referralCode,
+          referred_by: u.referredBy || null,
+          status: u.status || 'ACTIVE',
+          claimed_welcome_bonus: u.claimedWelcomeBonus,
+          is_verified: u.isVerified,
+        }, { onConflict: 'telegram_id' });
+      }
     } catch (err) {
       console.warn('[Supabase] Failed to upsert user to Supabase:', err);
     }
@@ -1066,6 +1083,23 @@ process.on('beforeExit', () => {
   persistDatabaseSync();
 });
 
+// Helper to generate a unique referral code: 'E4F' + 6 random digits (100000-999999)
+function generateUniqueReferralCode(): string {
+  for (let i = 0; i < 50; i++) {
+    const randomDigits = Math.floor(100000 + Math.random() * 900000).toString();
+    const candidate = `E4F${randomDigits}`;
+    let exists = false;
+    for (const u of users.values()) {
+      if (u.referralCode && u.referralCode.toUpperCase() === candidate) {
+        exists = true;
+        break;
+      }
+    }
+    if (!exists) return candidate;
+  }
+  return `E4F${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
 function getOrCreateUser(telegramId: number, firstName: string, lastName = '', username = '', isDemo = false, referredByCode?: string, existingBalances?: BalanceRecord): UserRecord {
   const userId = `usr_${telegramId}`;
   let user = users.get(userId);
@@ -1078,10 +1112,14 @@ function getOrCreateUser(telegramId: number, firstName: string, lastName = '', u
     let referredByUserId: string | undefined;
     if (referredByCode && typeof referredByCode === 'string') {
       const trimmedRef = referredByCode.trim().toUpperCase();
-      for (const [existingId, existingUser] of users.entries()) {
-        if (existingUser.referralCode && existingUser.referralCode.toUpperCase() === trimmedRef) {
-          referredByUserId = existingId;
-          break;
+      if (trimmedRef.startsWith('USR_')) {
+        referredByUserId = referredByCode.trim();
+      } else {
+        for (const [existingId, existingUser] of users.entries()) {
+          if (existingUser.referralCode && existingUser.referralCode.toUpperCase() === trimmedRef) {
+            referredByUserId = existingId;
+            break;
+          }
         }
       }
     }
@@ -1093,7 +1131,7 @@ function getOrCreateUser(telegramId: number, firstName: string, lastName = '', u
       firstName: cleanFirstName,
       lastName,
       username: username || 'user_123',
-      referralCode: `E4F${Math.abs(telegramId % 899999 + 100000)}`,
+      referralCode: generateUniqueReferralCode(),
       referredBy: referredByUserId,
       createdAt: Date.now(),
       status: 'ACTIVE',
@@ -1358,7 +1396,7 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
   }
 
   let tgUser: { id: number; first_name: string; last_name?: string; username?: string } | null = null;
-  let parsedReferral = referralCode;
+  let parsedReferral = (referralCode || req.body?.start_param || req.body?.startapp || '').toString().trim();
 
   // Cryptographic Verification of Telegram initData
   if (initData && typeof initData === 'string' && initData.trim().length > 0) {
@@ -1373,8 +1411,8 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
       tgUser = verifiedTg.user;
       try {
         const urlParams = new URLSearchParams(initData);
-        const startParam = urlParams.get('start_param') || urlParams.get('start') || urlParams.get('ref');
-        if (startParam && !parsedReferral) parsedReferral = startParam;
+        const startParam = urlParams.get('start_param') || urlParams.get('startapp') || urlParams.get('tgWebAppStartParam') || urlParams.get('start') || urlParams.get('ref');
+        if (startParam && !parsedReferral) parsedReferral = startParam.trim();
       } catch {}
     } else {
       console.warn('[Telegram Auth Warning] TELEGRAM_BOT_TOKEN is not configured in environment. Parsing user from initData.');
@@ -1382,8 +1420,8 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
         const urlParams = new URLSearchParams(initData);
         const userParam = urlParams.get('user');
         if (userParam) tgUser = JSON.parse(userParam);
-        const startParam = urlParams.get('start_param') || urlParams.get('start') || urlParams.get('ref');
-        if (startParam && !parsedReferral) parsedReferral = startParam;
+        const startParam = urlParams.get('start_param') || urlParams.get('startapp') || urlParams.get('tgWebAppStartParam') || urlParams.get('start') || urlParams.get('ref');
+        if (startParam && !parsedReferral) parsedReferral = startParam.trim();
       } catch {}
     }
   }
@@ -1445,7 +1483,7 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
               lastName: profileData.last_name || tgUser.last_name || '',
               username: profileData.username || tgUser.username || '',
               photoUrl: profileData.photo_url || (tgUser as any).photo_url || '',
-              referralCode: profileData.referral_code || `E4F${Math.abs(tgUser.id % 899999 + 100000)}`,
+              referralCode: profileData.referral_code || generateUniqueReferralCode(),
               referredBy: profileData.referred_by || undefined,
               createdAt: profileData.created_at ? new Date(profileData.created_at).getTime() : Date.now(),
               status: profileData.status || 'ACTIVE',
@@ -1523,6 +1561,47 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
   }
 
   const user = getOrCreateUser(tgUser.id, tgUser.first_name, tgUser.last_name, tgUser.username, false, parsedReferral, cachedBalances);
+
+  // Link referred_by if new user joined with referral code
+  if (!user.referredBy && parsedReferral) {
+    const trimmed = parsedReferral.trim().toUpperCase();
+    for (const [id, u] of users.entries()) {
+      if (u.referralCode && u.referralCode.toUpperCase() === trimmed && id !== user.id) {
+        user.referredBy = id;
+        break;
+      }
+    }
+    if (!user.referredBy && supabase) {
+      try {
+        const { data: refProfile } = await supabase
+          .from('profiles')
+          .select('id, telegram_id, referral_code')
+          .ilike('referral_code', trimmed)
+          .maybeSingle();
+        if (refProfile && refProfile.telegram_id !== user.telegramId) {
+          user.referredBy = refProfile.id || `usr_${refProfile.telegram_id}`;
+        }
+      } catch {}
+    }
+    if (user.referredBy) {
+      syncUserToSupabase(user).catch(() => {});
+      if (!referralHistory.some(r => r.referredUserId === user.id)) {
+        referralHistory.push({
+          id: `ref_${Date.now()}_${user.id}`,
+          referrerId: user.referredBy,
+          referredUserId: user.id,
+          referredUid: user.uid,
+          referredName: user.firstName,
+          timestamp: Date.now(),
+          status: 'ACTIVE',
+          minedDays: 0,
+          rewardEarned: 0,
+        });
+      }
+      persistDatabaseSync();
+    }
+  }
+
   const userBalances = await getSupabaseBalance(user.id);
   const sessionToken = generateUserSessionToken(user.id);
 
@@ -2570,6 +2649,106 @@ const handleStartMining = async (req: Request, res: Response) => {
       console.warn('[Supabase] Failed to persist mining session:', e);
     }
   }
+
+  // One-time 5 USDT Referral Bonus awarded to referrer when invited friend starts mining
+  try {
+    let miningUser = users.get(userId);
+    if (!miningUser && supabase) {
+      miningUser = (await getUserFromSupabase(userId)) || undefined;
+    }
+    const referrerId = miningUser?.referredBy;
+    if (referrerId && referrerId !== userId) {
+      // Check if bonus was already granted for this friend
+      let refRecord = referralHistory.find(r => r.referredUserId === userId);
+      let alreadyAwarded = Boolean(refRecord && (refRecord.rewardEarned > 0 || refRecord.status === 'QUALIFIED'));
+
+      if (!alreadyAwarded && supabase) {
+        try {
+          const refereeTgId = miningUser?.telegramId || parseInt(userId.replace('usr_', '')) || 0;
+          if (refereeTgId > 0) {
+            const { data: dbRef } = await supabase
+              .from('referrals')
+              .select('*')
+              .eq('referee_id', refereeTgId)
+              .maybeSingle();
+            if (dbRef && (Number(dbRef.bonus_amount) >= 5 || dbRef.status === 'QUALIFIED')) {
+              alreadyAwarded = true;
+              if (refRecord) {
+                refRecord.status = 'QUALIFIED';
+                refRecord.rewardEarned = Number(dbRef.bonus_amount) || 5;
+              }
+            }
+          }
+        } catch {}
+      }
+
+      if (!alreadyAwarded) {
+        const bonusUSDT = systemSettings.referralBonusUSDT !== undefined ? systemSettings.referralBonusUSDT : 5.0;
+
+        // 1. Credit referrer balance atomically
+        const referrerBal = await getSupabaseBalance(referrerId);
+        referrerBal.usdt = Number(((referrerBal.usdt || 0) + bonusUSDT).toFixed(6));
+        balances.set(referrerId, referrerBal);
+        await setSupabaseBalance(referrerId, referrerBal);
+
+        // 2. Log financial transaction for referrer
+        const friendName = miningUser?.firstName || 'Friend';
+        const bonusTx: TxRecord = {
+          id: `tx_ref_${Date.now()}_${userId}`,
+          userId: referrerId,
+          asset: 'USDT',
+          amount: bonusUSDT,
+          direction: 'IN',
+          source: 'REFERRAL_BONUS',
+          status: 'COMPLETED',
+          timestamp: Date.now(),
+          note: `Referral bonus: ${bonusUSDT} USDT credited as invited friend (${friendName}) started mining`,
+        };
+        await recordTransaction(bonusTx);
+
+        // 3. Mark referral record as QUALIFIED so bonus is strictly given only once
+        if (refRecord) {
+          refRecord.status = 'QUALIFIED';
+          refRecord.rewardEarned = bonusUSDT;
+          refRecord.minedDays = Math.max(refRecord.minedDays || 0, 1);
+        } else {
+          referralHistory.push({
+            id: `ref_${Date.now()}_${userId}`,
+            referrerId,
+            referredUserId: userId,
+            referredUid: miningUser?.uid || '',
+            referredName: friendName,
+            timestamp: Date.now(),
+            status: 'QUALIFIED',
+            minedDays: 1,
+            rewardEarned: bonusUSDT,
+          });
+        }
+
+        // 4. Upsert into Supabase referrals table
+        if (supabase) {
+          try {
+            const referrerTgId = parseInt(referrerId.replace('usr_', '')) || 0;
+            const refereeTgId = miningUser?.telegramId || parseInt(userId.replace('usr_', '')) || 0;
+            if (referrerTgId > 0 && refereeTgId > 0) {
+              await supabase.from('referrals').upsert({
+                referrer_id: referrerTgId,
+                referee_id: refereeTgId,
+                bonus_amount: bonusUSDT,
+                status: 'QUALIFIED',
+              }, { onConflict: 'referee_id' });
+            }
+          } catch (e) {
+            console.warn('[Supabase] Failed to persist referral bonus to table:', e);
+          }
+        }
+        console.log(`[Referral] Credited ${bonusUSDT} USDT to referrer ${referrerId} for friend ${userId} starting mining`);
+      }
+    }
+  } catch (refBonusErr) {
+    console.warn('[Referral] Error evaluating friend mining referral bonus:', refBonusErr);
+  }
+
   scheduleSaveDatabase();
 
   res.json({
@@ -3359,16 +3538,21 @@ app.get('/api/referrals/:userId', async (req: Request, res: Response) => {
   const pending = 0;
   const totalEarnedUSDT = qualified * systemSettings.referralBonusUSDT;
 
+  if (!user.referralCode || user.referralCode === 'E4F-REF' || user.referralCode === 'E4F-VIP888') {
+    user.referralCode = generateUniqueReferralCode();
+    syncUserToSupabase(user).catch(() => {});
+  }
+
   res.json({
     referralCode: user.referralCode,
-    referralLink: `https://t.me/E4FExchangeBot/app?startapp=${user.referralCode}`,
+    referralLink: `https://t.me/E4F_Web3_mining_bot/app?startapp=${user.referralCode}`,
     totalInvited,
     qualified,
     active,
     pending,
     totalEarnedUSDT,
     referralRewardAmount: systemSettings.referralBonusUSDT,
-    qualificationCriteria: `Invite must complete 30 days of active mining to qualify for ${systemSettings.referralBonusUSDT} USDT bonus.`,
+    qualificationCriteria: `Invited friend starting mining qualifies for a one-time ${systemSettings.referralBonusUSDT} USDT bonus.`,
     history: userReferrals.slice(0, 50),
   });
 });

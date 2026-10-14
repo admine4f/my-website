@@ -187,7 +187,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      referralCodeParam = urlParams.get('ref') || urlParams.get('start') || urlParams.get('startapp') || urlParams.get('tgWebAppStartParam') || '';
+      let hashParams: URLSearchParams | null = null;
+      if (window.location.hash && window.location.hash.includes('=')) {
+        try {
+          hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        } catch {}
+      }
+
+      referralCodeParam =
+        urlParams.get('startapp') ||
+        urlParams.get('tgWebAppStartParam') ||
+        hashParams?.get('tgWebAppStartParam') ||
+        hashParams?.get('startapp') ||
+        urlParams.get('start_param') ||
+        urlParams.get('ref') ||
+        urlParams.get('start') ||
+        '';
 
       if ((window as any).Telegram?.WebApp) {
         const tg = (window as any).Telegram.WebApp;
@@ -195,8 +210,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         tg.expand();
         initData = tg.initData || '';
         tgUser = tg.initDataUnsafe?.user;
-        if (!referralCodeParam && tg.initDataUnsafe?.start_param) {
-          referralCodeParam = tg.initDataUnsafe.start_param;
+        const tgStartParam = tg.initDataUnsafe?.start_param;
+        if (tgStartParam && typeof tgStartParam === 'string' && tgStartParam.trim()) {
+          referralCodeParam = tgStartParam.trim();
         }
       }
     }
@@ -251,7 +267,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             lastName: u?.last_name || '',
             username: u?.username || 'user',
             photoUrl: u?.photo_url || '',
-            referralCode: `E4F${Math.abs(tgId % 899999 + 100000)}`,
+            referralCode: `E4F${Math.floor(100000 + Math.random() * 900000)}`,
             createdAt: Date.now(),
             status: 'ACTIVE',
             claimedWelcomeBonus: true,

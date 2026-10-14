@@ -1259,8 +1259,8 @@ export const api = {
       earnedUSDT: 0,
       boostTier: 'Tier 1 (0%)',
       boostPercent: 0,
-      referralCode: 'E4F256926',
-      referralLink: typeof window !== 'undefined' ? `${window.location.origin}/?ref=E4F256926` : '',
+      referralCode: 'E4F' + Math.floor(100000 + Math.random() * 900000),
+      referralLink: 'https://t.me/E4F_Web3_mining_bot/app?startapp=E4F256926',
     };
   },
 

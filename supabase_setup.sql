@@ -466,8 +466,11 @@ BEGIN
 
   -- 2. New User Registration:
   v_is_new := true;
-  v_uid := '8' || LPAD((ABS(p_telegram_id % 8999999) + 1000000)::TEXT, 7, '0');
-  v_new_ref_code := UPPER(SUBSTRING(MD5(p_telegram_id::TEXT || NOW()::TEXT) FROM 1 FOR 8));
+  -- Generate unique E4F + 6 random digits referral code
+  LOOP
+    v_new_ref_code := 'E4F' || LPAD(FLOOR(100000 + RANDOM() * 900000)::TEXT, 6, '0');
+    EXIT WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE referral_code = v_new_ref_code);
+  END LOOP;
 
   -- Look up referrer by referral code
   IF p_referral_code IS NOT NULL AND p_referral_code <> '' THEN

@@ -52,8 +52,8 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ onClose }) => {
     }
   }, [user]);
 
-  const referralCode = user?.referralCode || 'E4F-VIP888';
-  const referralLink = `https://t.me/E4FExchangeBot/app?startapp=${referralCode}`;
+  const referralCode = user?.referralCode || (user?.id ? `E4F${Math.abs(parseInt(user.id.replace(/\D/g, '')) || 100000) % 900000 + 100000}` : 'E4F894102');
+  const referralLink = `https://t.me/E4F_Web3_mining_bot/app?startapp=${referralCode}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);

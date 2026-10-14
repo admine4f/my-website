@@ -53,8 +53,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [deleting, setDeleting] = useState(false);
 
   const displayUid = user?.uid || (user?.id ? `E4F${user.id.slice(-6).toUpperCase()}` : 'E4F894102');
-  const referralCode = user?.referralCode || 'E4F-REF';
-  const referralLink = `${window.location.origin}/?ref=${referralCode}`;
+  const referralCode = user?.referralCode || (user?.id ? `E4F${Math.abs(parseInt(user.id.replace(/\D/g, '')) || 100000) % 900000 + 100000}` : 'E4F894102');
+  const referralLink = `https://t.me/E4F_Web3_mining_bot/app?startapp=${referralCode}`;
 
   const isDefaultOrTelegram = !user?.firstName || user.firstName === 'Telegram User' || user.firstName.toLowerCase() === 'user';
   const displayName = isDefaultOrTelegram ? 'E4F User' : `${user.firstName}${user.lastName ? ' ' + user.lastName : ''}`;
