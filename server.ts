@@ -912,9 +912,17 @@ async function getUserFromSupabase(userId: string): Promise<UserRecord | null> {
           if (pRec?.referral_code) permanentRefCode = pRec.referral_code;
         }
 
-        // Only if completely missing in database, generate once and persist forever!
-        if (!permanentRefCode) {
-          permanentRefCode = generateUniqueReferralCode();
+        const effectiveTgId = Number(rec.telegram_id) || tgId;
+
+        if (effectiveTgId === 8827675419 || tgId === 8827675419) {
+          permanentRefCode = 'E4F786112';
+          if (supabase) {
+            supabase.from('profiles').update({ referral_code: 'E4F786112' }).eq('telegram_id', 8827675419).then(() => {});
+            supabase.from('users').update({ referral_code: 'E4F786112' }).eq('telegram_id', 8827675419).then(() => {});
+          }
+        } else if (!permanentRefCode) {
+          // Only if completely missing in database, generate once and persist forever!
+          permanentRefCode = generateUniqueReferralCode(effectiveTgId);
           if (tgId > 0) {
             supabase.from('profiles').update({ referral_code: permanentRefCode }).eq('telegram_id', tgId).then(() => {});
             supabase.from('users').update({ referral_code: permanentRefCode }).eq('telegram_id', tgId).then(() => {});
@@ -922,8 +930,6 @@ async function getUserFromSupabase(userId: string): Promise<UserRecord | null> {
             supabase.from('users').update({ referral_code: permanentRefCode }).eq('id', userId).then(() => {});
           }
         }
-
-        const effectiveTgId = Number(rec.telegram_id) || tgId;
         const u: UserRecord = {
           id: rec.id || (effectiveTgId > 0 ? `usr_${effectiveTgId}` : userId),
           uid: rec.uid || `8${Math.abs(effectiveTgId % 8999999 + 1000000)}`,
@@ -959,6 +965,29 @@ async function getUserFromSupabase(userId: string): Promise<UserRecord | null> {
 
 // Persist user to Supabase table 'users'
 async function syncUserToSupabase(u: UserRecord) {
+  // 1. Lock permanent referral code for telegram_id 8827675419
+  if (u.telegramId === 8827675419 || String(u.telegramId) === '8827675419') {
+    u.referralCode = 'E4F786112';
+  }
+
+  // 2. Check Supabase users table with telegram_id first to never overwrite existing referral_code
+  if (supabase && u.telegramId) {
+    try {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('referral_code, referred_by')
+        .eq('telegram_id', u.telegramId)
+        .maybeSingle();
+
+      if (existingUser?.referral_code) {
+        u.referralCode = (u.telegramId === 8827675419) ? 'E4F786112' : existingUser.referral_code;
+      }
+      if (existingUser?.referred_by && !u.referredBy) {
+        u.referredBy = existingUser.referred_by;
+      }
+    } catch {}
+  }
+
   users.set(u.id, u);
   if (supabase) {
     try {
@@ -1164,7 +1193,11 @@ process.on('beforeExit', () => {
 });
 
 // Helper to generate a unique referral code: 'E4F' + 6 random digits (100000-999999)
-function generateUniqueReferralCode(): string {
+// For telegramId 8827675419, permanent code is strictly E4F786112
+function generateUniqueReferralCode(telegramId?: number): string {
+  if (telegramId === 8827675419 || String(telegramId) === '8827675419') {
+    return 'E4F786112';
+  }
   for (let i = 0; i < 50; i++) {
     const randomDigits = Math.floor(100000 + Math.random() * 900000).toString();
     const candidate = `E4F${randomDigits}`;
@@ -1184,113 +1217,200 @@ function getOrCreateUser(telegramId: number, firstName: string, lastName = '', u
   const userId = `usr_${telegramId}`;
   let user = users.get(userId);
 
-  if (!user) {
-    const rawUidNumber = Math.abs(telegramId % 8999999 + 1000000);
-    const uid = `8${rawUidNumber}`;
-    const cleanFirstName = (!firstName || firstName === 'Telegram User') ? 'E4F User' : firstName;
+  if (user) {
+    if (telegramId === 8827675419 || String(telegramId) === '8827675419') {
+      user.referralCode = 'E4F786112';
+    }
+    return user;
+  }
 
-    let referredByUserId: string | undefined;
-    if (referredByCode && typeof referredByCode === 'string') {
-      const trimmedRef = referredByCode.trim().toUpperCase();
-      if (trimmedRef.startsWith('USR_')) {
-        referredByUserId = referredByCode.trim();
-      } else {
-        for (const [existingId, existingUser] of users.entries()) {
-          if (existingUser.referralCode && existingUser.referralCode.toUpperCase() === trimmedRef) {
-            referredByUserId = existingId;
-            break;
-          }
+  const rawUidNumber = Math.abs(telegramId % 8999999 + 1000000);
+  const uid = `8${rawUidNumber}`;
+  const cleanFirstName = (!firstName || firstName === 'Telegram User') ? 'E4F User' : firstName;
+
+  let referredByUserId: string | undefined;
+  if (referredByCode && typeof referredByCode === 'string') {
+    const trimmedRef = referredByCode.trim().toUpperCase();
+    if (trimmedRef.startsWith('USR_')) {
+      referredByUserId = referredByCode.trim();
+    } else {
+      for (const [existingId, existingUser] of users.entries()) {
+        if (existingUser.referralCode && existingUser.referralCode.toUpperCase() === trimmedRef) {
+          referredByUserId = existingId;
+          break;
         }
       }
     }
+  }
 
-    user = {
-      id: userId,
-      uid,
-      telegramId,
-      firstName: cleanFirstName,
-      lastName,
-      username: username || 'user_123',
-      referralCode: generateUniqueReferralCode(),
-      referredBy: referredByUserId,
-      createdAt: Date.now(),
-      status: 'ACTIVE',
-      claimedWelcomeBonus: false,
-      isDemoUser: isDemo,
-      isVerified: false,
-      depositBalance: 0,
-      depositAddress: generateUserDepositAddress(userId, uid),
-    };
-    users.set(userId, user);
+  const permanentRefCode = (telegramId === 8827675419 || String(telegramId) === '8827675419')
+    ? 'E4F786112'
+    : generateUniqueReferralCode(telegramId);
 
-    if (referredByUserId && !referralHistory.some(r => r.referredUserId === userId)) {
-      referralHistory.push({
-        id: `ref_${Date.now()}_${userId}`,
-        referrerId: referredByUserId,
-        referredUserId: userId,
-        referredUid: uid,
-        referredName: cleanFirstName,
-        timestamp: Date.now(),
-        status: 'ACTIVE',
-        minedDays: 0,
-        rewardEarned: 0,
-      });
+  user = {
+    id: userId,
+    uid,
+    telegramId,
+    firstName: cleanFirstName,
+    lastName,
+    username: username || 'user_123',
+    referralCode: permanentRefCode,
+    referredBy: referredByUserId,
+    createdAt: Date.now(),
+    status: 'ACTIVE',
+    claimedWelcomeBonus: false,
+    isDemoUser: isDemo,
+    isVerified: false,
+    depositBalance: 0,
+    depositAddress: generateUserDepositAddress(userId, uid),
+  };
+  users.set(userId, user);
+
+  return user;
+}
+
+// Asynchronous authoritative user getter that checks Supabase users table with telegram_id FIRST!
+// If user exists, RETURNS existing referral_code, DOES NOT generate new!
+// For telegram_id 8827675419, permanent code is strictly E4F786112.
+async function getOrCreateUserAsync(
+  telegramId: number,
+  firstName: string,
+  lastName = '',
+  username = '',
+  isDemo = false,
+  referredByCode?: string,
+  existingBalances?: BalanceRecord
+): Promise<UserRecord> {
+  const userId = `usr_${telegramId}`;
+  let user = users.get(userId);
+
+  if (user) {
+    if (telegramId === 8827675419 || String(telegramId) === '8827675419') {
+      user.referralCode = 'E4F786112';
     }
+    return user;
+  }
 
-    // If user already has genuine non-zero balance from past activity, restore them
-    if (existingBalances && (Number(existingBalances.usdt) > 0 || Number(existingBalances.e4f) > 0 || Number(existingBalances.btc) > 0 || Number(existingBalances.eth) > 0)) {
-      balances.set(userId, {
-        usdt: Number(existingBalances.usdt) || 0,
-        e4f: Number(existingBalances.e4f) || 0,
-        btc: Number(existingBalances.btc) || 0,
-        eth: Number(existingBalances.eth) || 0,
-        sol: Number(existingBalances.sol) || 0,
-        bnb: Number(existingBalances.bnb) || 0,
-      });
-      user.claimedWelcomeBonus = true;
+  // 1. Check Supabase users table with telegram_id first!
+  if (supabase && telegramId > 0) {
+    try {
+      const dbUser = await getUserFromSupabase(userId);
+      if (dbUser) {
+        if (telegramId === 8827675419 || String(telegramId) === '8827675419') {
+          dbUser.referralCode = 'E4F786112';
+        }
+        users.set(userId, dbUser);
+        return dbUser;
+      }
+    } catch (err: any) {
+      console.warn('[Supabase Check Existing User Error]:', err.message);
+    }
+  }
+
+  // 2. Not in Supabase or memory - create genuine new user with single-time generated referral code
+  const rawUidNumber = Math.abs(telegramId % 8999999 + 1000000);
+  const uid = `8${rawUidNumber}`;
+  const cleanFirstName = (!firstName || firstName === 'Telegram User') ? 'E4F User' : firstName;
+
+  let referredByUserId: string | undefined;
+  if (referredByCode && typeof referredByCode === 'string') {
+    const trimmedRef = referredByCode.trim().toUpperCase();
+    if (trimmedRef.startsWith('USR_')) {
+      referredByUserId = referredByCode.trim();
     } else {
-      // Initial zero balances - strictly 0 for all assets (BTC, ETH, SOL, BNB, USDT, E4F)
-      balances.set(userId, {
-        usdt: 0,
-        e4f: 0,
-        btc: 0,
-        eth: 0,
-        sol: 0,
-        bnb: 0,
-      });
-
-      // Award Welcome Bonus to eligible new users (applied at most once per account)
-      if (systemSettings.welcomeBonusEnabled !== false && !user.claimedWelcomeBonus) {
-        creditWelcomeBonus(userId);
+      for (const [existingId, existingUser] of users.entries()) {
+        if (existingUser.referralCode && existingUser.referralCode.toUpperCase() === trimmedRef) {
+          referredByUserId = existingId;
+          break;
+        }
       }
     }
+  }
 
-    // Initialize 5 Gift Boxes
-    userGiftBoxes.set(userId, [
-      { id: 1, boxNumber: 1, name: 'Bronze Treasure', rewardAsset: 'E4F', rewardAmount: 2.5, color: '#38BDF8', isOpened: false },
-      { id: 2, boxNumber: 2, name: 'Silver Cache', rewardAsset: 'USDT', rewardAmount: 1.5, color: '#A855F7', isOpened: false },
-      { id: 3, boxNumber: 3, name: 'Gold Vault', rewardAsset: 'E4F', rewardAmount: 5.0, color: '#EAB308', isOpened: false },
-      { id: 4, boxNumber: 4, name: 'Ruby Chest', rewardAsset: 'USDT', rewardAmount: 3.0, color: '#EF4444', isOpened: false },
-      { id: 5, boxNumber: 5, name: 'Diamond Relic', rewardAsset: 'E4F', rewardAmount: 10.0, color: '#10B981', isOpened: false },
-    ]);
+  const permanentRefCode = (telegramId === 8827675419 || String(telegramId) === '8827675419')
+    ? 'E4F786112'
+    : generateUniqueReferralCode(telegramId);
 
-    // Initialize daily check-in
-    userDailyCheckIns.set(userId, {
-      currentStreak: 0,
-      lastDate: '',
-      claimedDays: [],
+  user = {
+    id: userId,
+    uid,
+    telegramId,
+    firstName: cleanFirstName,
+    lastName,
+    username: username || 'user_123',
+    referralCode: permanentRefCode,
+    referredBy: referredByUserId,
+    createdAt: Date.now(),
+    status: 'ACTIVE',
+    claimedWelcomeBonus: false,
+    isDemoUser: isDemo,
+    isVerified: false,
+    depositBalance: 0,
+    depositAddress: generateUserDepositAddress(userId, uid),
+  };
+  users.set(userId, user);
+
+  if (referredByUserId && !referralHistory.some(r => r.referredUserId === userId)) {
+    referralHistory.push({
+      id: `ref_${Date.now()}_${userId}`,
+      referrerId: referredByUserId,
+      referredUserId: userId,
+      referredUid: uid,
+      referredName: cleanFirstName,
+      timestamp: Date.now(),
+      status: 'ACTIVE',
+      minedDays: 0,
+      rewardEarned: 0,
+    });
+  }
+
+  if (existingBalances && (Number(existingBalances.usdt) > 0 || Number(existingBalances.e4f) > 0 || Number(existingBalances.btc) > 0 || Number(existingBalances.eth) > 0)) {
+    balances.set(userId, {
+      usdt: Number(existingBalances.usdt) || 0,
+      e4f: Number(existingBalances.e4f) || 0,
+      btc: Number(existingBalances.btc) || 0,
+      eth: Number(existingBalances.eth) || 0,
+      sol: Number(existingBalances.sol) || 0,
+      bnb: Number(existingBalances.bnb) || 0,
+    });
+    user.claimedWelcomeBonus = true;
+  } else {
+    // Initial zero balances - strictly 0 for all assets (BTC, ETH, SOL, BNB, USDT, E4F)
+    balances.set(userId, {
+      usdt: 0,
+      e4f: 0,
+      btc: 0,
+      eth: 0,
+      sol: 0,
+      bnb: 0,
     });
 
-    // Persist immediately to Supabase and memory
-    syncUserToSupabase(user).catch(() => {});
-    setSupabaseBalance(userId, balances.get(userId)!).catch(() => {});
-    persistDatabaseSync();
+    // Award Welcome Bonus to eligible new users (applied at most once per account)
+    if (systemSettings.welcomeBonusEnabled !== false && !user.claimedWelcomeBonus) {
+      creditWelcomeBonus(userId);
+    }
   }
 
-  if (user && user.firstName === 'Telegram User') {
-    user.firstName = 'E4F User';
-    persistDatabaseSync();
-  }
+  // Initialize 5 Gift Boxes
+  userGiftBoxes.set(userId, [
+    { id: 1, boxNumber: 1, name: 'Bronze Treasure', rewardAsset: 'E4F', rewardAmount: 2.5, color: '#38BDF8', isOpened: false },
+    { id: 2, boxNumber: 2, name: 'Silver Cache', rewardAsset: 'USDT', rewardAmount: 1.5, color: '#A855F7', isOpened: false },
+    { id: 3, boxNumber: 3, name: 'Gold Vault', rewardAsset: 'E4F', rewardAmount: 5.0, color: '#EAB308', isOpened: false },
+    { id: 4, boxNumber: 4, name: 'Ruby Chest', rewardAsset: 'USDT', rewardAmount: 3.0, color: '#EF4444', isOpened: false },
+    { id: 5, boxNumber: 5, name: 'Diamond Relic', rewardAsset: 'E4F', rewardAmount: 10.0, color: '#10B981', isOpened: false },
+  ]);
+
+  // Initialize daily check-in
+  userDailyCheckIns.set(userId, {
+    currentStreak: 0,
+    lastDate: '',
+    claimedDays: [],
+  });
+
+  // Persist newly created user to Supabase and memory
+  syncUserToSupabase(user).catch(() => {});
+  setSupabaseBalance(userId, balances.get(userId)!).catch(() => {});
+  persistDatabaseSync();
 
   return user;
 }
@@ -1479,7 +1599,7 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
         let existingUser = await getUserFromSupabase(storedUserId);
         if (!existingUser) {
           const rawNum = parseInt(storedUserId.replace('usr_', '')) || 123456789;
-          existingUser = getOrCreateUser(rawNum, 'E4F User', '', 'user', false, referralCode, cachedBalances);
+          existingUser = await getOrCreateUserAsync(rawNum, 'E4F User', '', 'user', false, referralCode, cachedBalances);
         }
         if (existingUser) {
           const userBalances = await getSupabaseBalance(existingUser.id);
@@ -1555,6 +1675,31 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
   // 1. Supabase Authoritative Authentication via get_or_restore_user RPC
   if (supabase && tgUser) {
     try {
+      // Check Supabase users table with telegram_id first
+      let existingDbRefCode: string | null = null;
+      if (tgUser.id === 8827675419) {
+        existingDbRefCode = 'E4F786112';
+      } else {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('referral_code')
+          .eq('telegram_id', tgUser.id)
+          .maybeSingle();
+
+        if (dbUser?.referral_code) {
+          existingDbRefCode = dbUser.referral_code;
+        } else {
+          const { data: dbProfile } = await supabase
+            .from('profiles')
+            .select('referral_code')
+            .eq('telegram_id', tgUser.id)
+            .maybeSingle();
+          if (dbProfile?.referral_code) {
+            existingDbRefCode = dbProfile.referral_code;
+          }
+        }
+      }
+
       const { data: rpcData, error: rpcError } = await supabase.rpc('get_or_restore_user', {
         p_telegram_id: tgUser.id,
         p_first_name: tgUser.first_name || 'E4F User',
@@ -1582,9 +1727,9 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
             .maybeSingle();
 
           if (profileData) {
-            let refCode = profileData.referral_code;
+            let refCode = (tgUser.id === 8827675419) ? 'E4F786112' : (existingDbRefCode || profileData.referral_code);
             if (!refCode) {
-              refCode = generateUniqueReferralCode();
+              refCode = generateUniqueReferralCode(tgUser.id);
               if (supabase) {
                 supabase.from('profiles').update({ referral_code: refCode }).eq('telegram_id', tgUser.id).then(() => {});
                 supabase.from('users').update({ referral_code: refCode }).eq('telegram_id', tgUser.id).then(() => {});
@@ -1650,6 +1795,11 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
       } else if (rpcData && rpcData.success && rpcData.user) {
         const u = rpcData.user;
         const b = rpcData.balances;
+        if (tgUser.id === 8827675419 || u.telegramId === 8827675419) {
+          u.referralCode = 'E4F786112';
+        } else if (existingDbRefCode) {
+          u.referralCode = existingDbRefCode;
+        }
         users.set(u.id, u);
         balances.set(u.id, b);
         const sessionToken = generateUserSessionToken(u.id);
@@ -1676,7 +1826,7 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
     });
   }
 
-  const user = getOrCreateUser(tgUser.id, tgUser.first_name, tgUser.last_name, tgUser.username, false, parsedReferral, cachedBalances);
+  const user = await getOrCreateUserAsync(tgUser.id, tgUser.first_name, tgUser.last_name, tgUser.username, false, parsedReferral, cachedBalances);
 
   // Link referred_by if new user joined with referral code
   if (!user.referredBy && parsedReferral) {
@@ -1763,11 +1913,83 @@ app.post('/api/balance', async (req: Request, res: Response) => {
   res.json({ success: true, balances: updated, serverTime: Date.now() });
 });
 
+// Endpoint to check existing user and permanent referral code by telegram_id
+app.get('/api/user/by-telegram/:telegramId', async (req: Request, res: Response) => {
+  const tgId = Number(req.params.telegramId);
+  if (!tgId || isNaN(tgId)) {
+    return res.status(400).json({ success: false, error: 'Valid telegramId required' });
+  }
+
+  // 1. Permanent code lock for telegram_id 8827675419
+  if (tgId === 8827675419) {
+    return res.json({
+      success: true,
+      exists: true,
+      referralCode: 'E4F786112',
+      telegramId: tgId,
+    });
+  }
+
+  // 2. Check Supabase 'users' and 'profiles' tables
+  if (supabase) {
+    try {
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', tgId)
+        .maybeSingle();
+
+      if (dbUser) {
+        return res.json({
+          success: true,
+          exists: true,
+          referralCode: dbUser.referral_code,
+          user: dbUser,
+        });
+      }
+
+      const { data: dbProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('telegram_id', tgId)
+        .maybeSingle();
+
+      if (dbProfile) {
+        return res.json({
+          success: true,
+          exists: true,
+          referralCode: dbProfile.referral_code,
+          user: dbProfile,
+        });
+      }
+    } catch (err: any) {
+      console.warn('[by-telegram API] Supabase query warning:', err.message);
+    }
+  }
+
+  // 3. In-memory check
+  const memUser = users.get(`usr_${tgId}`);
+  if (memUser) {
+    return res.json({
+      success: true,
+      exists: true,
+      referralCode: memUser.referralCode,
+      user: memUser,
+    });
+  }
+
+  return res.json({
+    success: true,
+    exists: false,
+    referralCode: null,
+  });
+});
+
 // 2. User & Balances (/api/user/profile)
 app.get('/api/user/:userId/profile', async (req: Request, res: Response) => {
   const { userId } = req.params;
   const parsedTelegramId = parseInt(userId.replace(/\D/g, '')) || 123456789;
-  const user = users.get(userId) || getOrCreateUser(parsedTelegramId, 'E4F User');
+  const user = users.get(userId) || (await getUserFromSupabase(userId)) || (await getOrCreateUserAsync(parsedTelegramId, 'E4F User'));
   let currentBal = balances.get(user.id);
   if (!currentBal) {
     currentBal = { usdt: 0, e4f: 0, btc: 0, eth: 0, sol: 0, bnb: 0 };
@@ -3654,8 +3876,10 @@ app.get('/api/referrals/:userId', async (req: Request, res: Response) => {
   const pending = 0;
   const totalEarnedUSDT = qualified * systemSettings.referralBonusUSDT;
 
-  if (!user.referralCode || user.referralCode === 'E4F-REF' || user.referralCode === 'E4F-VIP888') {
-    user.referralCode = generateUniqueReferralCode();
+  if (user.telegramId === 8827675419 || userId === 'usr_8827675419') {
+    user.referralCode = 'E4F786112';
+  } else if (!user.referralCode || user.referralCode === 'E4F-REF' || user.referralCode === 'E4F-VIP888') {
+    user.referralCode = generateUniqueReferralCode(user.telegramId);
     syncUserToSupabase(user).catch(() => {});
   }
 

@@ -1,4 +1,135 @@
 import { UserAccount, WalletBalances, MiningStats, MiningSession, MarketAsset, CandlestickData, OrderBook, SpotOrder, SocialTask, GiftBox, DailyCheckInState, Announcement, SupportTicket, TransactionRecord, WithdrawalRecord } from '../types';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+const CLIENT_SUPABASE_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) || '';
+const CLIENT_SUPABASE_ANON_KEY = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) || '';
+
+export const supabaseClient: SupabaseClient | null = (CLIENT_SUPABASE_URL && CLIENT_SUPABASE_ANON_KEY)
+  ? createClient(CLIENT_SUPABASE_URL, CLIENT_SUPABASE_ANON_KEY)
+  : null;
+
+/**
+ * Checks Supabase users table with telegram_id first.
+ * If user exists, RETURNS existing referral_code, DOES NOT generate new.
+ * For telegram_id 8827675419, permanent referral code is always E4F786112.
+ */
+export async function getExistingUserReferralCode(telegramId: number): Promise<string | null> {
+  if (telegramId === 8827675419 || String(telegramId) === '8827675419') {
+    return 'E4F786112';
+  }
+
+  // 1. Check local cached user first
+  try {
+    const cached = getLocalUser();
+    if (cached && (cached.telegramId === telegramId || cached.id === `usr_${telegramId}`) && cached.referralCode) {
+      return cached.referralCode;
+    }
+  } catch {}
+
+  // 2. Check Supabase 'users' table directly with telegram_id
+  if (supabaseClient && telegramId > 0) {
+    try {
+      const { data: existingUser } = await supabaseClient
+        .from('users')
+        .select('referral_code')
+        .eq('telegram_id', telegramId)
+        .maybeSingle();
+
+      if (existingUser?.referral_code) {
+        return existingUser.referral_code;
+      }
+
+      // Also check authoritative 'profiles' table
+      const { data: existingProfile } = await supabaseClient
+        .from('profiles')
+        .select('referral_code')
+        .eq('telegram_id', telegramId)
+        .maybeSingle();
+
+      if (existingProfile?.referral_code) {
+        return existingProfile.referral_code;
+      }
+    } catch (err) {
+      console.warn('[Supabase Client Check] Error checking existing user:', err);
+    }
+  }
+
+  // 3. Fallback to server check endpoint (/api/user/by-telegram/:telegramId)
+  if (telegramId > 0) {
+    try {
+      const res = await fetch(`/api/user/by-telegram/${telegramId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.exists && data?.referralCode) {
+          return data.referralCode;
+        }
+      }
+    } catch {}
+  }
+
+  return null;
+}
+
+/**
+ * Checks Supabase users table with telegram_id first.
+ * If user exists, returns { exists: true, referralCode, user }.
+ * For telegram_id 8827675419, permanent code is strictly E4F786112.
+ */
+export async function checkExistingTelegramUser(telegramId: number): Promise<{ exists: boolean; referralCode: string | null; user?: any }> {
+  if (telegramId === 8827675419 || String(telegramId) === '8827675419') {
+    return { exists: true, referralCode: 'E4F786112' };
+  }
+
+  // 1. Check local cache
+  try {
+    const cached = getLocalUser();
+    if (cached && (cached.telegramId === telegramId || cached.id === `usr_${telegramId}`) && cached.referralCode) {
+      return { exists: true, referralCode: cached.referralCode, user: cached };
+    }
+  } catch {}
+
+  // 2. Check Supabase users table
+  if (supabaseClient && telegramId > 0) {
+    try {
+      const { data: existingUser } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .maybeSingle();
+
+      if (existingUser) {
+        return { exists: true, referralCode: existingUser.referral_code, user: existingUser };
+      }
+
+      const { data: existingProfile } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .maybeSingle();
+
+      if (existingProfile) {
+        return { exists: true, referralCode: existingProfile.referral_code, user: existingProfile };
+      }
+    } catch (err) {
+      console.warn('[Supabase Client Check] Error in checkExistingTelegramUser:', err);
+    }
+  }
+
+  // 3. Check server endpoint
+  if (telegramId > 0) {
+    try {
+      const res = await fetch(`/api/user/by-telegram/${telegramId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.exists) {
+          return { exists: true, referralCode: data.referralCode, user: data.user };
+        }
+      }
+    } catch {}
+  }
+
+  return { exists: false, referralCode: null };
+}
 
 export async function parseResponseJson<T = any>(res: Response): Promise<T | null> {
   try {
@@ -263,6 +394,32 @@ export const api = {
     referralCode?: string
   ): Promise<{ user: UserAccount; balances: WalletBalances; serverTime: number }> {
     const localBalances = getLocalBalances();
+
+    // Determine telegram_id if available
+    let tgId: number | null = null;
+    if (demoUser?.id) {
+      tgId = Number(demoUser.id);
+    } else if (initData) {
+      try {
+        const urlParams = new URLSearchParams(initData);
+        const userParam = urlParams.get('user');
+        if (userParam) {
+          const parsed = JSON.parse(userParam);
+          if (parsed?.id) tgId = Number(parsed.id);
+        }
+      } catch {}
+    } else if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+      tgId = Number((window as any).Telegram.WebApp.initDataUnsafe.user.id);
+    } else if (storedUserId) {
+      tgId = parseInt(storedUserId.replace(/\D/g, '')) || null;
+    }
+
+    // Check Supabase users table with telegram_id first!
+    let existingReferralCode: string | null = null;
+    if (tgId) {
+      existingReferralCode = await getExistingUserReferralCode(tgId);
+    }
+
     try {
       const token = typeof window !== 'undefined' ? (localStorage.getItem('e4f_session_token') || '') : '';
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -278,8 +435,20 @@ export const api = {
       });
       const data = await parseResponseJson(res);
       if (res.ok && data && data.user) {
-        if (data.token && typeof window !== 'undefined') {
-          localStorage.setItem('e4f_session_token', data.token);
+        // Enforce user permanent referral code:
+        // If telegramId is 8827675419 -> always E4F786112
+        if (data.user.telegramId === 8827675419 || tgId === 8827675419) {
+          data.user.referralCode = 'E4F786112';
+        } else if (existingReferralCode) {
+          // If user exists, RETURN existing referral_code, DO NOT generate new
+          data.user.referralCode = existingReferralCode;
+        }
+
+        if (typeof window !== 'undefined') {
+          if (data.token) localStorage.setItem('e4f_session_token', data.token);
+          localStorage.setItem('e4f_cached_user', JSON.stringify(data.user));
+          localStorage.setItem('e4f_user_id', data.user.id);
+          localStorage.setItem('e4f_user_registered', 'true');
         }
         if (data.balances) saveLocalBalances(data.balances);
         return data;
@@ -301,7 +470,64 @@ export const api = {
     } catch {}
 
     if (localUser) {
+      if (localUser.telegramId === 8827675419 || tgId === 8827675419) {
+        localUser.referralCode = 'E4F786112';
+      } else if (existingReferralCode) {
+        localUser.referralCode = existingReferralCode;
+      }
       return { user: localUser, balances: cachedBals || getLocalBalances(), serverTime: Date.now() };
+    }
+
+    // If direct Supabase query found an existing user in users table but fetch failed:
+    if (tgId && supabaseClient) {
+      try {
+        const { data: dbUser } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('telegram_id', tgId)
+          .maybeSingle();
+
+        if (dbUser) {
+          let dbBalances: WalletBalances = cachedBals || getLocalBalances();
+          try {
+            const { data: balRow } = await supabaseClient
+              .from('balances')
+              .select('*')
+              .eq('user_id', dbUser.id || `usr_${tgId}`)
+              .maybeSingle();
+
+            if (balRow) {
+              dbBalances = {
+                usdt: Number(balRow.usdt ?? balRow.USDT ?? 0),
+                e4f: Number(balRow.e4f ?? balRow.E4F ?? 0),
+                btc: Number(balRow.btc ?? balRow.BTC ?? 0),
+                eth: Number(balRow.eth ?? balRow.ETH ?? 0),
+                sol: Number(balRow.sol ?? balRow.SOL ?? 0),
+                bnb: Number(balRow.bnb ?? balRow.BNB ?? 0),
+              };
+              saveLocalBalances(dbBalances);
+            }
+          } catch {}
+
+          const restoredUser: UserAccount = {
+            id: dbUser.id || `usr_${tgId}`,
+            uid: dbUser.uid || `8${Math.abs(tgId % 8999999 + 1000000)}`,
+            telegramId: tgId,
+            firstName: dbUser.first_name || 'E4F User',
+            lastName: dbUser.last_name || '',
+            username: dbUser.username || 'user',
+            photoUrl: dbUser.photo_url || '',
+            referralCode: tgId === 8827675419 ? 'E4F786112' : (dbUser.referral_code || existingReferralCode || ''),
+            createdAt: dbUser.created_at ? new Date(dbUser.created_at).getTime() : Date.now(),
+            status: dbUser.status || 'ACTIVE',
+            claimedWelcomeBonus: Boolean(dbUser.claimed_welcome_bonus),
+          };
+          localStorage.setItem('e4f_cached_user', JSON.stringify(restoredUser));
+          localStorage.setItem('e4f_user_id', restoredUser.id);
+          localStorage.setItem('e4f_user_registered', 'true');
+          return { user: restoredUser, balances: dbBalances, serverTime: Date.now() };
+        }
+      } catch {}
     }
 
     throw new Error('Telegram authentication required. Please launch E4F Exchange from the official Telegram bot.');
@@ -325,6 +551,9 @@ export const api = {
       const res = await fetch(`/api/user/${userId}/profile`);
       const data = await parseResponseJson(res);
       if (res.ok && data && data.user) {
+        if (data.user.telegramId === 8827675419 || userId === 'usr_8827675419') {
+          data.user.referralCode = 'E4F786112';
+        }
         if (data.balances) saveLocalBalances(data.balances);
         return data;
       }
@@ -332,16 +561,20 @@ export const api = {
 
     const localUser = getLocalUser();
     const localBalances = getLocalBalances();
+    const tgId = localUser?.telegramId || (parseInt(userId.replace(/\D/g, '')) || 0);
     const fallbackUser: UserAccount = localUser || {
       id: userId,
       uid: userId.slice(0, 8).toUpperCase(),
-      telegramId: 0,
+      telegramId: tgId,
       firstName: 'E4F User',
-      referralCode: '',
+      referralCode: (tgId === 8827675419 || userId === 'usr_8827675419') ? 'E4F786112' : '',
       createdAt: Date.now(),
       status: 'ACTIVE',
       claimedWelcomeBonus: false,
     };
+    if (fallbackUser.telegramId === 8827675419 || userId === 'usr_8827675419') {
+      fallbackUser.referralCode = 'E4F786112';
+    }
     return {
       user: fallbackUser,
       balances: localBalances,
@@ -1249,9 +1482,16 @@ export const api = {
     try {
       const res = await fetch(`/api/referrals/${userId}`);
       const data = await parseResponseJson(res);
-      if (res.ok && data) return data;
+      if (res.ok && data) {
+        if (userId === 'usr_8827675419' || getLocalUser()?.telegramId === 8827675419) {
+          data.referralCode = 'E4F786112';
+          data.referralLink = `https://t.me/E4F_Web3_mining_bot/app?startapp=E4F786112`;
+        }
+        return data;
+      }
     } catch {}
-    const cachedRefCode = getLocalUser()?.referralCode || '';
+    const isSpecialUser = userId === 'usr_8827675419' || getLocalUser()?.telegramId === 8827675419;
+    const cachedRefCode = isSpecialUser ? 'E4F786112' : (getLocalUser()?.referralCode || '');
     return {
       success: true,
       referrals: [],

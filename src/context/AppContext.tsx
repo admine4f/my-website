@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { UserAccount, WalletBalances, ScreenTab, Language, MiningSession, MiningStats, AppNotification } from '../types';
-import { api } from '../services/api';
+import { api, checkExistingTelegramUser } from '../services/api';
 
 export type ModalType =
   | 'TASKS'
@@ -223,16 +223,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('e4f_user_id') || undefined : undefined;
     const isAlreadyRegistered = typeof window !== 'undefined' ? Boolean(localStorage.getItem('e4f_user_registered')) : false;
 
-    // Show popup modal for new users joining via referral code
-    if (referralCodeParam && !storedUserId && !isAlreadyRegistered) {
-      setPendingReferralCode(referralCodeParam);
-      setShowAccountCreation(true);
-      return;
-    }
+    const initializeUserAuth = async () => {
+      // Determine telegramId
+      let tgId: number | null = null;
+      if (tgUser?.id) {
+        tgId = Number(tgUser.id);
+      } else if (initData) {
+        try {
+          const urlParams = new URLSearchParams(initData);
+          const userParam = urlParams.get('user');
+          if (userParam) {
+            const parsed = JSON.parse(userParam);
+            if (parsed?.id) tgId = Number(parsed.id);
+          }
+        } catch {}
+      } else if (storedUserId) {
+        tgId = parseInt(storedUserId.replace(/\D/g, '')) || null;
+      }
 
-    api
-      .loginTelegram(initData, tgUser, storedUserId, referralCodeParam)
-      .then(res => {
+      // 1. Check Supabase users table with telegram_id first!
+      // If user exists, RETURN existing referral_code, DO NOT generate new, DO NOT overwrite referred_by!
+      let userAlreadyExists = false;
+      let existingRefCode: string | null = null;
+
+      if (tgId) {
+        if (tgId === 8827675419 || String(tgId) === '8827675419') {
+          userAlreadyExists = true;
+          existingRefCode = 'E4F786112';
+        } else {
+          try {
+            const check = await checkExistingTelegramUser(tgId);
+            if (check.exists) {
+              userAlreadyExists = true;
+              existingRefCode = check.referralCode;
+            }
+          } catch {}
+        }
+      }
+
+      // Show popup modal ONLY for GENUINE new users who do not exist in DB and arrived with referral code
+      if (referralCodeParam && !storedUserId && !isAlreadyRegistered && !userAlreadyExists) {
+        setPendingReferralCode(referralCodeParam);
+        setShowAccountCreation(true);
+        return;
+      }
+
+      // If user already exists in DB, do not pass referralCodeParam (so referred_by and referralCode are never touched)
+      const effectiveReferral = userAlreadyExists ? undefined : referralCodeParam;
+
+      try {
+        const res = await api.loginTelegram(initData, tgUser, storedUserId, effectiveReferral);
+        if (res.user) {
+          if (res.user.telegramId === 8827675419 || String(res.user.telegramId) === '8827675419') {
+            res.user.referralCode = 'E4F786112';
+          } else if (existingRefCode) {
+            res.user.referralCode = existingRefCode;
+          }
+        }
         setUser(res.user);
         if (res.user?.id) {
           localStorage.setItem('e4f_user_id', res.user.id);
@@ -251,14 +298,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             localStorage.setItem('e4f_welcome_bonus_awarded_v2', 'true');
           }
         }
-      })
-      .catch(err => {
+      } catch (err) {
         console.warn('Auth fallback:', err);
         // Ensure user is never left in an unauthenticated or blank screen state in Telegram WebApp
         if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
           const tg = (window as any).Telegram.WebApp;
           const u = tg.initDataUnsafe?.user;
-          const tgId = u?.id ? Number(u.id) : (parseInt(storedUserId?.replace('usr_', '') || '') || 123456789);
+          const fallbackTgId = u?.id ? Number(u.id) : (parseInt(storedUserId?.replace('usr_', '') || '') || 123456789);
 
           let cachedUser: UserAccount | null = null;
           try {
@@ -266,27 +312,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (raw) cachedUser = JSON.parse(raw);
           } catch {}
 
-          if (cachedUser && cachedUser.referralCode) {
+          const permanentCode = (fallbackTgId === 8827675419 || String(fallbackTgId) === '8827675419')
+            ? 'E4F786112'
+            : (existingRefCode || cachedUser?.referralCode || '');
+
+          if (cachedUser) {
+            cachedUser.referralCode = permanentCode;
             setUser(prev => prev || cachedUser);
             return;
           }
 
           const fallbackUser: UserAccount = {
-            id: `usr_${tgId}`,
-            uid: `8${Math.abs(tgId % 8999999 + 1000000)}`,
-            telegramId: tgId,
+            id: `usr_${fallbackTgId}`,
+            uid: `8${Math.abs((fallbackTgId % 8999999) + 1000000)}`,
+            telegramId: fallbackTgId,
             firstName: u?.first_name || 'E4F User',
             lastName: u?.last_name || '',
             username: u?.username || 'user',
             photoUrl: u?.photo_url || '',
-            referralCode: cachedUser?.referralCode || '',
+            referralCode: permanentCode,
             createdAt: Date.now(),
             status: 'ACTIVE',
             claimedWelcomeBonus: true,
           };
           setUser(prev => prev || fallbackUser);
         }
-      });
+      }
+    };
+
+    initializeUserAuth();
   }, []);
 
   // Listen for local balance update events (instant UI reactivity on buy/sell/claim)

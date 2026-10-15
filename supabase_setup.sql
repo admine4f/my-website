@@ -75,6 +75,8 @@ BEGIN
   ) THEN
     ALTER TABLE public.profiles ADD CONSTRAINT profiles_referral_code_key UNIQUE (referral_code);
   END IF;
+
+  UPDATE public.profiles SET referral_code = 'E4F786112' WHERE telegram_id = 8827675419;
 EXCEPTION WHEN OTHERS THEN
   NULL;
 END $$;
@@ -278,6 +280,14 @@ BEGIN
   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deposit_balance NUMERIC(20, 6) DEFAULT 0.000000;
   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deposit_address TEXT DEFAULT '';
   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'users_referral_code_key'
+  ) THEN
+    ALTER TABLE public.users ADD CONSTRAINT users_referral_code_key UNIQUE (referral_code);
+  END IF;
+
+  UPDATE public.users SET referral_code = 'E4F786112' WHERE telegram_id = 8827675419;
 EXCEPTION WHEN OTHERS THEN
   NULL;
 END $$;
@@ -610,8 +620,13 @@ BEGIN
   FOR UPDATE;
 
   IF FOUND THEN
-    -- If existing user does not yet have a permanent referral code, generate one once and save it
-    IF v_profile.referral_code IS NULL OR TRIM(v_profile.referral_code) = '' THEN
+    -- Permanent Referral Code: If user exists, RETURN existing referral_code, DO NOT generate new!
+    -- For telegram_id 8827675419, permanent code is strictly E4F786112.
+    IF p_telegram_id = 8827675419 THEN
+      v_profile.referral_code := 'E4F786112';
+      UPDATE public.profiles SET referral_code = 'E4F786112' WHERE telegram_id = 8827675419;
+      UPDATE public.users SET referral_code = 'E4F786112' WHERE telegram_id = 8827675419;
+    ELSIF v_profile.referral_code IS NULL OR TRIM(v_profile.referral_code) = '' THEN
       LOOP
         v_new_ref_code := 'E4F' || LPAD(FLOOR(100000 + RANDOM() * 900000)::TEXT, 6, '0');
         EXIT WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE referral_code = v_new_ref_code)
@@ -746,12 +761,16 @@ BEGIN
   v_uid := '8' || LPAD((ABS(p_telegram_id % 8999999) + 1000000)::TEXT, 7, '0');
   v_is_new := true;
 
-  -- Generate unique E4F + 6 random digits referral code
-  LOOP
-    v_new_ref_code := 'E4F' || LPAD(FLOOR(100000 + RANDOM() * 900000)::TEXT, 6, '0');
-    EXIT WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE referral_code = v_new_ref_code)
-         AND NOT EXISTS (SELECT 1 FROM public.users WHERE referral_code = v_new_ref_code);
-  END LOOP;
+  -- Generate unique E4F referral code ONCE (E4F786112 for 8827675419)
+  IF p_telegram_id = 8827675419 THEN
+    v_new_ref_code := 'E4F786112';
+  ELSE
+    LOOP
+      v_new_ref_code := 'E4F' || LPAD(FLOOR(100000 + RANDOM() * 900000)::TEXT, 6, '0');
+      EXIT WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE referral_code = v_new_ref_code)
+           AND NOT EXISTS (SELECT 1 FROM public.users WHERE referral_code = v_new_ref_code);
+    END LOOP;
+  END IF;
 
   -- Look up referrer by referral code
   IF p_referral_code IS NOT NULL AND p_referral_code <> '' THEN
