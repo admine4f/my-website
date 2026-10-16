@@ -12,8 +12,9 @@ declare global {
   }
 }
 
-export const DEFAULT_ZONE_ID = '11442658';
-export const DEFAULT_DIRECT_LINK = 'https://omg10.com/4/11442658';
+export const DEFAULT_ZONE_ID = '12044377';
+export const DEFAULT_APP_ID = '3534792';
+export const DEFAULT_DIRECT_LINK = '';
 
 /**
  * Ensures Monetag's official Telegram Mini App tag script is mounted.

@@ -98,6 +98,7 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({ onClose }) => {
         <UnifiedRewardedAdModal
           userId={user.id}
           actionType="SPIN"
+          targetId={Math.min(5, Math.max(1, (5 - (spinStatus?.spinsRemainingToday ?? 5)) + 1))}
           title="Rewarded Spin Gate"
           description="Watch the official sponsored rewarded ad to unlock this spin."
           rewardHint="1 Free Lucky Wheel Spin (E4F / USDT)"

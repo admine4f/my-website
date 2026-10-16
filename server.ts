@@ -378,10 +378,10 @@ const systemSettings = {
   miningAdDurationSeconds: 30,
   spinAdDurationSeconds: 30,
   giftBoxAdDurationSeconds: 30,
-  adProvider: 'MONETAG' as 'ADSTERRA' | 'MONETAG' | 'SIMULATOR',
+  adProvider: 'AdsGram' as any,
   adsterraDirectLink: 'https://beta.publishers.adsterra.com/direct-link-demo',
-  monetagDirectLink: 'https://omg10.com/4/11442658',
-  monetagZoneId: '11442658',
+  monetagDirectLink: '',
+  monetagZoneId: '12044377',
   monetagTelegramSdkEnabled: true,
   welcomeBonusEnabled: true,
   welcomeBonusUSDT: 25,
@@ -413,26 +413,26 @@ const systemSettings = {
   spinWheelPrizes: defaultSpinWheelPrizes,
   giftBoxesConfig: defaultGiftBoxesConfig,
   dailyCheckInRewards: defaultDailyCheckInRewards,
-  // Waterfall Ad Block / Zone ID / App IDs (10 Variables)
-  spin_01_adsgram: 'spin_01_adsgram',
-  spin_02_monetag: 'spin_02_monetag',
-  spin_03_onclicka: 'spin_03_onclicka',
-  spin_04_richads: 'spin_04_richads',
-  spin_05_adexora: 'spin_05_adexora',
-  box_01_adsgram: 'box_01_adsgram',
-  box_02_monetag: 'box_02_monetag',
-  box_03_onclicka: 'box_03_onclicka',
-  box_04_richads: 'box_04_richads',
-  box_05_adexora: 'box_05_adexora',
+  // Waterfall Ad Block / Zone ID / App IDs (12 Real IDs)
+  spin_01_adsgram: '54111',
+  spin_02_monetag: '12044377',
+  spin_03_onclicka: '6153772',
+  spin_04_richads: '410260',
+  spin_05_adexora: '2217',
+  box_01_adsgram: '54110',
+  box_02_monetag: '12044377',
+  box_03_onclicka: '6153774',
+  box_04_richads: '410260',
+  box_05_adexora: '2217',
   // Mining Ad Gate & Waterfall Settings (Configurable from Admin without app updates)
   miningPrimaryNetwork: 'AdsGram' as 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora',
   miningSecondaryNetwork: 'Monetag' as 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora',
   miningWaterfallEnabled: true,
-  mining_01_adsgram: 'mining_01_adsgram',
-  mining_02_monetag: '11442658',
-  mining_03_onclicka: 'mining_03_onclicka',
-  mining_04_richads: 'mining_04_richads',
-  mining_05_adexora: 'mining_05_adexora',
+  mining_01_adsgram: '54110',
+  mining_02_monetag: '12044377',
+  mining_03_onclicka: '6153717',
+  mining_04_richads: '410260',
+  mining_05_adexora: '2217',
 };
 
 // Load persisted settings on startup if exists
@@ -740,7 +740,7 @@ function parseSupabaseBalance(row: any): BalanceRecord {
   };
 }
 
-// Read balance directly from Supabase table 'balances'
+// Read balance directly from Supabase table 'balances' (with authoritative fallback to 'wallets')
 async function getSupabaseBalance(userId: string): Promise<BalanceRecord> {
   if (supabase) {
     try {
@@ -752,6 +752,45 @@ async function getSupabaseBalance(userId: string): Promise<BalanceRecord> {
 
       if (error) {
         console.warn('[Supabase] Warning fetching user balance:', userId, error.message);
+      }
+
+      if (data) {
+        const parsed = parseSupabaseBalance(data);
+        if (parsed.usdt > 0 || parsed.e4f > 0 || parsed.btc > 0 || parsed.eth > 0 || parsed.bnb > 0 || parsed.sol > 0) {
+          balances.set(userId, parsed);
+          return parsed;
+        }
+      }
+
+      // If balances row didn't exist or was 0, check authoritative 'wallets' table by telegram_id
+      const tgId = parseInt(userId.replace(/\D/g, ''), 10);
+      if (tgId > 0) {
+        const { data: walData } = await supabase
+          .from('wallets')
+          .select('*')
+          .eq('telegram_id', tgId)
+          .maybeSingle();
+
+        if (walData) {
+          const parsed = parseSupabaseBalance(walData);
+          balances.set(userId, parsed);
+          supabase.from('balances').upsert({
+            user_id: userId,
+            USDT: parsed.usdt,
+            E4F: parsed.e4f,
+            BNB: parsed.bnb,
+            BTC: parsed.btc,
+            ETH: parsed.eth,
+            SOL: parsed.sol,
+            TON: parsed.ton || 0,
+            XRP: parsed.xrp || 0,
+            DOGE: parsed.doge || 0,
+            ADA: parsed.ada || 0,
+            TRX: parsed.trx || 0,
+            LTC: parsed.ltc || 0,
+          }, { onConflict: 'user_id' }).then(() => {});
+          return parsed;
+        }
       }
 
       if (data) {
@@ -774,7 +813,7 @@ async function getSupabaseBalance(userId: string): Promise<BalanceRecord> {
   return bal;
 }
 
-// Write balance directly to Supabase table 'balances'
+// Write balance directly to Supabase table 'balances' and 'wallets'
 async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRecord>): Promise<BalanceRecord> {
   const current = await getSupabaseBalance(userId);
   const updated: BalanceRecord = {
@@ -818,8 +857,11 @@ async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRec
 
       if (userId.startsWith('usr_')) {
         const tgId = parseInt(userId.replace('usr_', ''), 10);
-        if (!isNaN(tgId)) {
-          await supabase.from('wallets').update({
+        if (!isNaN(tgId) && tgId > 0) {
+          await supabase.from('wallets').upsert({
+            id: `wal_${tgId}`,
+            user_id: userId,
+            telegram_id: tgId,
             balance: updated.usdt,
             "USDT": updated.usdt,
             "E4F": updated.e4f,
@@ -834,7 +876,7 @@ async function setSupabaseBalance(userId: string, newBalance: Partial<BalanceRec
             "TRX": updated.trx || 0,
             "LTC": updated.ltc || 0,
             updated_at: new Date().toISOString(),
-          }).eq('telegram_id', tgId);
+          }, { onConflict: 'telegram_id' });
         }
       }
     } catch (err) {
@@ -1672,33 +1714,109 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
     }
   }
 
-  // 1. Supabase Authoritative Authentication via get_or_restore_user RPC
+  // 1. AUTH LOGIC - telegram_id is IMMUTABLE PRIMARY KEY:
+  // Check Supabase users, profiles, and wallets table with telegram_id FIRST
+  if (supabase && tgUser) {
+    const tgId = Number(tgUser.id);
+    const fixedUserId = `usr_${tgId}`;
+
+    try {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', tgId)
+        .maybeSingle();
+
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('telegram_id', tgId)
+        .maybeSingle();
+
+      const { data: existingWallet } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('telegram_id', tgId)
+        .maybeSingle();
+
+      if (existingUser || existingProfile || existingWallet) {
+        // User already exists! DO NOT overwrite referral_code, DO NOT create new wallet, return old account as-is!
+        const rec = existingUser || existingProfile;
+        let permanentRefCode = (tgId === 8827675419)
+          ? 'E4F786112'
+          : (existingUser?.referral_code || existingProfile?.referral_code);
+
+        if (tgId === 8827675419) {
+          permanentRefCode = 'E4F786112';
+          supabase.from('users').update({ referral_code: 'E4F786112' }).eq('telegram_id', 8827675419).then(() => {});
+          supabase.from('profiles').update({ referral_code: 'E4F786112' }).eq('telegram_id', 8827675419).then(() => {});
+        } else if (!permanentRefCode) {
+          permanentRefCode = generateUniqueReferralCode(tgId);
+          supabase.from('users').update({ referral_code: permanentRefCode }).eq('telegram_id', tgId).then(() => {});
+          supabase.from('profiles').update({ referral_code: permanentRefCode }).eq('telegram_id', tgId).then(() => {});
+        }
+
+        const restoredUser: UserRecord = {
+          id: fixedUserId,
+          uid: rec?.uid || `8${Math.abs((tgId % 8999999) + 1000000)}`,
+          telegramId: tgId,
+          firstName: rec?.first_name || tgUser.first_name || 'E4F User',
+          lastName: rec?.last_name || tgUser.last_name || '',
+          username: rec?.username || tgUser.username || 'user',
+          photoUrl: rec?.photo_url || (tgUser as any).photo_url || '',
+          referralCode: permanentRefCode,
+          referredBy: rec?.referred_by || undefined,
+          createdAt: rec?.created_at ? new Date(rec.created_at).getTime() : Date.now(),
+          status: rec?.status || 'ACTIVE',
+          claimedWelcomeBonus: Boolean(rec?.claimed_welcome_bonus),
+          isDemoUser: false,
+          isVerified: Boolean(rec?.is_verified),
+          depositBalance: Number(rec?.deposit_balance) || 0,
+          depositAddress: rec?.deposit_address || generateUserDepositAddress(fixedUserId, rec?.uid || '81234567'),
+        };
+
+        // Fetch balances directly from existing wallet or balances table
+        let userBalances: BalanceRecord;
+        if (existingWallet) {
+          userBalances = {
+            usdt: Number(existingWallet.USDT !== undefined ? existingWallet.USDT : existingWallet.balance) || 0,
+            e4f: Number(existingWallet.E4F) || 0,
+            bnb: Number(existingWallet.BNB) || 0,
+            btc: Number(existingWallet.BTC) || 0,
+            eth: Number(existingWallet.ETH) || 0,
+            sol: Number(existingWallet.SOL) || 0,
+            ton: Number(existingWallet.TON) || 0,
+            xrp: Number(existingWallet.XRP) || 0,
+            doge: Number(existingWallet.DOGE) || 0,
+            ada: Number(existingWallet.ADA) || 0,
+            trx: Number(existingWallet.TRX) || 0,
+            ltc: Number(existingWallet.LTC) || 0,
+          };
+          setSupabaseBalance(fixedUserId, userBalances).catch(() => {});
+        } else {
+          userBalances = await getSupabaseBalance(fixedUserId);
+        }
+
+        users.set(fixedUserId, restoredUser);
+        balances.set(fixedUserId, userBalances);
+        const sessionToken = generateUserSessionToken(fixedUserId);
+
+        return res.json({
+          success: true,
+          user: restoredUser,
+          balances: userBalances,
+          token: sessionToken,
+          serverTime: Date.now(),
+        });
+      }
+    } catch (checkErr: any) {
+      console.warn('[Supabase Auth Check existing user warning]:', checkErr.message);
+    }
+  }
+
+  // 2. Truly new user registration via get_or_restore_user RPC or getOrCreateUserAsync
   if (supabase && tgUser) {
     try {
-      // Check Supabase users table with telegram_id first
-      let existingDbRefCode: string | null = null;
-      if (tgUser.id === 8827675419) {
-        existingDbRefCode = 'E4F786112';
-      } else {
-        const { data: dbUser } = await supabase
-          .from('users')
-          .select('referral_code')
-          .eq('telegram_id', tgUser.id)
-          .maybeSingle();
-
-        if (dbUser?.referral_code) {
-          existingDbRefCode = dbUser.referral_code;
-        } else {
-          const { data: dbProfile } = await supabase
-            .from('profiles')
-            .select('referral_code')
-            .eq('telegram_id', tgUser.id)
-            .maybeSingle();
-          if (dbProfile?.referral_code) {
-            existingDbRefCode = dbProfile.referral_code;
-          }
-        }
-      }
 
       const { data: rpcData, error: rpcError } = await supabase.rpc('get_or_restore_user', {
         p_telegram_id: tgUser.id,
@@ -1727,7 +1845,7 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
             .maybeSingle();
 
           if (profileData) {
-            let refCode = (tgUser.id === 8827675419) ? 'E4F786112' : (existingDbRefCode || profileData.referral_code);
+            let refCode = (tgUser.id === 8827675419) ? 'E4F786112' : profileData.referral_code;
             if (!refCode) {
               refCode = generateUniqueReferralCode(tgUser.id);
               if (supabase) {
@@ -1797,8 +1915,6 @@ app.post('/api/auth/telegram', async (req: Request, res: Response) => {
         const b = rpcData.balances;
         if (tgUser.id === 8827675419 || u.telegramId === 8827675419) {
           u.referralCode = 'E4F786112';
-        } else if (existingDbRefCode) {
-          u.referralCode = existingDbRefCode;
         }
         users.set(u.id, u);
         balances.set(u.id, b);
@@ -1960,6 +2076,21 @@ app.get('/api/user/by-telegram/:telegramId', async (req: Request, res: Response)
           exists: true,
           referralCode: dbProfile.referral_code,
           user: dbProfile,
+        });
+      }
+
+      const { data: dbWallet } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('telegram_id', tgId)
+        .maybeSingle();
+
+      if (dbWallet) {
+        return res.json({
+          success: true,
+          exists: true,
+          referralCode: null,
+          wallet: dbWallet,
         });
       }
     } catch (err: any) {
@@ -2136,29 +2267,29 @@ app.get(['/api/system/public-settings', '/api/system/settings', '/system/public-
     miningRatePerHour: systemSettings.miningRatePerHour || 0.25,
     miningDurationHours: systemSettings.miningDurationHours || 8,
     monetagTelegramSdkEnabled: systemSettings.monetagTelegramSdkEnabled !== false,
-    monetagZoneId: systemSettings.monetagZoneId || '11442658',
-    monetagDirectLink: systemSettings.monetagDirectLink || 'https://omg10.com/4/11442658',
+    monetagZoneId: systemSettings.monetagZoneId || '12044377',
+    monetagDirectLink: '',
     adsterraDirectLink: systemSettings.adsterraDirectLink || 'https://beta.publishers.adsterra.com/direct-link-demo',
-    // Waterfall Ad IDs (10 Variables)
-    spin_01_adsgram: systemSettings.spin_01_adsgram || 'spin_01_adsgram',
-    spin_02_monetag: systemSettings.spin_02_monetag || 'spin_02_monetag',
-    spin_03_onclicka: systemSettings.spin_03_onclicka || 'spin_03_onclicka',
-    spin_04_richads: systemSettings.spin_04_richads || 'spin_04_richads',
-    spin_05_adexora: systemSettings.spin_05_adexora || 'spin_05_adexora',
-    box_01_adsgram: systemSettings.box_01_adsgram || 'box_01_adsgram',
-    box_02_monetag: systemSettings.box_02_monetag || 'box_02_monetag',
-    box_03_onclicka: systemSettings.box_03_onclicka || 'box_03_onclicka',
-    box_04_richads: systemSettings.box_04_richads || 'box_04_richads',
-    box_05_adexora: systemSettings.box_05_adexora || 'box_05_adexora',
+    // Waterfall Ad IDs (12 Real IDs)
+    spin_01_adsgram: systemSettings.spin_01_adsgram || '54111',
+    spin_02_monetag: systemSettings.spin_02_monetag || '12044377',
+    spin_03_onclicka: systemSettings.spin_03_onclicka || '6153772',
+    spin_04_richads: systemSettings.spin_04_richads || '410260',
+    spin_05_adexora: systemSettings.spin_05_adexora || '2217',
+    box_01_adsgram: systemSettings.box_01_adsgram || '54110',
+    box_02_monetag: systemSettings.box_02_monetag || '12044377',
+    box_03_onclicka: systemSettings.box_03_onclicka || '6153774',
+    box_04_richads: systemSettings.box_04_richads || '410260',
+    box_05_adexora: systemSettings.box_05_adexora || '2217',
     // Mining Ad Gate & Waterfall (Configurable by Admin without app updates)
     miningPrimaryNetwork: systemSettings.miningPrimaryNetwork || 'AdsGram',
     miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'Monetag',
     miningWaterfallEnabled: systemSettings.miningWaterfallEnabled !== false,
-    mining_01_adsgram: systemSettings.mining_01_adsgram || 'mining_01_adsgram',
-    mining_02_monetag: systemSettings.mining_02_monetag || '11442658',
-    mining_03_onclicka: systemSettings.mining_03_onclicka || 'mining_03_onclicka',
-    mining_04_richads: systemSettings.mining_04_richads || 'mining_04_richads',
-    mining_05_adexora: systemSettings.mining_05_adexora || 'mining_05_adexora',
+    mining_01_adsgram: systemSettings.mining_01_adsgram || '54110',
+    mining_02_monetag: systemSettings.mining_02_monetag || '12044377',
+    mining_03_onclicka: systemSettings.mining_03_onclicka || '6153717',
+    mining_04_richads: systemSettings.mining_04_richads || '410260',
+    mining_05_adexora: systemSettings.mining_05_adexora || '2217',
   });
 });
 
@@ -2465,6 +2596,19 @@ app.post('/api/ads/session/create', async (req: Request, res: Response) => {
   });
   scheduleSaveDatabase();
 
+  // Record ad view in Supabase e4f_ad_views
+  if (supabase) {
+    try {
+      const placement = actionType + (targetId ? `_${targetId}` : '');
+      Promise.resolve(supabase.from('e4f_ad_views').insert({
+        user_id: userId,
+        network: systemSettings.adProvider || 'AdsGram',
+        placement,
+        created_at: new Date().toISOString(),
+      })).catch(() => {});
+    } catch {}
+  }
+
   res.json({
     success: true,
     sessionId: session.sessionId,
@@ -2472,8 +2616,8 @@ app.post('/api/ads/session/create', async (req: Request, res: Response) => {
     actionType: session.actionType,
     targetId: session.targetId,
     durationSeconds: sessionDuration,
-    zoneId: systemSettings.monetagZoneId || '11442658',
-    directLink: systemSettings.monetagDirectLink || 'https://omg10.com/4/11442658',
+    zoneId: systemSettings.monetagZoneId || '12044377',
+    directLink: '',
     provider: systemSettings.adProvider,
     serverTime: now,
   });
@@ -2653,6 +2797,26 @@ app.post('/api/ads/session/complete', (req: Request, res: Response) => {
 
   scheduleSaveDatabase();
 
+  // Record verified ad completion event in Supabase e4f_ad_events
+  if (supabase) {
+    try {
+      const placement = session.actionType + (session.targetId ? `_${session.targetId}` : '');
+      const net = typeof sdkSignal === 'string' && sdkSignal.includes('ADSGRAM') ? 'AdsGram'
+        : typeof sdkSignal === 'string' && sdkSignal.includes('MONETAG') ? 'Monetag'
+        : typeof sdkSignal === 'string' && sdkSignal.includes('ONCLICKA') ? 'OnClickA'
+        : typeof sdkSignal === 'string' && sdkSignal.includes('RICHADS') ? 'RichAds'
+        : typeof sdkSignal === 'string' && sdkSignal.includes('ADEXORA') ? 'Adexora'
+        : (systemSettings.adProvider || 'AdsGram');
+      Promise.resolve(supabase.from('e4f_ad_events').insert({
+        user_id: session.userId,
+        network: net,
+        placement,
+        reward_token: claimToken,
+        created_at: new Date().toISOString(),
+      })).catch(() => {});
+    } catch {}
+  }
+
   res.json({
     success: true,
     verified: true,
@@ -2660,6 +2824,38 @@ app.post('/api/ads/session/complete', (req: Request, res: Response) => {
     claimToken,
     serverTime: now,
   });
+});
+
+// Direct endpoints to record Ad Views and Events in Supabase
+app.post('/api/ads/log-view', async (req: Request, res: Response) => {
+  const { userId, network, placement } = req.body;
+  if (supabase && userId && network && placement) {
+    try {
+      await supabase.from('e4f_ad_views').insert({
+        user_id: String(userId),
+        network: String(network),
+        placement: String(placement),
+        created_at: new Date().toISOString(),
+      });
+    } catch {}
+  }
+  res.json({ success: true });
+});
+
+app.post('/api/ads/log-event', async (req: Request, res: Response) => {
+  const { userId, network, placement, rewardToken } = req.body;
+  if (supabase && userId && network && placement && rewardToken) {
+    try {
+      await supabase.from('e4f_ad_events').insert({
+        user_id: String(userId),
+        network: String(network),
+        placement: String(placement),
+        reward_token: String(rewardToken),
+        created_at: new Date().toISOString(),
+      });
+    } catch {}
+  }
+  res.json({ success: true });
 });
 
 // Check Active Ad Session for user (continues session on return/remount/refresh)

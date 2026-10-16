@@ -69,27 +69,27 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   const [monetagTelegramSdkEnabled, setMonetagTelegramSdkEnabled] = useState(true);
 
   // 10 Waterfall Ad Variables for Spin & Gift Box
-  const [spin01Adsgram, setSpin01Adsgram] = useState('spin_01_adsgram');
-  const [spin02Monetag, setSpin02Monetag] = useState('spin_02_monetag');
-  const [spin03Onclicka, setSpin03Onclicka] = useState('spin_03_onclicka');
-  const [spin04Richads, setSpin04Richads] = useState('spin_04_richads');
-  const [spin05Adexora, setSpin05Adexora] = useState('spin_05_adexora');
+  const [spin01Adsgram, setSpin01Adsgram] = useState('54111');
+  const [spin02Monetag, setSpin02Monetag] = useState('12044377');
+  const [spin03Onclicka, setSpin03Onclicka] = useState('6153772');
+  const [spin04Richads, setSpin04Richads] = useState('410260');
+  const [spin05Adexora, setSpin05Adexora] = useState('2217');
 
-  const [box01Adsgram, setBox01Adsgram] = useState('box_01_adsgram');
-  const [box02Monetag, setBox02Monetag] = useState('box_02_monetag');
-  const [box03Onclicka, setBox03Onclicka] = useState('box_03_onclicka');
-  const [box04Richads, setBox04Richads] = useState('box_04_richads');
-  const [box05Adexora, setBox05Adexora] = useState('box_05_adexora');
+  const [box01Adsgram, setBox01Adsgram] = useState('54110');
+  const [box02Monetag, setBox02Monetag] = useState('12044377');
+  const [box03Onclicka, setBox03Onclicka] = useState('6153774');
+  const [box04Richads, setBox04Richads] = useState('410260');
+  const [box05Adexora, setBox05Adexora] = useState('2217');
 
   // Mining Ad Network & Waterfall Gate Settings (Real-Time Admin Control)
   const [miningPrimaryNetwork, setMiningPrimaryNetwork] = useState<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'>('AdsGram');
   const [miningSecondaryNetwork, setMiningSecondaryNetwork] = useState<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'>('Monetag');
   const [miningWaterfallEnabled, setMiningWaterfallEnabled] = useState(true);
-  const [mining01Adsgram, setMining01Adsgram] = useState('mining_01_adsgram');
-  const [mining02Monetag, setMining02Monetag] = useState('11442658');
-  const [mining03Onclicka, setMining03Onclicka] = useState('mining_03_onclicka');
-  const [mining04Richads, setMining04Richads] = useState('mining_04_richads');
-  const [mining05Adexora, setMining05Adexora] = useState('mining_05_adexora');
+  const [mining01Adsgram, setMining01Adsgram] = useState('54110');
+  const [mining02Monetag, setMining02Monetag] = useState('12044377');
+  const [mining03Onclicka, setMining03Onclicka] = useState('6153717');
+  const [mining04Richads, setMining04Richads] = useState('410260');
+  const [mining05Adexora, setMining05Adexora] = useState('2217');
   // Hourly Mining Rate (E4F / Hour) - Dynamic Real-Time Admin Control
   const [miningRatePerHour, setMiningRatePerHour] = useState<number>(miningStats?.miningRatePerHour ?? 0.25);
 

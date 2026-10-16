@@ -110,6 +110,16 @@ export async function checkExistingTelegramUser(telegramId: number): Promise<{ e
       if (existingProfile) {
         return { exists: true, referralCode: existingProfile.referral_code, user: existingProfile };
       }
+
+      const { data: existingWallet } = await supabaseClient
+        .from('wallets')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .maybeSingle();
+
+      if (existingWallet) {
+        return { exists: true, referralCode: null, user: { id: `usr_${telegramId}`, telegramId } };
+      }
     } catch (err) {
       console.warn('[Supabase Client Check] Error in checkExistingTelegramUser:', err);
     }
@@ -478,49 +488,77 @@ export const api = {
       return { user: localUser, balances: cachedBals || getLocalBalances(), serverTime: Date.now() };
     }
 
-    // If direct Supabase query found an existing user in users table but fetch failed:
+    // If direct Supabase query found an existing user in users or profiles or wallets table:
     if (tgId && supabaseClient) {
       try {
-        const { data: dbUser } = await supabaseClient
+        let { data: dbUser } = await supabaseClient
           .from('users')
           .select('*')
           .eq('telegram_id', tgId)
           .maybeSingle();
 
-        if (dbUser) {
-          let dbBalances: WalletBalances = cachedBals || getLocalBalances();
-          try {
-            const { data: balRow } = await supabaseClient
-              .from('balances')
-              .select('*')
-              .eq('user_id', dbUser.id || `usr_${tgId}`)
-              .maybeSingle();
+        if (!dbUser) {
+          const { data: profUser } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('telegram_id', tgId)
+            .maybeSingle();
+          dbUser = profUser;
+        }
 
-            if (balRow) {
-              dbBalances = {
-                usdt: Number(balRow.usdt ?? balRow.USDT ?? 0),
-                e4f: Number(balRow.e4f ?? balRow.E4F ?? 0),
-                btc: Number(balRow.btc ?? balRow.BTC ?? 0),
-                eth: Number(balRow.eth ?? balRow.ETH ?? 0),
-                sol: Number(balRow.sol ?? balRow.SOL ?? 0),
-                bnb: Number(balRow.bnb ?? balRow.BNB ?? 0),
-              };
-              saveLocalBalances(dbBalances);
-            }
-          } catch {}
+        const { data: walRow } = await supabaseClient
+          .from('wallets')
+          .select('*')
+          .eq('telegram_id', tgId)
+          .maybeSingle();
+
+        if (dbUser || walRow) {
+          let dbBalances: WalletBalances = cachedBals || getLocalBalances();
+
+          if (walRow) {
+            dbBalances = {
+              usdt: Number(walRow.USDT !== undefined ? walRow.USDT : (walRow.balance ?? 0)),
+              e4f: Number(walRow.E4F ?? 0),
+              btc: Number(walRow.BTC ?? 0),
+              eth: Number(walRow.ETH ?? 0),
+              sol: Number(walRow.SOL ?? 0),
+              bnb: Number(walRow.BNB ?? 0),
+            };
+            saveLocalBalances(dbBalances);
+          } else {
+            try {
+              const { data: balRow } = await supabaseClient
+                .from('balances')
+                .select('*')
+                .eq('user_id', dbUser?.id || `usr_${tgId}`)
+                .maybeSingle();
+
+              if (balRow) {
+                dbBalances = {
+                  usdt: Number(balRow.usdt ?? balRow.USDT ?? 0),
+                  e4f: Number(balRow.e4f ?? balRow.E4F ?? 0),
+                  btc: Number(balRow.btc ?? balRow.BTC ?? 0),
+                  eth: Number(balRow.eth ?? balRow.ETH ?? 0),
+                  sol: Number(balRow.sol ?? balRow.SOL ?? 0),
+                  bnb: Number(balRow.bnb ?? balRow.BNB ?? 0),
+                };
+                saveLocalBalances(dbBalances);
+              }
+            } catch {}
+          }
 
           const restoredUser: UserAccount = {
-            id: dbUser.id || `usr_${tgId}`,
-            uid: dbUser.uid || `8${Math.abs(tgId % 8999999 + 1000000)}`,
+            id: dbUser?.id || `usr_${tgId}`,
+            uid: dbUser?.uid || `8${Math.abs((tgId % 8999999) + 1000000)}`,
             telegramId: tgId,
-            firstName: dbUser.first_name || 'E4F User',
-            lastName: dbUser.last_name || '',
-            username: dbUser.username || 'user',
-            photoUrl: dbUser.photo_url || '',
-            referralCode: tgId === 8827675419 ? 'E4F786112' : (dbUser.referral_code || existingReferralCode || ''),
-            createdAt: dbUser.created_at ? new Date(dbUser.created_at).getTime() : Date.now(),
-            status: dbUser.status || 'ACTIVE',
-            claimedWelcomeBonus: Boolean(dbUser.claimed_welcome_bonus),
+            firstName: dbUser?.first_name || 'E4F User',
+            lastName: dbUser?.last_name || '',
+            username: dbUser?.username || 'user',
+            photoUrl: dbUser?.photo_url || '',
+            referralCode: tgId === 8827675419 ? 'E4F786112' : (dbUser?.referral_code || existingReferralCode || ''),
+            createdAt: dbUser?.created_at ? new Date(dbUser.created_at).getTime() : Date.now(),
+            status: dbUser?.status || 'ACTIVE',
+            claimedWelcomeBonus: Boolean(dbUser?.claimed_welcome_bonus),
           };
           localStorage.setItem('e4f_cached_user', JSON.stringify(restoredUser));
           localStorage.setItem('e4f_user_id', restoredUser.id);
@@ -766,12 +804,49 @@ export const api = {
       token: `tok_${Math.random().toString(36).slice(2)}`,
       actionType,
       targetId,
-      zoneId: '11442658',
-      directLink: 'https://omg10.com/4/11442658',
-      provider: 'Monetag',
+      zoneId: '12044377',
+      directLink: '',
+      provider: 'AdsGram',
       serverTime: now,
       durationSeconds: 30,
     };
+  },
+
+  async logAdView(userId: string, network: string, placement: string): Promise<void> {
+    try {
+      if (supabaseClient) {
+        Promise.resolve(supabaseClient.from('e4f_ad_views').insert({
+          user_id: userId,
+          network,
+          placement,
+          created_at: new Date().toISOString(),
+        })).catch(() => {});
+      }
+      fetch('/api/ads/log-view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, network, placement }),
+      }).catch(() => {});
+    } catch {}
+  },
+
+  async logAdEvent(userId: string, network: string, placement: string, rewardToken: string): Promise<void> {
+    try {
+      if (supabaseClient) {
+        Promise.resolve(supabaseClient.from('e4f_ad_events').insert({
+          user_id: userId,
+          network,
+          placement,
+          reward_token: rewardToken,
+          created_at: new Date().toISOString(),
+        })).catch(() => {});
+      }
+      fetch('/api/ads/log-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, network, placement, rewardToken }),
+      }).catch(() => {});
+    } catch {}
   },
 
   async startAdWatching(

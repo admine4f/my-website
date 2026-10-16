@@ -17,30 +17,33 @@ import { getAdTargetUrl, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../serv
 import { loadAdsgramScript } from '../../services/adWaterfall';
 
 // =========================================================================
-// 🎯 WATERFALL AD CONFIGURATION (10 EDITABLE VARIABLES)
+// 🎯 WATERFALL AD CONFIGURATION (12 REAL IDS MAPPED ACROSS 11 BUTTONS)
 // (Can be edited directly here or dynamically from Admin Control Panel)
 // =========================================================================
-export let SPIN_01_ADSGRAM = 'spin_01_adsgram';
-export let SPIN_02_MONETAG = 'spin_02_monetag';
-export let SPIN_03_ONCLICKA = 'spin_03_onclicka';
-export let SPIN_04_RICHADS = 'spin_04_richads';
-export let SPIN_05_ADEXORA = 'spin_05_adexora';
+export let SPIN_01_ADSGRAM = '54111';
+export let SPIN_02_MONETAG = '12044377';
+export let SPIN_03_ONCLICKA = '6153772';
+export let SPIN_04_RICHADS = '410260';
+export let SPIN_05_ADEXORA = '2217';
 
-export let BOX_01_ADSGRAM = 'box_01_adsgram';
-export let BOX_02_MONETAG = 'box_02_monetag';
-export let BOX_03_ONCLICKA = 'box_03_onclicka';
-export let BOX_04_RICHADS = 'box_04_richads';
-export let BOX_05_ADEXORA = 'box_05_adexora';
+export let BOX_01_ADSGRAM = '54110';
+export let BOX_02_MONETAG = '12044377';
+export let BOX_03_ONCLICKA = '6153774';
+export let BOX_04_RICHADS = '410260';
+export let BOX_05_ADEXORA = '2217';
 
 // Mining Waterfall Ad Variables (Configurable from Admin without app updates)
-export let MINING_01_ADSGRAM = 'mining_01_adsgram';
-export let MINING_02_MONETAG = '11442658';
-export let MINING_03_ONCLICKA = 'mining_03_onclicka';
-export let MINING_04_RICHADS = 'mining_04_richads';
-export let MINING_05_ADEXORA = 'mining_05_adexora';
+export let MINING_01_ADSGRAM = '54110';
+export let MINING_02_MONETAG = '12044377';
+export let MINING_03_ONCLICKA = '6153717';
+export let MINING_04_RICHADS = '410260';
+export let MINING_05_ADEXORA = '2217';
 export let MINING_PRIMARY_NETWORK: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora' = 'AdsGram';
 export let MINING_SECONDARY_NETWORK: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora' = 'Monetag';
 export let MINING_WATERFALL_ENABLED = true;
+
+// 5 RichAds Placements (1=Push-style, 2=Embedded banner, 3=Interstitial banner, 4=Interstitial video, 5=Playable ads)
+export const RICHADS_PLACEMENTS = ['410260', '410261', '410262', '410263', '410264'];
 
 interface WaterfallTier {
   index: number;
@@ -160,6 +163,10 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
         const isTg = typeof window !== 'undefined' && Boolean((window as any).Telegram?.WebApp?.initData);
 
+        const targetNum = Math.max(1, Math.min(5, Number(targetId) || 1));
+        const spinRichAdsId = RICHADS_PLACEMENTS[targetNum - 1] || SPIN_04_RICHADS;
+        const boxRichAdsId = RICHADS_PLACEMENTS[targetNum - 1] || BOX_04_RICHADS;
+
         // Construct 5 Waterfall Tiers
         let computedTiers: WaterfallTier[] = [];
         if (actionType === 'SPIN') {
@@ -167,12 +174,12 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
             { index: 1, provider: 'AdsGram', id: SPIN_01_ADSGRAM, label: 'AdsGram' },
             { index: 2, provider: 'Monetag', id: SPIN_02_MONETAG, label: 'Monetag' },
             { index: 3, provider: 'OnClickA', id: SPIN_03_ONCLICKA, label: 'OnClickA' },
-            { index: 4, provider: 'RichAds', id: SPIN_04_RICHADS, label: 'RichAds' },
+            { index: 4, provider: 'RichAds', id: spinRichAdsId, label: 'RichAds' },
             { index: 5, provider: 'Adexora', id: SPIN_05_ADEXORA, label: 'Adexora' },
           ] : [
             { index: 1, provider: 'Monetag', id: SPIN_02_MONETAG, label: 'Monetag' },
             { index: 2, provider: 'OnClickA', id: SPIN_03_ONCLICKA, label: 'OnClickA' },
-            { index: 3, provider: 'RichAds', id: SPIN_04_RICHADS, label: 'RichAds' },
+            { index: 3, provider: 'RichAds', id: spinRichAdsId, label: 'RichAds' },
             { index: 4, provider: 'Adexora', id: SPIN_05_ADEXORA, label: 'Adexora' },
             { index: 5, provider: 'AdsGram', id: SPIN_01_ADSGRAM, label: 'AdsGram' },
           ];
@@ -181,12 +188,12 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
             { index: 1, provider: 'AdsGram', id: BOX_01_ADSGRAM, label: 'AdsGram' },
             { index: 2, provider: 'Monetag', id: BOX_02_MONETAG, label: 'Monetag' },
             { index: 3, provider: 'OnClickA', id: BOX_03_ONCLICKA, label: 'OnClickA' },
-            { index: 4, provider: 'RichAds', id: BOX_04_RICHADS, label: 'RichAds' },
+            { index: 4, provider: 'RichAds', id: boxRichAdsId, label: 'RichAds' },
             { index: 5, provider: 'Adexora', id: BOX_05_ADEXORA, label: 'Adexora' },
           ] : [
             { index: 1, provider: 'Monetag', id: BOX_02_MONETAG, label: 'Monetag' },
             { index: 2, provider: 'OnClickA', id: BOX_03_ONCLICKA, label: 'OnClickA' },
-            { index: 3, provider: 'RichAds', id: BOX_04_RICHADS, label: 'RichAds' },
+            { index: 3, provider: 'RichAds', id: boxRichAdsId, label: 'RichAds' },
             { index: 4, provider: 'Adexora', id: BOX_05_ADEXORA, label: 'Adexora' },
             { index: 5, provider: 'AdsGram', id: BOX_01_ADSGRAM, label: 'AdsGram' },
           ];
@@ -373,6 +380,10 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     const currentTier = tiers[tierIndex] || tiers[0];
     setErrorMsg(null);
 
+    // Track Ad View in Supabase e4f_ad_views
+    const placementName = `${actionType}_${targetId || 1}`;
+    api.logAdView(userId, currentTier.provider, placementName);
+
     // =========================================================
     // CASE A: ADSGRAM TIER (Native Telegram Mini App Video Ad)
     // =========================================================
@@ -383,7 +394,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         const adsgramObj = (window as any).Adsgram;
 
         if (scriptLoaded && adsgramObj && typeof adsgramObj.init === 'function') {
-          // Initialize AdsGram controller with block ID
+          // Initialize AdsGram controller with block ID (54110 or 54111)
           const AdController = adsgramObj.init({ blockId: currentTier.id, debug: false });
           const res = await AdController.show();
 
@@ -407,7 +418,28 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // =========================================================
-    // CASE B: MONETAG, ONCLICKA, RICHADS, ADEXORA (30s Rewarded)
+    // CASE B: MONETAG TIER (In-App SDK with Zone ID 12044377)
+    // =========================================================
+    if (currentTier.provider === 'Monetag') {
+      setStep('WATCHING');
+      const zoneId = currentTier.id || '12044377';
+      try {
+        if (typeof (window as any).show_88 === 'function' || typeof (window as any).show_tag === 'function') {
+          const showFn = (window as any).show_88 || (window as any).show_tag;
+          await showFn(zoneId);
+          handleClaimReward(`MONETAG_${zoneId}_COMPLETED`);
+          return;
+        }
+      } catch (err: any) {
+        console.warn('[Monetag] show_88 error:', err);
+      }
+      // If in-app SDK is not mounted, advance waterfall to OnClickA / RichAds / Adexora
+      advanceWaterfall('Monetag in-app ad not available in this session.');
+      return;
+    }
+
+    // =========================================================
+    // CASE C: ONCLICKA, RICHADS, ADEXORA (30s Rewarded Waterfall)
     // =========================================================
     const now = Date.now();
     currentBurstStartTimeRef.current = now;
@@ -421,24 +453,21 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
       }
     }
 
-    // Determine target URL for the active network
-    let targetUrl = adSession.directLink;
-    if (currentTier.provider === 'Monetag') {
+    // Determine target URL for the active network (No direct links to omg10.com)
+    let targetUrl = '#';
+    if (currentTier.provider === 'OnClickA') {
       const customId = currentTier.id;
-      targetUrl = customId && customId.startsWith('http') ? customId : getAdTargetUrl(adSession.directLink, customId || adSession.zoneId);
-    } else if (currentTier.provider === 'OnClickA') {
-      const customId = currentTier.id;
-      targetUrl = customId && customId.startsWith('http') ? customId : `https://onclicka.com/zone/${customId || 'onclicka_direct'}`;
+      targetUrl = customId && customId.startsWith('http') ? customId : `https://onclicka.com/zone/${customId || '6153717'}`;
     } else if (currentTier.provider === 'RichAds') {
       const customId = currentTier.id;
-      targetUrl = customId && customId.startsWith('http') ? customId : `https://richads.com/zone/${customId || 'richads_direct'}`;
+      targetUrl = customId && customId.startsWith('http') ? customId : `https://richads.com/zone/${customId || '410260'}`;
     } else if (currentTier.provider === 'Adexora') {
       const customId = currentTier.id;
-      targetUrl = customId && customId.startsWith('http') ? customId : `https://adexora.com/zone/${customId || 'adexora_direct'}`;
+      targetUrl = customId && customId.startsWith('http') ? customId : `https://adexora.com/zone/${customId || '2217'}`;
     }
 
-    // Open ad window
-    if (typeof window !== 'undefined') {
+    // Open ad window via Telegram WebApp or browser
+    if (typeof window !== 'undefined' && targetUrl !== '#') {
       if ((window as any).Telegram?.WebApp?.openLink) {
         if (e) e.preventDefault();
         try {
@@ -493,6 +522,10 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
       );
 
       if (verifyRes.verified && verifyRes.claimToken) {
+        // Log Ad Event in Supabase e4f_ad_events
+        const placementName = `${actionType}_${targetId || 1}`;
+        api.logAdEvent(userId, currentTier.provider, placementName, verifyRes.claimToken);
+
         setStep('COMPLETED');
         if (isMountedRef.current) {
           onComplete(adSession.sessionId, verifyRes.claimToken);
@@ -519,20 +552,17 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   // Determine current Tier target ad URL
   let activeAdUrl = '#';
   if (adSession && currentTier) {
-    if (currentTier.provider === 'Monetag') {
+    if (currentTier.provider === 'OnClickA') {
       const customId = currentTier.id;
-      activeAdUrl = customId && customId.startsWith('http') ? customId : getAdTargetUrl(adSession.directLink, customId || adSession.zoneId);
-    } else if (currentTier.provider === 'OnClickA') {
-      const customId = currentTier.id;
-      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://onclicka.com/zone/${customId || 'onclicka_direct'}`;
+      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://onclicka.com/zone/${customId || '6153717'}`;
     } else if (currentTier.provider === 'RichAds') {
       const customId = currentTier.id;
-      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://richads.com/zone/${customId || 'richads_direct'}`;
+      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://richads.com/zone/${customId || '410260'}`;
     } else if (currentTier.provider === 'Adexora') {
       const customId = currentTier.id;
-      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://adexora.com/zone/${customId || 'adexora_direct'}`;
+      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://adexora.com/zone/${customId || '2217'}`;
     } else {
-      activeAdUrl = adSession.directLink;
+      activeAdUrl = '#';
     }
   }
 

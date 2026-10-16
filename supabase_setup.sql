@@ -136,11 +136,24 @@ BEGIN
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "TRX" NUMERIC(20, 6) DEFAULT 0.000000;
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS "LTC" NUMERIC(20, 6) DEFAULT 0.000000;
   ALTER TABLE public.wallets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'wallets_telegram_id_key'
+  ) THEN
+    ALTER TABLE public.wallets ADD CONSTRAINT wallets_telegram_id_key UNIQUE (telegram_id);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'wallets_user_id_key'
+  ) THEN
+    ALTER TABLE public.wallets ADD CONSTRAINT wallets_user_id_key UNIQUE (user_id);
+  END IF;
 EXCEPTION WHEN OTHERS THEN
   NULL;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_wallets_telegram_id ON public.wallets(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_wallets_user_id ON public.wallets(user_id);
 
 -- =====================================================================
 -- 4. REFERRALS TABLE
@@ -682,10 +695,10 @@ BEGIN
       -- If wallet record is missing, initialize safely without overwriting
       INSERT INTO public.wallets (
         telegram_id, balance, total_mined, referral_earnings,
-        user_id, "USDT", "E4F", updated_at
+        id, user_id, "USDT", "E4F", updated_at
       ) VALUES (
         p_telegram_id, 0, 0, 0,
-        v_user_id, 0, 0, NOW()
+        'wal_' || p_telegram_id::TEXT, v_user_id, 0, 0, NOW()
       )
       ON CONFLICT (telegram_id) DO NOTHING;
 

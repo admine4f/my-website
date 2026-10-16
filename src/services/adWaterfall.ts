@@ -2,17 +2,26 @@
 // 🎯 WATERFALL AD CONFIGURATION (10 EDITABLE VARIABLES)
 // You can set or change your 10 Ad Block / Zone / App IDs right here:
 // =========================================================================
-export let spin_01_adsgram = 'spin_01_adsgram';
-export let spin_02_monetag = 'spin_02_monetag';
-export let spin_03_onclicka = 'spin_03_onclicka';
-export let spin_04_richads = 'spin_04_richads';
-export let spin_05_adexora = 'spin_05_adexora';
+export let spin_01_adsgram = '54111';
+export let spin_02_monetag = '12044377';
+export let spin_03_onclicka = '6153772';
+export let spin_04_richads = '410260';
+export let spin_05_adexora = '2217';
 
-export let box_01_adsgram = 'box_01_adsgram';
-export let box_02_monetag = 'box_02_monetag';
-export let box_03_onclicka = 'box_03_onclicka';
-export let box_04_richads = 'box_04_richads';
-export let box_05_adexora = 'box_05_adexora';
+export let box_01_adsgram = '54110';
+export let box_02_monetag = '12044377';
+export let box_03_onclicka = '6153774';
+export let box_04_richads = '410260';
+export let box_05_adexora = '2217';
+
+export let mining_01_adsgram = '54110';
+export let mining_02_monetag = '12044377';
+export let mining_03_onclicka = '6153717';
+export let mining_04_richads = '410260';
+export let mining_05_adexora = '2217';
+
+// 5 Specific RichAds IDs (1=Push-style, 2=Embedded banner, 3=Interstitial banner, 4=Interstitial video, 5=Playable ads)
+export const RICHADS_PLACEMENTS = ['410260', '410261', '410262', '410263', '410264'];
 
 export interface WaterfallTier {
   index: number;
