@@ -103,7 +103,7 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
         <UnifiedRewardedAdModal
           userId={user.id}
           actionType="GIFT_BOX"
-          targetId={adTargetBox.id}
+          targetId={adTargetBox.boxNumber || adTargetBox.id}
           title={`Unlock Mystery Gift Box #${adTargetBox.boxNumber}`}
           description="Complete the official rewarded ad to open this mystery box."
           rewardHint={`+${adTargetBox.rewardAmount} ${adTargetBox.rewardAsset}`}

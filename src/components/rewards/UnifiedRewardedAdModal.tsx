@@ -28,6 +28,7 @@ import {
   MAX_DAILY_ADS_PER_NETWORK,
   buildIntraWaterfallTiers,
   IntraWaterfallTier,
+  getAdChain,
 } from '../../services/adCodes';
 
 // =========================================================================
@@ -58,6 +59,8 @@ export let MINING_WATERFALL_ENABLED = true;
 
 // 5 RichAds Placements (1=Push-style, 2=Embedded banner, 3=Interstitial banner, 4=Interstitial video, 5=Playable ads)
 export const RICHADS_PLACEMENTS = ['410260', '410261', '410262', '410263', '410264'];
+
+export { getAdChain };
 
 interface WaterfallTier {
   index: number;

@@ -162,6 +162,20 @@ export interface IntraWaterfallTier {
   label: string;
 }
 
+/**
+ * "যার ঘর, সে আগে" Ad Chain Slot Order
+ * Slot 1: [1, 2, 3, 4, 5]
+ * Slot 2: [2, 1, 3, 4, 5]
+ * Slot 3: [3, 1, 2, 4, 5]
+ * Slot 4: [4, 1, 2, 3, 5]
+ * Slot 5: [5, 1, 2, 3, 4]
+ */
+export function getAdChain(clickedSlot: number): number[] {
+  const slot = Math.max(1, Math.min(5, Number(clickedSlot) || 1));
+  const remaining = [1, 2, 3, 4, 5].filter(s => s !== slot);
+  return [slot, ...remaining];
+}
+
 export function buildIntraWaterfallTiers(
   actionType: 'MINING' | 'SPIN' | 'GIFT_BOX',
   targetId: number | undefined,
@@ -180,16 +194,9 @@ export function buildIntraWaterfallTiers(
   const cappedNetworks = defaultNetworks.filter(n => isNetworkCappedToday(userId, n));
   const orderedNetworks = uncappedNetworks.length > 0 ? [...uncappedNetworks, ...cappedNetworks] : defaultNetworks;
 
-  const num = Math.max(1, Math.min(5, Number(targetId) || 1));
-
-  // Determine cyclical placement order starting from current button
-  // e.g. for targetId 1: [1, 2, 3, 4, 5]
-  // e.g. for targetId 2: [2, 3, 4, 5, 1]
-  const cyclicalIndices: number[] = [];
-  for (let i = 0; i < 5; i++) {
-    const nextIdx = ((num - 1 + i) % 5) + 1;
-    cyclicalIndices.push(nextIdx);
-  }
+  // "যার ঘর, সে আগে": clickedSlot is always primary, followed by remaining slots in order
+  const clickedSlot = Math.max(1, Math.min(5, Number(targetId) || 1));
+  const slotChain = getAdChain(clickedSlot);
 
   const tiers: IntraWaterfallTier[] = [];
 
@@ -219,7 +226,7 @@ export function buildIntraWaterfallTiers(
 
   // Build INTRA-FALLBACK: All 5 placements for network 1, then all 5 for network 2, etc.
   orderedNetworks.forEach((net) => {
-    cyclicalIndices.forEach((pNum, cycleIdx) => {
+    slotChain.forEach((pNum, cycleIdx) => {
       const pad = String(pNum).padStart(2, '0');
       const key = `${prefix}_${pad}`;
       const conf = adsMap[key] || adsMap[`${prefix}_01`];
