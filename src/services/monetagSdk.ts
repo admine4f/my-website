@@ -56,7 +56,7 @@ export function ensureMonetagSdkLoaded(zoneId: string = DEFAULT_ZONE_ID): Promis
  * Returns the effective ad URL for the given zone or direct link
  */
 export function getAdTargetUrl(directLink?: string, zoneId: string = DEFAULT_ZONE_ID): string {
-  return directLink || `https://omg10.com/4/${zoneId}`;
+  return directLink || '';
 }
 
 /**

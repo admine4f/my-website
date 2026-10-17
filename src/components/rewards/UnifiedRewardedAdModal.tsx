@@ -15,6 +15,20 @@ import {
 import { api } from '../../services/api';
 import { getAdTargetUrl, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
 import { loadAdsgramScript } from '../../services/adWaterfall';
+import {
+  SPIN_ADS,
+  BOX_ADS,
+  MINING_ADS,
+  AD_CODES,
+  getAdCodesForPlacement,
+  sanitizeAdsgramBlockId,
+  getNetworkViewCountToday,
+  incrementNetworkViewCountToday,
+  isNetworkCappedToday,
+  MAX_DAILY_ADS_PER_NETWORK,
+  buildIntraWaterfallTiers,
+  IntraWaterfallTier,
+} from '../../services/adCodes';
 
 // =========================================================================
 // 🎯 WATERFALL AD CONFIGURATION (12 REAL IDS MAPPED ACROSS 11 BUTTONS)
@@ -49,6 +63,7 @@ interface WaterfallTier {
   index: number;
   provider: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora';
   id: string;
+  placementKey?: string;
   label: string;
 }
 
@@ -119,23 +134,23 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         watchStartTimeRef.current = null;
         hasStartedRef.current = false;
 
-        // Fetch dynamic admin settings for all waterfall variables
+        // Fetch dynamic admin settings for all waterfall variables with strict sanitization
         try {
           const pub = await api.getPublicSettings();
           if (pub) {
-            if ((pub as any).spin_01_adsgram) SPIN_01_ADSGRAM = (pub as any).spin_01_adsgram;
+            if ((pub as any).spin_01_adsgram) SPIN_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).spin_01_adsgram, '54111');
             if ((pub as any).spin_02_monetag) SPIN_02_MONETAG = (pub as any).spin_02_monetag;
             if ((pub as any).spin_03_onclicka) SPIN_03_ONCLICKA = (pub as any).spin_03_onclicka;
             if ((pub as any).spin_04_richads) SPIN_04_RICHADS = (pub as any).spin_04_richads;
             if ((pub as any).spin_05_adexora) SPIN_05_ADEXORA = (pub as any).spin_05_adexora;
 
-            if ((pub as any).box_01_adsgram) BOX_01_ADSGRAM = (pub as any).box_01_adsgram;
+            if ((pub as any).box_01_adsgram) BOX_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).box_01_adsgram, '54110');
             if ((pub as any).box_02_monetag) BOX_02_MONETAG = (pub as any).box_02_monetag;
             if ((pub as any).box_03_onclicka) BOX_03_ONCLICKA = (pub as any).box_03_onclicka;
             if ((pub as any).box_04_richads) BOX_04_RICHADS = (pub as any).box_04_richads;
             if ((pub as any).box_05_adexora) BOX_05_ADEXORA = (pub as any).box_05_adexora;
 
-            if ((pub as any).mining_01_adsgram) MINING_01_ADSGRAM = (pub as any).mining_01_adsgram;
+            if ((pub as any).mining_01_adsgram) MINING_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).mining_01_adsgram, '54110');
             if ((pub as any).mining_02_monetag) MINING_02_MONETAG = (pub as any).mining_02_monetag;
             if ((pub as any).mining_03_onclicka) MINING_03_ONCLICKA = (pub as any).mining_03_onclicka;
             if ((pub as any).mining_04_richads) MINING_04_RICHADS = (pub as any).mining_04_richads;
@@ -163,87 +178,9 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
         const isTg = typeof window !== 'undefined' && Boolean((window as any).Telegram?.WebApp?.initData);
 
-        const targetNum = Math.max(1, Math.min(5, Number(targetId) || 1));
-        const spinRichAdsId = RICHADS_PLACEMENTS[targetNum - 1] || SPIN_04_RICHADS;
-        const boxRichAdsId = RICHADS_PLACEMENTS[targetNum - 1] || BOX_04_RICHADS;
-
-        // Construct 5 Waterfall Tiers
-        let computedTiers: WaterfallTier[] = [];
-        if (actionType === 'SPIN') {
-          computedTiers = isTg ? [
-            { index: 1, provider: 'AdsGram', id: SPIN_01_ADSGRAM, label: 'AdsGram' },
-            { index: 2, provider: 'Monetag', id: SPIN_02_MONETAG, label: 'Monetag' },
-            { index: 3, provider: 'OnClickA', id: SPIN_03_ONCLICKA, label: 'OnClickA' },
-            { index: 4, provider: 'RichAds', id: spinRichAdsId, label: 'RichAds' },
-            { index: 5, provider: 'Adexora', id: SPIN_05_ADEXORA, label: 'Adexora' },
-          ] : [
-            { index: 1, provider: 'Monetag', id: SPIN_02_MONETAG, label: 'Monetag' },
-            { index: 2, provider: 'OnClickA', id: SPIN_03_ONCLICKA, label: 'OnClickA' },
-            { index: 3, provider: 'RichAds', id: spinRichAdsId, label: 'RichAds' },
-            { index: 4, provider: 'Adexora', id: SPIN_05_ADEXORA, label: 'Adexora' },
-            { index: 5, provider: 'AdsGram', id: SPIN_01_ADSGRAM, label: 'AdsGram' },
-          ];
-        } else if (actionType === 'GIFT_BOX') {
-          computedTiers = isTg ? [
-            { index: 1, provider: 'AdsGram', id: BOX_01_ADSGRAM, label: 'AdsGram' },
-            { index: 2, provider: 'Monetag', id: BOX_02_MONETAG, label: 'Monetag' },
-            { index: 3, provider: 'OnClickA', id: BOX_03_ONCLICKA, label: 'OnClickA' },
-            { index: 4, provider: 'RichAds', id: boxRichAdsId, label: 'RichAds' },
-            { index: 5, provider: 'Adexora', id: BOX_05_ADEXORA, label: 'Adexora' },
-          ] : [
-            { index: 1, provider: 'Monetag', id: BOX_02_MONETAG, label: 'Monetag' },
-            { index: 2, provider: 'OnClickA', id: BOX_03_ONCLICKA, label: 'OnClickA' },
-            { index: 3, provider: 'RichAds', id: boxRichAdsId, label: 'RichAds' },
-            { index: 4, provider: 'Adexora', id: BOX_05_ADEXORA, label: 'Adexora' },
-            { index: 5, provider: 'AdsGram', id: BOX_01_ADSGRAM, label: 'AdsGram' },
-          ];
-        } else if (actionType === 'MINING') {
-          const miningMap: Record<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora', { provider: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'; id: string; label: string }> = {
-            'AdsGram': { provider: 'AdsGram', id: MINING_01_ADSGRAM, label: 'AdsGram' },
-            'Monetag': { provider: 'Monetag', id: MINING_02_MONETAG, label: 'Monetag' },
-            'OnClickA': { provider: 'OnClickA', id: MINING_03_ONCLICKA, label: 'OnClickA' },
-            'RichAds': { provider: 'RichAds', id: MINING_04_RICHADS, label: 'RichAds' },
-            'Adexora': { provider: 'Adexora', id: MINING_05_ADEXORA, label: 'Adexora' },
-          };
-
-          let pNet = MINING_PRIMARY_NETWORK || 'AdsGram';
-          if (!isTg && pNet === 'AdsGram') {
-            pNet = 'Monetag'; // On web browsers / Netlify, Monetag works reliably
-          }
-          const sNet = (MINING_SECONDARY_NETWORK && MINING_SECONDARY_NETWORK !== pNet)
-            ? MINING_SECONDARY_NETWORK
-            : (pNet === 'Monetag' ? 'AdsGram' : 'Monetag');
-
-          const tierSequence: Array<{ provider: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'; id: string; label: string }> = [];
-          tierSequence.push(miningMap[pNet] || miningMap['Monetag']);
-
-          if (MINING_WATERFALL_ENABLED) {
-            tierSequence.push(miningMap[sNet] || miningMap['OnClickA']);
-            const used = new Set(tierSequence.map(t => t.provider));
-            const allOrder: Array<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'> = isTg
-              ? ['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora']
-              : ['Monetag', 'OnClickA', 'RichAds', 'Adexora', 'AdsGram'];
-            for (const n of allOrder) {
-              if (!used.has(n)) {
-                tierSequence.push(miningMap[n]);
-                used.add(n);
-              }
-            }
-          }
-
-          computedTiers = tierSequence.map((t, idx) => ({
-            index: idx + 1,
-            provider: t.provider,
-            id: t.id,
-            label: idx === 0 ? `${t.label} (Primary)` : idx === 1 ? `${t.label} (Secondary)` : `${t.label} (Fallback ${idx + 1})`,
-          }));
-        } else {
-          // Default fallback
-          computedTiers = [
-            { index: 1, provider: 'Monetag', id: DEFAULT_ZONE_ID, label: 'Monetag' },
-            { index: 2, provider: 'AdsGram', id: 'adsgram_default', label: 'AdsGram' },
-          ];
-        }
+        // Build Distinct INTRA-FALLBACK Waterfall Tiers
+        // (Spin 1: 54111 -> next 54111 -> ... all AdsGram -> all Monetag -> all OnClickA -> all RichAds -> all Adexora)
+        const computedTiers = buildIntraWaterfallTiers(actionType, targetId, userId, isTg);
 
         setTiers(computedTiers);
         setTierIndex(0);
@@ -378,10 +315,11 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   const handleWatchAdClick = async (e?: React.MouseEvent) => {
     if (!adSession || tiers.length === 0) return;
     const currentTier = tiers[tierIndex] || tiers[0];
+    const placementConfig = getAdCodesForPlacement(actionType, targetId);
     setErrorMsg(null);
 
     // Track Ad View in Supabase e4f_ad_views
-    const placementName = `${actionType}_${targetId || 1}`;
+    const placementName = currentTier.placementKey || `${actionType}_${targetId || 1}`;
     api.logAdView(userId, currentTier.provider, placementName);
 
     // =========================================================
@@ -389,18 +327,21 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     // =========================================================
     if (currentTier.provider === 'AdsGram') {
       setStep('WATCHING');
+      const hardDefault = actionType === 'SPIN' ? '54111' : '54110';
+      const safeBlockId = sanitizeAdsgramBlockId(currentTier.id, hardDefault);
       try {
         const scriptLoaded = await loadAdsgramScript();
         const adsgramObj = (window as any).Adsgram;
 
         if (scriptLoaded && adsgramObj && typeof adsgramObj.init === 'function') {
-          // Initialize AdsGram controller with block ID (54110 or 54111)
-          const AdController = adsgramObj.init({ blockId: currentTier.id, debug: false });
+          // Initialize AdsGram controller with guaranteed safe numeric block ID (54110 or 54111)
+          const AdController = adsgramObj.init({ blockId: safeBlockId, debug: false });
           const res = await AdController.show();
 
           if (res && res.done) {
             // Adsgram completed successfully!
-            handleClaimReward(`ADSGRAM_${currentTier.id}_COMPLETED`);
+            incrementNetworkViewCountToday(userId, 'AdsGram');
+            handleClaimReward(`ADSGRAM_${safeBlockId}_COMPLETED`);
             return;
           } else {
             advanceWaterfall('AdsGram ad playback was skipped or closed.');
@@ -422,11 +363,12 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     // =========================================================
     if (currentTier.provider === 'Monetag') {
       setStep('WATCHING');
-      const zoneId = currentTier.id || '12044377';
+      const zoneId = currentTier.id && /^\d+$/.test(currentTier.id) ? currentTier.id : placementConfig.monetag_zone;
       try {
         if (typeof (window as any).show_88 === 'function' || typeof (window as any).show_tag === 'function') {
           const showFn = (window as any).show_88 || (window as any).show_tag;
           await showFn(zoneId);
+          incrementNetworkViewCountToday(userId, 'Monetag');
           handleClaimReward(`MONETAG_${zoneId}_COMPLETED`);
           return;
         }
@@ -522,6 +464,9 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
       );
 
       if (verifyRes.verified && verifyRes.claimToken) {
+        // Record in daily network frequency cap (max 3 per day per network)
+        incrementNetworkViewCountToday(userId, currentTier.provider);
+
         // Log Ad Event in Supabase e4f_ad_events
         const placementName = `${actionType}_${targetId || 1}`;
         api.logAdEvent(userId, currentTier.provider, placementName, verifyRes.claimToken);

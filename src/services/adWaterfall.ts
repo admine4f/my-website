@@ -47,19 +47,18 @@ export async function syncWaterfallSettings(): Promise<{
     const res = await fetch('/api/system/public-settings');
     if (!res.ok) throw new Error('Settings not ok');
     const data = await res.json();
-    if (data.success) {
-      if (data.spin_01_adsgram) spin_01_adsgram = data.spin_01_adsgram;
-      if (data.spin_02_monetag) spin_02_monetag = data.spin_02_monetag;
-      if (data.spin_03_onclicka) spin_03_onclicka = data.spin_03_onclicka;
-      if (data.spin_04_richads) spin_04_richads = data.spin_04_richads;
-      if (data.spin_05_adexora) spin_05_adexora = data.spin_05_adexora;
+      const cleanId = (v: any) => typeof v === 'string' && !/^(spin|box|mining)_[0-9a-z_]+$/i.test(v.trim());
+      if (cleanId(data.spin_01_adsgram)) spin_01_adsgram = data.spin_01_adsgram;
+      if (cleanId(data.spin_02_monetag)) spin_02_monetag = data.spin_02_monetag;
+      if (cleanId(data.spin_03_onclicka)) spin_03_onclicka = data.spin_03_onclicka;
+      if (cleanId(data.spin_04_richads)) spin_04_richads = data.spin_04_richads;
+      if (cleanId(data.spin_05_adexora)) spin_05_adexora = data.spin_05_adexora;
 
-      if (data.box_01_adsgram) box_01_adsgram = data.box_01_adsgram;
-      if (data.box_02_monetag) box_02_monetag = data.box_02_monetag;
-      if (data.box_03_onclicka) box_03_onclicka = data.box_03_onclicka;
-      if (data.box_04_richads) box_04_richads = data.box_04_richads;
-      if (data.box_05_adexora) box_05_adexora = data.box_05_adexora;
-    }
+      if (cleanId(data.box_01_adsgram)) box_01_adsgram = data.box_01_adsgram;
+      if (cleanId(data.box_02_monetag)) box_02_monetag = data.box_02_monetag;
+      if (cleanId(data.box_03_onclicka)) box_03_onclicka = data.box_03_onclicka;
+      if (cleanId(data.box_04_richads)) box_04_richads = data.box_04_richads;
+      if (cleanId(data.box_05_adexora)) box_05_adexora = data.box_05_adexora;
   } catch (e) {
     console.warn('Could not sync waterfall settings from server, using local defaults:', e);
   }

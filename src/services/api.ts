@@ -742,7 +742,7 @@ export const api = {
       verified: false,
       serverTime: now,
       provider: 'MONETAG',
-      monetagDirectLink: 'https://omg10.com/4/11442658',
+      monetagDirectLink: '',
     };
   },
 
@@ -1423,7 +1423,7 @@ export const api = {
         { id: 6, label: '5.00 E4F', asset: 'E4F', amount: 5.00, color: '#F97316' },
         { id: 7, label: '2.00 USDT', asset: 'USDT', amount: 2.00, color: '#8B5CF6' },
       ],
-      zoneId: '11442658',
+      zoneId: '12044377',
       provider: 'AdsGram',
     };
   },

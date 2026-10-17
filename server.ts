@@ -446,6 +446,33 @@ try {
   console.error('Could not load system-settings.json:', e);
 }
 
+// Guarantee 100% real IDs are present and no placeholder strings exist
+const REAL_DEFAULT_IDS: Record<string, string> = {
+  spin_01_adsgram: '54111',
+  spin_02_monetag: '12044377',
+  spin_03_onclicka: '6153772',
+  spin_04_richads: '410260',
+  spin_05_adexora: '2217',
+  box_01_adsgram: '54110',
+  box_02_monetag: '12044377',
+  box_03_onclicka: '6153774',
+  box_04_richads: '410260',
+  box_05_adexora: '2217',
+  mining_01_adsgram: '54110',
+  mining_02_monetag: '12044377',
+  mining_03_onclicka: '6153717',
+  mining_04_richads: '410260',
+  mining_05_adexora: '2217',
+  monetagZoneId: '12044377',
+};
+for (const [k, fallback] of Object.entries(REAL_DEFAULT_IDS)) {
+  const current = (systemSettings as any)[k];
+  if (!current || typeof current !== 'string' || /^(spin|box|mining)_[0-9a-z_]+$/i.test(current.trim())) {
+    (systemSettings as any)[k] = fallback;
+  }
+}
+systemSettings.monetagDirectLink = '';
+
 // Dynamic Tasks definition
 interface DynamicTask {
   id: string;
@@ -1182,6 +1209,15 @@ function initializeServerState() {
           .maybeSingle();
         if (data && data.settings && typeof data.settings === 'object') {
           Object.assign(systemSettings, data.settings);
+          if (!systemSettings.spin_01_adsgram || !/^\d+$/.test(String(systemSettings.spin_01_adsgram).trim())) {
+            systemSettings.spin_01_adsgram = '54111';
+          }
+          if (!systemSettings.box_01_adsgram || !/^\d+$/.test(String(systemSettings.box_01_adsgram).trim())) {
+            systemSettings.box_01_adsgram = '54110';
+          }
+          if (!systemSettings.mining_01_adsgram || !/^\d+$/.test(String(systemSettings.mining_01_adsgram).trim())) {
+            systemSettings.mining_01_adsgram = '54110';
+          }
           console.log('[Supabase] Loaded system settings from Supabase.');
         }
       } catch (err: any) {
@@ -2237,6 +2273,15 @@ app.get(['/api/system/public-settings', '/api/system/settings', '/system/public-
       const { data } = await supabase.from('system_settings').select('settings').eq('id', 'global_settings').maybeSingle();
       if (data && data.settings && typeof data.settings === 'object') {
         Object.assign(systemSettings, data.settings);
+        if (!systemSettings.spin_01_adsgram || !/^\d+$/.test(String(systemSettings.spin_01_adsgram).trim())) {
+          systemSettings.spin_01_adsgram = '54111';
+        }
+        if (!systemSettings.box_01_adsgram || !/^\d+$/.test(String(systemSettings.box_01_adsgram).trim())) {
+          systemSettings.box_01_adsgram = '54110';
+        }
+        if (!systemSettings.mining_01_adsgram || !/^\d+$/.test(String(systemSettings.mining_01_adsgram).trim())) {
+          systemSettings.mining_01_adsgram = '54110';
+        }
       }
     } catch {}
   }
@@ -2506,11 +2551,11 @@ app.get('/api/mining/:userId/status', async (req: Request, res: Response) => {
     miningPrimaryNetwork: systemSettings.miningPrimaryNetwork || 'AdsGram',
     miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'Monetag',
     miningWaterfallEnabled: systemSettings.miningWaterfallEnabled !== false,
-    mining_01_adsgram: systemSettings.mining_01_adsgram || 'mining_01_adsgram',
-    mining_02_monetag: systemSettings.mining_02_monetag || '11442658',
-    mining_03_onclicka: systemSettings.mining_03_onclicka || 'mining_03_onclicka',
-    mining_04_richads: systemSettings.mining_04_richads || 'mining_04_richads',
-    mining_05_adexora: systemSettings.mining_05_adexora || 'mining_05_adexora',
+    mining_01_adsgram: systemSettings.mining_01_adsgram || '54110',
+    mining_02_monetag: systemSettings.mining_02_monetag || '12044377',
+    mining_03_onclicka: systemSettings.mining_03_onclicka || '6153717',
+    mining_04_richads: systemSettings.mining_04_richads || '410260',
+    mining_05_adexora: systemSettings.mining_05_adexora || '2217',
     adsterraDirectLink: systemSettings.adsterraDirectLink,
     monetagDirectLink: systemSettings.monetagDirectLink,
     seasonEndDate: seasonEnd,
@@ -2889,7 +2934,7 @@ app.get('/api/mining/:userId/ad-session', (req: Request, res: Response) => {
       canVerify,
       verified: session.verified,
       serverTime: now,
-      zoneId: systemSettings.monetagZoneId || '11442658',
+      zoneId: systemSettings.monetagZoneId || '12044377',
       adDirectLink: systemSettings.adProvider === 'MONETAG' ? systemSettings.monetagDirectLink : (systemSettings.adsterraDirectLink || systemSettings.monetagDirectLink),
     },
     serverTime: now,
@@ -2959,7 +3004,7 @@ app.post('/api/mining/ad-session', (req: Request, res: Response) => {
     verified: session.verified,
     serverTime: now,
     provider: systemSettings.adProvider,
-    zoneId: systemSettings.monetagZoneId || '11442658',
+    zoneId: systemSettings.monetagZoneId || '12044377',
     adDirectLink,
     monetagDirectLink: systemSettings.monetagDirectLink,
     adsterraDirectLink: systemSettings.adsterraDirectLink,
@@ -3512,7 +3557,7 @@ app.get('/api/rewards/:userId/spin-status', (req: Request, res: Response) => {
     spinsRemainingToday: spinsRemaining,
     adRequired: systemSettings.rewardSpinAdRequired,
     prizes: activePrizes,
-    zoneId: systemSettings.monetagZoneId || '11442658',
+    zoneId: systemSettings.monetagZoneId || '12044377',
     provider: systemSettings.adProvider,
   });
 });
@@ -3674,7 +3719,7 @@ app.get('/api/rewards/:userId/gift-boxes', (req: Request, res: Response) => {
     maxDailyBoxes: maxBoxes,
     boxesRemainingToday,
     adRequired: systemSettings.giftBoxAdRequired,
-    zoneId: systemSettings.monetagZoneId || '11442658',
+    zoneId: systemSettings.monetagZoneId || '12044377',
     provider: systemSettings.adProvider,
   });
 });
@@ -5187,6 +5232,16 @@ app.post(['/api/admin/settings', '/admin/settings'], requireAdminAuth, async (re
       }
     }
   }
+  for (const [k, fallback] of Object.entries(REAL_DEFAULT_IDS)) {
+    if ((updates as any)[k] !== undefined) {
+      const val = (updates as any)[k];
+      if (!val || typeof val !== 'string' || /^(spin|box|mining)_[0-9a-z_]+$/i.test(val.trim())) {
+        (updates as any)[k] = fallback;
+      }
+    }
+  }
+  updates.monetagDirectLink = '';
+
   Object.assign(systemSettings, updates);
 
   try {
