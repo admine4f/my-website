@@ -178,3 +178,68 @@ END $$;
 GRANT ALL ON TABLE public.e4f_ad_views TO anon, authenticated, service_role;
 GRANT ALL ON TABLE public.e4f_ad_events TO anon, authenticated, service_role;
 
+-- 11. E4F Daily Check-in & Rewards Config Tables
+CREATE TABLE IF NOT EXISTS public.e4f_daily_checkins (
+  user_id text PRIMARY KEY,
+  current_day int DEFAULT 1,
+  last_claim_date date DEFAULT NULL,
+  streak_count int DEFAULT 0,
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.e4f_daily_rewards_config (
+  day_number int PRIMARY KEY,
+  reward_amount numeric NOT NULL,
+  reward_type text NOT NULL DEFAULT 'USDT',
+  is_active boolean DEFAULT true
+);
+
+INSERT INTO public.e4f_daily_rewards_config (day_number, reward_amount, reward_type) VALUES
+(1, 0.01, 'USDT'),
+(2, 0.02, 'USDT'),
+(3, 0.03, 'USDT'),
+(4, 3, 'E4F'),
+(5, 5, 'E4F'),
+(6, 0.05, 'USDT'),
+(7, 0.07, 'USDT')
+ON CONFLICT (day_number) DO UPDATE
+SET reward_amount = EXCLUDED.reward_amount,
+    reward_type = EXCLUDED.reward_type
+WHERE public.e4f_daily_rewards_config.reward_amount IS NULL;
+
+ALTER TABLE public.e4f_daily_checkins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.e4f_daily_rewards_config ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'e4f_daily_rewards_config' AND policyname = 'Allow select on e4f_daily_rewards_config'
+  ) THEN
+    CREATE POLICY "Allow select on e4f_daily_rewards_config" ON public.e4f_daily_rewards_config FOR SELECT USING (true);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'e4f_daily_rewards_config' AND policyname = 'Allow write on e4f_daily_rewards_config'
+  ) THEN
+    CREATE POLICY "Allow write on e4f_daily_rewards_config" ON public.e4f_daily_rewards_config FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'e4f_daily_checkins' AND policyname = 'Allow select on e4f_daily_checkins'
+  ) THEN
+    CREATE POLICY "Allow select on e4f_daily_checkins" ON public.e4f_daily_checkins FOR SELECT USING (true);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'e4f_daily_checkins' AND policyname = 'Allow write on e4f_daily_checkins'
+  ) THEN
+    CREATE POLICY "Allow write on e4f_daily_checkins" ON public.e4f_daily_checkins FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
+
+GRANT ALL ON TABLE public.e4f_daily_checkins TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.e4f_daily_rewards_config TO anon, authenticated, service_role;
+
+CREATE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON public.e4f_daily_checkins(user_id, last_claim_date);
+CREATE INDEX IF NOT EXISTS idx_users_referred_by ON public.users(referred_by);
+

@@ -345,15 +345,15 @@ const defaultGiftBoxesConfig = [
   { id: 5, boxNumber: 5, name: 'Diamond Relic', rewardAsset: 'E4F' as const, rewardAmount: 10.0, color: '#10B981' },
 ];
 
-// Default 7-Day Daily Check-In Streak Rewards (0.001 to 5.0 E4F / USDT configurable by admin)
+// Default 7-Day Daily Check-In Streak Rewards (Configurable E4F / USDT configurable by admin in Telegram)
 const defaultDailyCheckInRewards = [
-  { day: 1, asset: 'E4F' as 'E4F' | 'USDT', amount: 0.5 },
-  { day: 2, asset: 'USDT' as 'E4F' | 'USDT', amount: 0.2 },
-  { day: 3, asset: 'E4F' as 'E4F' | 'USDT', amount: 1.0 },
-  { day: 4, asset: 'USDT' as 'E4F' | 'USDT', amount: 0.5 },
-  { day: 5, asset: 'E4F' as 'E4F' | 'USDT', amount: 1.5 },
-  { day: 6, asset: 'USDT' as 'E4F' | 'USDT', amount: 1.0 },
-  { day: 7, asset: 'E4F' as 'E4F' | 'USDT', amount: 3.0 },
+  { day: 1, asset: 'USDT' as 'E4F' | 'USDT', amount: 0.01 },
+  { day: 2, asset: 'USDT' as 'E4F' | 'USDT', amount: 0.02 },
+  { day: 3, asset: 'USDT' as 'E4F' | 'USDT', amount: 0.03 },
+  { day: 4, asset: 'E4F' as 'E4F' | 'USDT', amount: 3.0 },
+  { day: 5, asset: 'E4F' as 'E4F' | 'USDT', amount: 5.0 },
+  { day: 6, asset: 'USDT' as 'E4F' | 'USDT', amount: 0.05 },
+  { day: 7, asset: 'USDT' as 'E4F' | 'USDT', amount: 0.07 },
 ];
 
 // Deterministic unique deposit address per user (BEP20 EVM format)
@@ -595,8 +595,64 @@ const userFirstDepositClaimed = new Set<string>();
 // 5 Gift Boxes state per user
 const userGiftBoxes = new Map<string, Array<{ id: number; boxNumber: number; name: string; rewardAsset: 'E4F' | 'USDT'; rewardAmount: number; color: string; isOpened: boolean }>>();
 
-// Daily Check-in state
-const userDailyCheckIns = new Map<string, { currentStreak: number; lastDate: string; claimedDays: number[] }>();
+// Daily Check-in state & persistence helpers
+interface UserCheckInState {
+  currentStreak: number;
+  currentDay: number;
+  lastDate: string;
+  streakCount: number;
+  claimedDays: number[];
+}
+
+const userDailyCheckIns = new Map<string, UserCheckInState>();
+
+function getUtcDates() {
+  const now = new Date();
+  const todayUtc = now.toISOString().split('T')[0];
+  const yesterdayDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
+  const yesterdayUtc = yesterdayDate.toISOString().split('T')[0];
+  return { todayUtc, yesterdayUtc };
+}
+
+async function loadUserDailyCheckIn(userId: string): Promise<UserCheckInState> {
+  const cached = userDailyCheckIns.get(userId);
+  if (cached) return cached;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('e4f_daily_checkins')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!error && data) {
+        const currentDay = Number(data.current_day) || 1;
+        const check: UserCheckInState = {
+          currentStreak: currentDay,
+          currentDay,
+          lastDate: data.last_claim_date || '',
+          streakCount: Number(data.streak_count) || 0,
+          claimedDays: currentDay ? Array.from({ length: currentDay }, (_, i) => i + 1) : [],
+        };
+        userDailyCheckIns.set(userId, check);
+        return check;
+      }
+    } catch (e: any) {
+      console.warn('[Supabase] Warning reading e4f_daily_checkins:', e?.message);
+    }
+  }
+
+  const defaultCheck: UserCheckInState = {
+    currentStreak: 0,
+    currentDay: 0,
+    lastDate: '',
+    streakCount: 0,
+    claimedDays: [],
+  };
+  userDailyCheckIns.set(userId, defaultCheck);
+  return defaultCheck;
+}
 
 interface AnnouncementRecord {
   id: string;
@@ -1220,8 +1276,23 @@ function initializeServerState() {
           }
           console.log('[Supabase] Loaded system settings from Supabase.');
         }
+
+        const { data: rewardData } = await supabase
+          .from('e4f_daily_rewards_config')
+          .select('*')
+          .eq('is_active', true)
+          .order('day_number', { ascending: true });
+
+        if (Array.isArray(rewardData) && rewardData.length > 0) {
+          systemSettings.dailyCheckInRewards = rewardData.map(r => ({
+            day: r.day_number,
+            amount: Number(r.reward_amount),
+            asset: (r.reward_type === 'USDT' ? 'USDT' : 'E4F') as 'E4F' | 'USDT',
+          }));
+          console.log('[Supabase] Loaded custom 7-day daily check-in rewards config.');
+        }
       } catch (err: any) {
-        console.warn('[Supabase] Failed to load system settings:', err);
+        console.warn('[Supabase] Failed to load system settings / daily rewards config:', err);
       }
     })();
   }
@@ -1478,12 +1549,10 @@ async function getOrCreateUserAsync(
     { id: 5, boxNumber: 5, name: 'Diamond Relic', rewardAsset: 'E4F', rewardAmount: 10.0, color: '#10B981', isOpened: false },
   ]);
 
-  // Initialize daily check-in
-  userDailyCheckIns.set(userId, {
-    currentStreak: 0,
-    lastDate: '',
-    claimedDays: [],
-  });
+  // Initialize daily check-in (never wipe existing streak or claim state)
+  if (!userDailyCheckIns.has(userId)) {
+    loadUserDailyCheckIn(userId).catch(() => {});
+  }
 
   // Persist newly created user to Supabase and memory
   syncUserToSupabase(user).catch(() => {});
@@ -3439,76 +3508,121 @@ app.get('/api/mining/:userId/history', (req: Request, res: Response) => {
 });
 
 // 4. Rewards API (/api/rewards)
-// Daily Check-in (7-Day Consecutive Streak & Rewards Progression)
-app.get('/api/rewards/:userId/daily-checkin', (req: Request, res: Response) => {
+// Daily Check-in (7-Day Consecutive Streak & Rewards Progression with Supabase e4f_daily_checkins)
+app.get('/api/rewards/:userId/daily-checkin', async (req: Request, res: Response) => {
   const { userId } = req.params;
-  let checkIn = userDailyCheckIns.get(userId);
-  if (!checkIn) {
-    checkIn = { currentStreak: 0, lastDate: '', claimedDays: [] };
-    userDailyCheckIns.set(userId, checkIn);
+  const checkIn = await loadUserDailyCheckIn(userId);
+  const { todayUtc, yesterdayUtc } = getUtcDates();
+
+  const todayClaimed = Boolean(checkIn.lastDate && checkIn.lastDate === todayUtc);
+  let nextDayToClaim = 1;
+  let activeClaimedDays: number[] = [];
+
+  const currentDay = checkIn.currentDay || checkIn.currentStreak || 0;
+
+  if (todayClaimed) {
+    activeClaimedDays = Array.from({ length: currentDay }, (_, i) => i + 1);
+    nextDayToClaim = (currentDay % 7) + 1;
+  } else if (checkIn.lastDate === yesterdayUtc) {
+    if (currentDay >= 7) {
+      nextDayToClaim = 1;
+      activeClaimedDays = [];
+    } else {
+      nextDayToClaim = currentDay + 1;
+      activeClaimedDays = Array.from({ length: currentDay }, (_, i) => i + 1);
+    }
+  } else {
+    // Streak reset or new user
+    nextDayToClaim = 1;
+    activeClaimedDays = [];
   }
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayClaimed = checkIn.lastDate === todayStr;
 
   const rewards = (systemSettings.dailyCheckInRewards && systemSettings.dailyCheckInRewards.length > 0)
     ? systemSettings.dailyCheckInRewards
     : defaultDailyCheckInRewards;
 
-  // Next day in the 7-day progression (1 to 7)
-  const nextDayToClaim = (checkIn.currentStreak % 7) + 1;
-
   res.json({
-    currentStreak: checkIn.currentStreak,
+    currentStreak: currentDay,
+    current_day: currentDay,
+    streak_count: checkIn.streakCount || 0,
     todayClaimed,
     lastCheckInDate: checkIn.lastDate,
+    last_claim_date: checkIn.lastDate,
     rewards,
-    claimedDays: Array.isArray(checkIn.claimedDays) ? checkIn.claimedDays : [],
+    claimedDays: activeClaimedDays,
     nextDayToClaim,
   });
 });
 
 app.post('/api/rewards/daily-checkin/claim', async (req: Request, res: Response) => {
   const { userId } = req.body;
-  const userBalance = await getSupabaseBalance(userId);
-  if (!userBalance) return res.status(404).json({ success: false, error: 'User not found' });
+  if (!userId) return res.status(400).json({ success: false, error: 'User ID is required' });
 
-  let checkIn = userDailyCheckIns.get(userId);
-  if (!checkIn) {
-    checkIn = { currentStreak: 0, lastDate: '', claimedDays: [] };
-    userDailyCheckIns.set(userId, checkIn);
+  const checkIn = await loadUserDailyCheckIn(userId);
+  const { todayUtc, yesterdayUtc } = getUtcDates();
+
+  if (checkIn.lastDate === todayUtc) {
+    const currentDay = checkIn.currentDay || checkIn.currentStreak || 1;
+    return res.status(400).json({
+      success: false,
+      error: 'Daily check-in already claimed for today. Next reward available at 00:00 UTC.',
+      todayClaimed: true,
+      lastCheckInDate: todayUtc,
+      last_claim_date: todayUtc,
+      nextDayToClaim: (currentDay % 7) + 1,
+    });
   }
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  if (checkIn.lastDate === todayStr) {
-    return res.status(400).json({ success: false, error: 'Daily check-in already claimed for today. Next reward available tomorrow (00:00 UTC).' });
-  }
+  let targetDay = 1;
+  let newStreak = 1;
 
-  // 7-day sequential progression: Day 1 -> Day 2 -> Day 3 -> Day 4 -> Day 5 -> Day 6 -> Day 7 -> Day 1 (new cycle)
-  const targetDay = (checkIn.currentStreak % 7) + 1;
-  checkIn.currentStreak = targetDay;
-  checkIn.lastDate = todayStr;
-
-  if (!Array.isArray(checkIn.claimedDays)) {
-    checkIn.claimedDays = [];
-  }
-  if (targetDay === 1) {
-    checkIn.claimedDays = [1];
+  if (checkIn.lastDate === yesterdayUtc) {
+    const prevDay = checkIn.currentDay || checkIn.currentStreak || 0;
+    targetDay = (prevDay % 7) + 1;
+    newStreak = (checkIn.streakCount || 0) + 1;
   } else {
-    if (!checkIn.claimedDays.includes(targetDay)) {
-      checkIn.claimedDays.push(targetDay);
-    }
+    targetDay = 1;
+    newStreak = 1;
   }
+
+  // Update in-memory state immediately for instant response
+  checkIn.currentDay = targetDay;
+  checkIn.currentStreak = targetDay;
+  checkIn.lastDate = todayUtc;
+  checkIn.streakCount = newStreak;
+  checkIn.claimedDays = Array.from({ length: targetDay }, (_, i) => i + 1);
+  userDailyCheckIns.set(userId, checkIn);
 
   const rewards = (systemSettings.dailyCheckInRewards && systemSettings.dailyCheckInRewards.length > 0)
     ? systemSettings.dailyCheckInRewards
     : defaultDailyCheckInRewards;
 
   const reward = rewards.find(r => r.day === targetDay) || rewards[targetDay - 1] || rewards[0];
-  if (reward.asset === 'USDT') {
-    userBalance.usdt = Math.round((userBalance.usdt + reward.amount) * 10000) / 10000;
-  } else {
-    userBalance.e4f = Math.round((userBalance.e4f + reward.amount) * 10000) / 10000;
+
+  let userBalance = balances.get(userId);
+  if (!userBalance) {
+    userBalance = await getSupabaseBalance(userId);
   }
+  if (reward.asset === 'USDT') {
+    userBalance.usdt = Math.round((userBalance.usdt + reward.amount) * 1000000) / 1000000;
+  } else {
+    userBalance.e4f = Math.round((userBalance.e4f + reward.amount) * 1000000) / 1000000;
+  }
+  balances.set(userId, userBalance);
+
+  // Background persistence without blocking response
+  if (supabase) {
+    (supabase.from('e4f_daily_checkins').upsert({
+      user_id: userId,
+      current_day: targetDay,
+      last_claim_date: todayUtc,
+      streak_count: newStreak,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' }) as PromiseLike<any>).then(() => {}, (err: any) => {
+      console.warn('[Supabase Checkin Error]:', err?.message);
+    });
+  }
+  setSupabaseBalance(userId, userBalance).catch(() => {});
 
   const checkinTx: TxRecord = {
     id: `tx_${Date.now()}_checkin`,
@@ -3521,21 +3635,21 @@ app.post('/api/rewards/daily-checkin/claim', async (req: Request, res: Response)
     timestamp: Date.now(),
     note: `Day ${targetDay} Check-in Reward (+${reward.amount} ${reward.asset})`,
   };
-  await recordTransaction(checkinTx);
-  await setSupabaseBalance(userId, userBalance).catch(() => {});
+  recordTransaction(checkinTx).catch(() => {});
 
-  // Ensure 0% data loss by persisting immediately
-  persistDatabaseSync();
-  scheduleSaveDatabase();
-
-  res.json({
+  return res.json({
     success: true,
-    streak: checkIn.currentStreak,
+    current_day: targetDay,
+    currentStreak: targetDay,
+    streak: targetDay,
+    streak_count: newStreak,
     reward,
     balances: userBalance,
     claimedDays: checkIn.claimedDays,
     todayClaimed: true,
-    nextDayToClaim: (checkIn.currentStreak % 7) + 1,
+    lastCheckInDate: todayUtc,
+    last_claim_date: todayUtc,
+    nextDayToClaim: (targetDay % 7) + 1,
   });
 });
 
@@ -4092,6 +4206,7 @@ app.get('/api/referrals/:userId', async (req: Request, res: Response) => {
 
   // Permanent Referrals: Never filtered or deleted, stored permanently for life!
   let dbReferrals: any[] = [];
+  let dbInvitedUsers: any[] = [];
   if (supabase) {
     try {
       const tgId = user.telegramId;
@@ -4105,13 +4220,33 @@ app.get('/api/referrals/:userId', async (req: Request, res: Response) => {
     } catch (err) {
       console.warn('[Supabase] Warning fetching referrals from DB:', err);
     }
+
+    try {
+      const tgId = user.telegramId;
+      const refCode = user.referralCode || 'NO_CODE';
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, uid, telegram_id, first_name, username, created_at')
+        .or(`referred_by.eq.${userId},referred_by.eq.${refCode},referred_by.eq.${tgId}`);
+      if (!error && Array.isArray(data)) {
+        dbInvitedUsers = data;
+      }
+    } catch (err: any) {
+      console.warn('[Supabase] Warning fetching invited users from users table:', err?.message);
+    }
   }
 
   const userReferrals = referralHistory.filter(r => r.referrerId === userId);
-  const directInvitedUsers = Array.from(users.values()).filter(u => u.referredBy === userId);
+  const directInvitedUsers = Array.from(users.values()).filter(
+    u => u.id !== userId && (
+      u.referredBy === userId ||
+      (user.referralCode && u.referredBy === user.referralCode) ||
+      (user.telegramId && u.referredBy === String(user.telegramId))
+    )
+  );
 
   // 100% Real User Referral Stats (zero fake/demo numbers)
-  const totalInvited = Math.max(userReferrals.length, directInvitedUsers.length, dbReferrals.length);
+  const totalInvited = Math.max(userReferrals.length, directInvitedUsers.length, dbReferrals.length, dbInvitedUsers.length);
   const qualified = userReferrals.filter(r => r.status === 'QUALIFIED').length;
   const active = Math.max(0, totalInvited - qualified);
   const pending = 0;
@@ -4124,6 +4259,23 @@ app.get('/api/referrals/:userId', async (req: Request, res: Response) => {
     syncUserToSupabase(user).catch(() => {});
   }
 
+  const combinedHistory = [...userReferrals];
+  if (combinedHistory.length === 0 && dbInvitedUsers.length > 0) {
+    for (const inv of dbInvitedUsers) {
+      combinedHistory.push({
+        id: `ref_${inv.id}`,
+        referrerId: userId,
+        referredUserId: inv.id,
+        referredUid: inv.uid || `8${Math.abs((inv.telegram_id || 0) % 8999999 + 1000000)}`,
+        referredName: inv.first_name || 'E4F Miner',
+        timestamp: inv.created_at ? new Date(inv.created_at).getTime() : Date.now(),
+        status: 'ACTIVE',
+        minedDays: 1,
+        rewardEarned: 0,
+      });
+    }
+  }
+
   res.json({
     referralCode: user.referralCode,
     referralLink: `https://t.me/E4F_Web3_mining_bot/app?startapp=${user.referralCode}`,
@@ -4134,7 +4286,7 @@ app.get('/api/referrals/:userId', async (req: Request, res: Response) => {
     totalEarnedUSDT,
     referralRewardAmount: systemSettings.referralBonusUSDT,
     qualificationCriteria: `Invited friend starting mining qualifies for a one-time ${systemSettings.referralBonusUSDT} USDT bonus.`,
-    history: userReferrals.slice(0, 50),
+    history: combinedHistory.slice(0, 50),
   });
 });
 
@@ -5087,20 +5239,49 @@ const handleAdminLogin = (req: Request, res: Response) => {
 
 app.post(['/api/admin/login', '/admin/login', '/api/admin/auth/login', '/admin/auth/login'], handleAdminLogin);
 
-app.get(['/api/admin/dashboard', '/admin/dashboard'], (_req: Request, res: Response) => {
+app.get(['/api/admin/dashboard', '/admin/dashboard'], async (_req: Request, res: Response) => {
+  let totalUsers = users.size;
+  let activeUsers = 0;
+
+  if (supabase) {
+    try {
+      const { count: uCount, error: uErr } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+      if (!uErr && typeof uCount === 'number' && uCount > 0) {
+        totalUsers = Math.max(totalUsers, uCount);
+      }
+
+      const { count: aCount, error: aErr } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'ACTIVE');
+      if (!aErr && typeof aCount === 'number') {
+        activeUsers = aCount;
+      }
+    } catch (e: any) {
+      console.warn('[Supabase Dashboard Users Count Error]:', e?.message);
+    }
+  }
+
+  if (activeUsers === 0) {
+    activeUsers = Array.from(users.values()).filter(u => u.status === 'ACTIVE').length || totalUsers;
+  }
+
   let totalE4FDistributed = 0;
   let totalUSDTDistributed = 0;
 
   for (const b of balances.values()) {
-    totalE4FDistributed += b.e4f;
-    totalUSDTDistributed += b.usdt;
+    totalE4FDistributed += b.e4f || 0;
+    totalUSDTDistributed += b.usdt || 0;
   }
 
   const activeMiners = miningSessions.filter(s => s.status === 'ACTIVE').length;
   const pendingProofSubmissions = taskSubmissionsQueue.filter(s => s.status === 'SUBMITTED').length;
 
   res.json({
-    totalUsers: users.size,
+    totalUsers,
+    activeUsers,
     activeMiners,
     totalMiningSessions: miningSessions.length,
     totalE4FDistributed: Number(totalE4FDistributed.toFixed(2)),
@@ -5128,8 +5309,20 @@ app.post(['/api/admin/settings', '/admin/settings'], requireAdminAuth, async (re
     updates.dailyCheckInRewards = updates.dailyCheckInRewards.slice(0, 7).map((item: any, idx: number) => ({
       day: item.day || (idx + 1),
       asset: item.asset === 'USDT' ? 'USDT' : 'E4F',
-      amount: Math.round(Math.max(0.001, Math.min(5.0, Number(item.amount) || 0.001)) * 1000) / 1000,
+      amount: Math.round(Math.max(0.0001, Number(item.amount) || 0.01) * 10000) / 10000,
     }));
+    systemSettings.dailyCheckInRewards = updates.dailyCheckInRewards;
+
+    if (supabase) {
+      for (const r of updates.dailyCheckInRewards) {
+        (supabase.from('e4f_daily_rewards_config').upsert({
+          day_number: r.day,
+          reward_amount: r.amount,
+          reward_type: r.asset,
+          is_active: true,
+        }, { onConflict: 'day_number' }) as PromiseLike<any>).then(() => {}, () => {});
+      }
+    }
   }
   if (updates.networkWithdrawSettings && typeof updates.networkWithdrawSettings === 'object') {
     const existing = systemSettings.networkWithdrawSettings || defaultNetworkWithdrawSettings;
@@ -5276,12 +5469,61 @@ app.post(['/api/admin/settings', '/admin/settings'], requireAdminAuth, async (re
   res.json({ success: true, settings: systemSettings });
 });
 
-app.get('/api/admin/users', requireAdminAuth, (_req: Request, res: Response) => {
-  const userList = Array.from(users.values()).map(u => ({
-    ...u,
-    balances: balances.get(u.id),
-    referralsCount: referralHistory.filter(r => r.referrerId === u.id).length,
-  }));
+app.get('/api/admin/users', requireAdminAuth, async (_req: Request, res: Response) => {
+  if (supabase) {
+    try {
+      const { data: dbUsers, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && Array.isArray(dbUsers)) {
+        for (const u of dbUsers) {
+          if (!users.has(u.id)) {
+            users.set(u.id, {
+              id: u.id,
+              uid: u.uid || `8${Math.abs((u.telegram_id || 0) % 8999999 + 1000000)}`,
+              telegramId: u.telegram_id,
+              firstName: u.first_name || 'E4F User',
+              lastName: u.last_name || '',
+              username: u.username || '',
+              photoUrl: u.photo_url || '',
+              referralCode: u.referral_code,
+              referredBy: u.referred_by,
+              createdAt: u.created_at ? new Date(u.created_at).getTime() : Date.now(),
+              status: u.status || 'ACTIVE',
+              claimedWelcomeBonus: u.claimed_welcome_bonus,
+              isDemoUser: false,
+              isVerified: u.is_verified,
+              depositBalance: Number(u.deposit_balance) || 0,
+              depositAddress: u.deposit_address || '',
+            });
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[Supabase Admin Users Fetch Warning]:', err?.message);
+    }
+  }
+
+  const allUsersList = Array.from(users.values());
+  const userList = allUsersList.map(u => {
+    const memoryRefCount = referralHistory.filter(r => r.referrerId === u.id).length;
+    const directUserRefCount = allUsersList.filter(
+      other => other.id !== u.id && (
+        other.referredBy === u.id ||
+        (u.referralCode && other.referredBy === u.referralCode) ||
+        (u.telegramId && other.referredBy === String(u.telegramId))
+      )
+    ).length;
+
+    return {
+      ...u,
+      balances: balances.get(u.id) || { usdt: 0, e4f: 0, btc: 0, eth: 0, sol: 0, bnb: 0 },
+      referralsCount: Math.max(memoryRefCount, directUserRefCount),
+    };
+  });
+
   res.json({ users: userList });
 });
 
@@ -5506,31 +5748,64 @@ app.delete('/api/admin/users/:userId', requireAdminAuth, (req: Request, res: Res
 });
 
 // Admin Daily Check-in Controls (for testing and manual support)
-app.post('/api/admin/users/:userId/reset-daily-checkin', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/users/:userId/reset-daily-checkin', requireAdminAuth, async (req: Request, res: Response) => {
   const { userId } = req.params;
-  userDailyCheckIns.set(userId, { currentStreak: 0, lastDate: '', claimedDays: [] });
+  const resetState = { currentStreak: 0, currentDay: 0, lastDate: '', streakCount: 0, claimedDays: [] };
+  userDailyCheckIns.set(userId, resetState);
+
+  if (supabase) {
+    try {
+      await supabase.from('e4f_daily_checkins').upsert({
+        user_id: userId,
+        current_day: 0,
+        last_claim_date: null,
+        streak_count: 0,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+    } catch (err: any) {
+      console.warn('[Supabase Reset Checkin Error]:', err?.message);
+    }
+  }
+
   persistDatabaseSync();
   scheduleSaveDatabase();
   res.json({ success: true, message: 'Daily check-in reset to Day 0 (Ready for Day 1)' });
 });
 
-app.post('/api/admin/users/:userId/advance-daily-checkin', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/users/:userId/advance-daily-checkin', requireAdminAuth, async (req: Request, res: Response) => {
   const { userId } = req.params;
+  const now = new Date();
+  const yesterdayStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)).toISOString().split('T')[0];
+
   let checkIn = userDailyCheckIns.get(userId);
   if (!checkIn) {
-    checkIn = { currentStreak: 0, lastDate: '', claimedDays: [] };
+    checkIn = { currentStreak: 1, currentDay: 1, lastDate: yesterdayStr, streakCount: 1, claimedDays: [1] };
     userDailyCheckIns.set(userId, checkIn);
+  } else {
+    checkIn.lastDate = yesterdayStr;
   }
-  // Set lastDate to yesterday so user can claim the next day immediately
-  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  checkIn.lastDate = yesterdayStr;
+
+  if (supabase) {
+    try {
+      await supabase.from('e4f_daily_checkins').upsert({
+        user_id: userId,
+        current_day: checkIn.currentDay || checkIn.currentStreak || 1,
+        last_claim_date: yesterdayStr,
+        streak_count: checkIn.streakCount || 1,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+    } catch (err: any) {
+      console.warn('[Supabase Advance Checkin Error]:', err?.message);
+    }
+  }
+
   persistDatabaseSync();
   scheduleSaveDatabase();
   res.json({
     success: true,
-    message: 'Check-in date set to yesterday. User can claim next day immediately.',
+    message: 'Check-in date set to yesterday (00:00 UTC compliant). User can claim next day immediately.',
     checkIn,
-    nextDayToClaim: (checkIn.currentStreak % 7) + 1,
+    nextDayToClaim: ((checkIn.currentDay || checkIn.currentStreak || 1) % 7) + 1,
   });
 });
 

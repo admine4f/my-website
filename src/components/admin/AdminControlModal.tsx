@@ -118,15 +118,15 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
     { id: 5, boxNumber: 5, name: 'Diamond Jackpot Trunk', rewardAsset: 'E4F', rewardAmount: 3.0, color: '#38BDF8' },
   ]);
 
-  // Daily Check-in Streak Settings (Day 1 to 7, 0.001 to 5.0 E4F / USDT)
+  // Daily Check-in Streak Settings (Day 1 to 7, Configurable E4F / USDT)
   const [dailyCheckInList, setDailyCheckInList] = useState<Array<{ day: number; asset: 'E4F' | 'USDT'; amount: number }>>([
-    { day: 1, asset: 'E4F', amount: 0.5 },
-    { day: 2, asset: 'USDT', amount: 0.2 },
-    { day: 3, asset: 'E4F', amount: 1.0 },
-    { day: 4, asset: 'USDT', amount: 0.5 },
-    { day: 5, asset: 'E4F', amount: 1.5 },
-    { day: 6, asset: 'USDT', amount: 1.0 },
-    { day: 7, asset: 'E4F', amount: 3.0 },
+    { day: 1, asset: 'USDT', amount: 0.01 },
+    { day: 2, asset: 'USDT', amount: 0.02 },
+    { day: 3, asset: 'USDT', amount: 0.03 },
+    { day: 4, asset: 'E4F', amount: 3.0 },
+    { day: 5, asset: 'E4F', amount: 5.0 },
+    { day: 6, asset: 'USDT', amount: 0.05 },
+    { day: 7, asset: 'USDT', amount: 0.07 },
   ]);
 
   // Deposit Settings
@@ -473,7 +473,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
         dailyCheckInRewards: dailyCheckInList.map((item, idx) => ({
           day: item.day || idx + 1,
           asset: item.asset,
-          amount: Math.round(Math.max(0.001, Math.min(5.0, Number(item.amount) || 0.001)) * 1000) / 1000,
+          amount: Math.round(Math.max(0.0001, Number(item.amount) || 0.01) * 10000) / 10000,
         })),
       }, adminKey);
       addToast('Saved', 'Daily Check-In, Spin & Box reward settings and durations saved successfully', 'success');
@@ -921,12 +921,13 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
-                      <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Miners</div>
+                      <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Registered Users</div>
                       <div className="text-base font-extrabold text-white mt-1">
                         {dashboardData?.totalUsers ?? userList.length}
                       </div>
-                      <div className="text-[10px] text-emerald-400 mt-0.5">
-                        {dashboardData?.activeMiners ?? 0} actively mining
+                      <div className="text-[10px] text-emerald-400 mt-0.5 flex items-center justify-between">
+                        <span>{dashboardData?.activeUsers ?? userList.filter(u => u.status === 'ACTIVE').length} Active</span>
+                        <span className="text-amber-400 font-medium">({dashboardData?.activeMiners ?? 0} mining)</span>
                       </div>
                     </div>
 
@@ -1862,7 +1863,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
 
                     <div>
                       <label className="text-[10px] text-slate-400 font-semibold uppercase block mb-2">
-                        Streak Day Rewards (0.001 to 5.0 E4F / USDT)
+                        7-Day Consecutive Rewards (Custom E4F / USDT per Day)
                       </label>
                       <div className="space-y-2">
                         {dailyCheckInList.map((item, idx) => (
@@ -1880,8 +1881,8 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                                 }}
                                 className="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white cursor-pointer font-semibold"
                               >
-                                <option value="E4F">E4F</option>
                                 <option value="USDT">USDT</option>
+                                <option value="E4F">E4F</option>
                               </select>
                             </div>
                             <div className="flex-1">
@@ -1889,8 +1890,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                                 <input
                                   type="number"
                                   step="0.001"
-                                  min="0.001"
-                                  max="5.0"
+                                  min="0.0001"
                                   value={item.amount === 0 ? '' : item.amount}
                                   onChange={e => {
                                     const updated = [...dailyCheckInList];
@@ -1906,12 +1906,12 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                                     const val = parseFloat(String(item.amount));
                                     updated[idx] = {
                                       ...updated[idx],
-                                      amount: isNaN(val) || val < 0.001 ? 0.001 : Math.min(5.0, Math.round(val * 1000) / 1000),
+                                      amount: isNaN(val) || val <= 0 ? 0.01 : Math.round(val * 10000) / 10000,
                                     };
                                     setDailyCheckInList(updated);
                                   }}
                                   className="w-full px-2 py-1 pr-12 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
-                                  placeholder="0.001 - 5.0"
+                                  placeholder="Reward amount (e.g. 0.01 or 3)"
                                 />
                                 <span className="absolute right-2 top-1 text-[10px] text-slate-400 font-mono pointer-events-none">
                                   {item.asset}

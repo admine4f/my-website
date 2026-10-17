@@ -374,13 +374,13 @@ export function getLocalDailyCheckIn(userId: string): DailyCheckInState {
     lastCheckInDate: '',
     todayClaimed: false,
     rewards: [
-      { day: 1, asset: 'E4F', amount: 0.5 },
-      { day: 2, asset: 'USDT', amount: 0.2 },
-      { day: 3, asset: 'E4F', amount: 1.0 },
-      { day: 4, asset: 'USDT', amount: 0.5 },
-      { day: 5, asset: 'E4F', amount: 1.5 },
-      { day: 6, asset: 'USDT', amount: 1.0 },
-      { day: 7, asset: 'E4F', amount: 3.0 },
+      { day: 1, asset: 'USDT', amount: 0.01 },
+      { day: 2, asset: 'USDT', amount: 0.02 },
+      { day: 3, asset: 'USDT', amount: 0.03 },
+      { day: 4, asset: 'E4F', amount: 3.0 },
+      { day: 5, asset: 'E4F', amount: 5.0 },
+      { day: 6, asset: 'USDT', amount: 0.05 },
+      { day: 7, asset: 'USDT', amount: 0.07 },
     ],
     claimedDays: [],
     nextDayToClaim: 1,
@@ -1006,7 +1006,7 @@ export const api = {
     return getLocalDailyCheckIn(userId);
   },
 
-  async claimDailyCheckIn(userId: string): Promise<{ success: boolean; streak: number; reward: any; balances: WalletBalances; claimedDays?: number[]; todayClaimed?: boolean; nextDayToClaim?: number }> {
+  async claimDailyCheckIn(userId: string): Promise<{ success: boolean; streak: number; current_day?: number; lastCheckInDate?: string; last_claim_date?: string; reward: any; balances: WalletBalances; claimedDays?: number[]; todayClaimed?: boolean; nextDayToClaim?: number }> {
     try {
       const res = await fetch('/api/rewards/daily-checkin/claim', {
         method: 'POST',
@@ -1016,9 +1016,24 @@ export const api = {
       const data = await parseResponseJson(res);
       if (res.ok && data && data.success) {
         if (data.balances) saveLocalBalances(data.balances);
+        const streak = data.streak || data.current_day || 1;
+        saveLocalDailyCheckIn(userId, {
+          currentStreak: streak,
+          lastCheckInDate: data.lastCheckInDate || data.last_claim_date || new Date().toISOString().split('T')[0],
+          todayClaimed: true,
+          claimedDays: data.claimedDays || Array.from({ length: streak }, (_, i) => i + 1),
+          rewards: data.rewards || getLocalDailyCheckIn(userId).rewards,
+          nextDayToClaim: data.nextDayToClaim || ((streak % 7) + 1),
+        });
         return data;
       }
-    } catch (e) {
+      if (data && data.error) {
+        throw new Error(data.error);
+      }
+    } catch (e: any) {
+      if (e.message && (e.message.includes('already claimed') || e.message.includes('not found') || e.message.includes('00:00 UTC'))) {
+        throw e;
+      }
       console.warn('Backend claim failed, fallback to local store:', e);
     }
 
@@ -1032,13 +1047,13 @@ export const api = {
     const currentStreak = checkIn.currentStreak || 0;
     const streak = (currentStreak % 7) + 1;
     const rewards = checkIn.rewards || [
-      { day: 1, asset: 'E4F', amount: 0.5 },
-      { day: 2, asset: 'USDT', amount: 0.2 },
-      { day: 3, asset: 'E4F', amount: 1.0 },
-      { day: 4, asset: 'USDT', amount: 0.5 },
-      { day: 5, asset: 'E4F', amount: 1.5 },
-      { day: 6, asset: 'USDT', amount: 1.0 },
-      { day: 7, asset: 'E4F', amount: 3.0 },
+      { day: 1, asset: 'USDT', amount: 0.01 },
+      { day: 2, asset: 'USDT', amount: 0.02 },
+      { day: 3, asset: 'USDT', amount: 0.03 },
+      { day: 4, asset: 'E4F', amount: 3.0 },
+      { day: 5, asset: 'E4F', amount: 5.0 },
+      { day: 6, asset: 'USDT', amount: 0.05 },
+      { day: 7, asset: 'USDT', amount: 0.07 },
     ];
     const reward = rewards.find(r => r.day === streak) || rewards[0];
 

@@ -49,13 +49,13 @@ export const RewardsCenterModal: React.FC<RewardsCenterModalProps> = ({ onClose 
   const nextDayToClaim = (streakDays % 7) + 1;
 
   const rewards = checkInState?.rewards || [
-    { day: 1, asset: 'E4F', amount: 0.5 },
-    { day: 2, asset: 'USDT', amount: 0.2 },
-    { day: 3, asset: 'E4F', amount: 1.0 },
-    { day: 4, asset: 'USDT', amount: 0.5 },
-    { day: 5, asset: 'E4F', amount: 1.5 },
-    { day: 6, asset: 'USDT', amount: 1.0 },
-    { day: 7, asset: 'E4F', amount: 3.0 },
+    { day: 1, asset: 'USDT', amount: 0.01 },
+    { day: 2, asset: 'USDT', amount: 0.02 },
+    { day: 3, asset: 'USDT', amount: 0.03 },
+    { day: 4, asset: 'E4F', amount: 3.0 },
+    { day: 5, asset: 'E4F', amount: 5.0 },
+    { day: 6, asset: 'USDT', amount: 0.05 },
+    { day: 7, asset: 'USDT', amount: 0.07 },
   ];
 
   const todayReward = rewards.find(r => r.day === nextDayToClaim) || rewards[0];
@@ -71,23 +71,22 @@ export const RewardsCenterModal: React.FC<RewardsCenterModalProps> = ({ onClose 
     try {
       const res = await api.claimDailyCheckIn(user.id);
       if (res.success) {
+        const streak = res.streak || res.current_day || 1;
         setCheckInState(prev => ({
           ...prev,
-          currentStreak: res.streak,
+          currentStreak: streak,
           todayClaimed: true,
-          claimedDays: res.claimedDays || [res.streak],
+          claimedDays: res.claimedDays || Array.from({ length: streak }, (_, i) => i + 1),
           rewards: prev?.rewards || rewards,
-          lastCheckInDate: new Date().toISOString().split('T')[0],
-          nextDayToClaim: (res.streak % 7) + 1,
+          lastCheckInDate: res.lastCheckInDate || new Date().toISOString().split('T')[0],
+          nextDayToClaim: res.nextDayToClaim || ((streak % 7) + 1),
         }));
         addToast(
           'Daily Check-in Claimed!',
-          `Day ${res.streak} reward: +${res.reward.amount} ${res.reward.asset}!`,
+          `Day ${streak} reward: +${res.reward.amount} ${res.reward.asset}!`,
           'success'
         );
-        const updated = await api.getDailyCheckIn(user.id);
-        setCheckInState(updated);
-        await refreshProfile();
+        refreshProfile().catch(() => {});
       }
     } catch (err: any) {
       addToast('Check-in Notice', err.message || 'Already claimed today', 'error');
