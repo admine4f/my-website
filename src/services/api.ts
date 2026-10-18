@@ -355,44 +355,29 @@ export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
   },
 ];
 
-export function getLocalDailyCheckIn(userId: string): DailyCheckInState {
-  try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(`e4f_checkin_${userId}`) : null;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const todayStr = new Date().toISOString().split('T')[0];
-      const todayClaimed = parsed.lastCheckInDate === todayStr;
-      return {
-        ...parsed,
-        todayClaimed,
-        nextDayToClaim: (parsed.currentStreak % 7) + 1,
-      };
-    }
-  } catch {}
+export function getLocalDailyCheckIn(_userId?: string): DailyCheckInState {
+  const defaultRewards = [
+    { day: 1, asset: 'USDT' as const, amount: 0.01 },
+    { day: 2, asset: 'USDT' as const, amount: 0.02 },
+    { day: 3, asset: 'USDT' as const, amount: 0.03 },
+    { day: 4, asset: 'E4F' as const, amount: 3.0 },
+    { day: 5, asset: 'E4F' as const, amount: 5.0 },
+    { day: 6, asset: 'USDT' as const, amount: 0.05 },
+    { day: 7, asset: 'USDT' as const, amount: 0.07 },
+  ];
+
   return {
     currentStreak: 0,
     lastCheckInDate: '',
     todayClaimed: false,
-    rewards: [
-      { day: 1, asset: 'USDT', amount: 0.01 },
-      { day: 2, asset: 'USDT', amount: 0.02 },
-      { day: 3, asset: 'USDT', amount: 0.03 },
-      { day: 4, asset: 'E4F', amount: 3.0 },
-      { day: 5, asset: 'E4F', amount: 5.0 },
-      { day: 6, asset: 'USDT', amount: 0.05 },
-      { day: 7, asset: 'USDT', amount: 0.07 },
-    ],
+    rewards: defaultRewards,
     claimedDays: [],
     nextDayToClaim: 1,
   };
 }
 
-export function saveLocalDailyCheckIn(userId: string, state: DailyCheckInState) {
-  try {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`e4f_checkin_${userId}`, JSON.stringify(state));
-    }
-  } catch {}
+export function saveLocalDailyCheckIn(_userId: string, _state: DailyCheckInState) {
+  // Pure server-authoritative state backed by public.e4f_daily_checkins (No local storage tampering)
 }
 
 export const api = {
@@ -1016,76 +1001,15 @@ export const api = {
       const data = await parseResponseJson(res);
       if (res.ok && data && data.success) {
         if (data.balances) saveLocalBalances(data.balances);
-        const streak = data.streak || data.current_day || 1;
-        saveLocalDailyCheckIn(userId, {
-          currentStreak: streak,
-          lastCheckInDate: data.lastCheckInDate || data.last_claim_date || new Date().toISOString().split('T')[0],
-          todayClaimed: true,
-          claimedDays: data.claimedDays || Array.from({ length: streak }, (_, i) => i + 1),
-          rewards: data.rewards || getLocalDailyCheckIn(userId).rewards,
-          nextDayToClaim: data.nextDayToClaim || ((streak % 7) + 1),
-        });
         return data;
       }
       if (data && data.error) {
         throw new Error(data.error);
       }
+      throw new Error('Server returned invalid claim response');
     } catch (e: any) {
-      if (e.message && (e.message.includes('already claimed') || e.message.includes('not found') || e.message.includes('00:00 UTC'))) {
-        throw e;
-      }
-      console.warn('Backend claim failed, fallback to local store:', e);
+      throw e;
     }
-
-    // Client-side fallback engine (works on Netlify / static builds without throwing "Unexpected end of JSON input")
-    const checkIn = getLocalDailyCheckIn(userId);
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (checkIn.lastCheckInDate === todayStr && checkIn.todayClaimed) {
-      throw new Error('Already claimed today');
-    }
-
-    const currentStreak = checkIn.currentStreak || 0;
-    const streak = (currentStreak % 7) + 1;
-    const rewards = checkIn.rewards || [
-      { day: 1, asset: 'USDT', amount: 0.01 },
-      { day: 2, asset: 'USDT', amount: 0.02 },
-      { day: 3, asset: 'USDT', amount: 0.03 },
-      { day: 4, asset: 'E4F', amount: 3.0 },
-      { day: 5, asset: 'E4F', amount: 5.0 },
-      { day: 6, asset: 'USDT', amount: 0.05 },
-      { day: 7, asset: 'USDT', amount: 0.07 },
-    ];
-    const reward = rewards.find(r => r.day === streak) || rewards[0];
-
-    const balances = getLocalBalances();
-    if (reward.asset === 'USDT') {
-      balances.usdt = Number(((balances.usdt || 0) + reward.amount).toFixed(4));
-    } else {
-      balances.e4f = Number(((balances.e4f || 0) + reward.amount).toFixed(4));
-    }
-    saveLocalBalances(balances);
-
-    const claimedDays = Array.from({ length: streak }, (_, i) => i + 1);
-    const nextDayToClaim = (streak % 7) + 1;
-
-    saveLocalDailyCheckIn(userId, {
-      currentStreak: streak,
-      lastCheckInDate: todayStr,
-      todayClaimed: true,
-      rewards,
-      claimedDays,
-      nextDayToClaim,
-    });
-
-    return {
-      success: true,
-      streak,
-      reward,
-      balances,
-      claimedDays,
-      todayClaimed: true,
-      nextDayToClaim,
-    };
   },
 
   async resetUserDailyCheckIn(userId: string, adminKey: string): Promise<{ success: boolean; message: string }> {

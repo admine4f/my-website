@@ -68,10 +68,32 @@ export const RewardsCenterModal: React.FC<RewardsCenterModalProps> = ({ onClose 
   const handleClaimDaily = async () => {
     if (!user || claimingCheckIn || todayClaimed) return;
     setClaimingCheckIn(true);
+
+    const prevSnapshot = checkInState;
+    const optimisticDay = nextDayToClaim;
+    const optimisticTodayReward = todayReward;
+
+    // ⚡ Optimistic UI: Immediately update the modal state & trigger celebration toast
+    setCheckInState(prev => ({
+      ...prev,
+      currentStreak: optimisticDay,
+      todayClaimed: true,
+      claimedDays: Array.from({ length: optimisticDay }, (_, i) => i + 1),
+      rewards: prev?.rewards || rewards,
+      lastCheckInDate: new Date().toISOString().split('T')[0],
+      nextDayToClaim: (optimisticDay % 7) + 1,
+    }));
+
+    addToast(
+      'Daily Check-in Claimed!',
+      `Day ${optimisticDay} reward: +${optimisticTodayReward.amount} ${optimisticTodayReward.asset}!`,
+      'success'
+    );
+
     try {
       const res = await api.claimDailyCheckIn(user.id);
       if (res.success) {
-        const streak = res.streak || res.current_day || 1;
+        const streak = res.streak || res.current_day || optimisticDay;
         setCheckInState(prev => ({
           ...prev,
           currentStreak: streak,
@@ -81,14 +103,11 @@ export const RewardsCenterModal: React.FC<RewardsCenterModalProps> = ({ onClose 
           lastCheckInDate: res.lastCheckInDate || new Date().toISOString().split('T')[0],
           nextDayToClaim: res.nextDayToClaim || ((streak % 7) + 1),
         }));
-        addToast(
-          'Daily Check-in Claimed!',
-          `Day ${streak} reward: +${res.reward.amount} ${res.reward.asset}!`,
-          'success'
-        );
         refreshProfile().catch(() => {});
       }
     } catch (err: any) {
+      // Rollback to previous state if backend returns error
+      setCheckInState(prevSnapshot);
       addToast('Check-in Notice', err.message || 'Already claimed today', 'error');
     } finally {
       setClaimingCheckIn(false);

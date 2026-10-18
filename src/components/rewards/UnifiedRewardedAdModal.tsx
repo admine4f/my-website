@@ -14,7 +14,14 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { getAdTargetUrl, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
-import { loadAdsgramScript } from '../../services/adWaterfall';
+import {
+  loadAdsgramScript,
+  showAdsgramAd,
+  showOnclickaAd,
+  showRichadsAd,
+  showMonetagAd,
+  showAdexoraAd,
+} from '../../services/adWaterfall';
 import {
   SPIN_ADS,
   BOX_ADS,
@@ -32,39 +39,38 @@ import {
 } from '../../services/adCodes';
 
 // =========================================================================
-// 🎯 WATERFALL AD CONFIGURATION (12 REAL IDS MAPPED ACROSS 11 BUTTONS)
-// (Can be edited directly here or dynamically from Admin Control Panel)
+// 🎯 WATERFALL AD CONFIGURATION (15 REAL IDS MAPPED ACROSS MINING, SPIN & BOX)
+// Priority Sequence: AdsGram -> OnClickA -> RichAds -> Monetag -> Adexora
 // =========================================================================
-export let SPIN_01_ADSGRAM = '54111';
+export let SPIN_01_ADSGRAM = '54618';
 export let SPIN_02_MONETAG = '12044377';
-export let SPIN_03_ONCLICKA = '6153772';
-export let SPIN_04_RICHADS = '410260';
+export let SPIN_03_ONCLICKA = '6153717';
+export let SPIN_04_RICHADS = '410203';
 export let SPIN_05_ADEXORA = '2217';
 
-export let BOX_01_ADSGRAM = '54110';
+export let BOX_01_ADSGRAM = '54617';
 export let BOX_02_MONETAG = '12044377';
-export let BOX_03_ONCLICKA = '6153774';
-export let BOX_04_RICHADS = '410260';
+export let BOX_03_ONCLICKA = '6153772';
+export let BOX_04_RICHADS = '410202';
 export let BOX_05_ADEXORA = '2217';
 
-// Mining Waterfall Ad Variables (Configurable from Admin without app updates)
-export let MINING_01_ADSGRAM = '54110';
+// Mining Waterfall Ad Variables
+export let MINING_01_ADSGRAM = '54597';
 export let MINING_02_MONETAG = '12044377';
-export let MINING_03_ONCLICKA = '6153717';
-export let MINING_04_RICHADS = '410260';
+export let MINING_03_ONCLICKA = '6153774';
+export let MINING_04_RICHADS = '410204';
 export let MINING_05_ADEXORA = '2217';
-export let MINING_PRIMARY_NETWORK: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora' = 'AdsGram';
-export let MINING_SECONDARY_NETWORK: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora' = 'Monetag';
+export let MINING_PRIMARY_NETWORK: 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora' = 'AdsGram';
+export let MINING_SECONDARY_NETWORK: 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora' = 'OnClickA';
 export let MINING_WATERFALL_ENABLED = true;
 
-// 5 RichAds Placements (1=Push-style, 2=Embedded banner, 3=Interstitial banner, 4=Interstitial video, 5=Playable ads)
-export const RICHADS_PLACEMENTS = ['410260', '410261', '410262', '410263', '410264'];
+export const RICHADS_PLACEMENTS = ['410202', '410203', '410204', '410260', '410261'];
 
 export { getAdChain };
 
 interface WaterfallTier {
   index: number;
-  provider: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora';
+  provider: 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora';
   id: string;
   placementKey?: string;
   label: string;
@@ -243,32 +249,28 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     };
   }, [handleCancel]);
 
-  // Waterfall Fallback Trigger: Called whenever an ad network fails
+  // Waterfall Fallback Trigger: Called whenever an ad network fails or times out (4 seconds)
+  // "৫ নং Ad ও ফেল করলে আবার ১ নং Ad থেকে শুরু হবে। মানে লুপ চলতেই থাকবে, কখনো ফাঁকা যাবে না।"
   const advanceWaterfall = useCallback(
     (reason: string) => {
       if (!isMountedRef.current) return;
       if (timerRef.current) clearInterval(timerRef.current);
 
-      const nextIndex = tierIndex + 1;
-      console.warn(`[Waterfall] Tier ${tierIndex + 1} (${tiers[tierIndex]?.provider}) failed: ${reason}.`);
+      const nextIndex = tiers.length > 0 ? (tierIndex + 1) % tiers.length : 0;
+      console.warn(`[Waterfall] Tier ${tierIndex + 1} (${tiers[tierIndex]?.provider}) failed: ${reason}. Switching to Tier ${nextIndex + 1} (${tiers[nextIndex]?.provider}).`);
 
-      if (nextIndex < tiers.length) {
-        setTierIndex(nextIndex);
-        setTierFailReason('Connecting to alternative sponsored stream...');
-        setSecondsWatched(0);
-        totalWatchedSecondsRef.current = 0;
-        watchStartTimeRef.current = null;
-        hasStartedRef.current = false;
-        setStep('READY');
+      setTierIndex(nextIndex);
+      setTierFailReason(`Switching to ${tiers[nextIndex]?.provider || 'next network'}...`);
+      setSecondsWatched(0);
+      totalWatchedSecondsRef.current = 0;
+      watchStartTimeRef.current = null;
+      hasStartedRef.current = false;
+      setStep('READY');
 
-        // Clear warning message after 3.5 seconds
-        setTimeout(() => {
-          if (isMountedRef.current) setTierFailReason(null);
-        }, 3500);
-      } else {
-        // ALL 5 AD NETWORKS FAILED!
-        setStep('ALL_FAILED');
-      }
+      // Clear warning message after 2.5 seconds
+      setTimeout(() => {
+        if (isMountedRef.current) setTierFailReason(null);
+      }, 2500);
     },
     [tierIndex, tiers]
   );
@@ -295,8 +297,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
           setStep('COMPLETED');
           triggerAutoClaimRef.current();
         } else {
-          // User returned before completing full duration (e.g. 10s watched of 30s)
-          // Stop timer right here, freeze time, show remaining seconds, require user to continue!
+          // User returned before completing full duration
           totalWatchedSecondsRef.current = accumulated;
           currentBurstStartTimeRef.current = null;
           if (timerRef.current) clearInterval(timerRef.current);
@@ -314,120 +315,20 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     };
   }, []);
 
-  // 4. User Clicks "Watch Ad Now"
-  const handleWatchAdClick = async (e?: React.MouseEvent) => {
-    if (!adSession || tiers.length === 0) return;
-    const currentTier = tiers[tierIndex] || tiers[0];
-    const placementConfig = getAdCodesForPlacement(actionType, targetId);
-    setErrorMsg(null);
-
-    // Track Ad View in Supabase e4f_ad_views
-    const placementName = currentTier.placementKey || `${actionType}_${targetId || 1}`;
-    api.logAdView(userId, currentTier.provider, placementName);
-
-    // =========================================================
-    // CASE A: ADSGRAM TIER (Native Telegram Mini App Video Ad)
-    // =========================================================
-    if (currentTier.provider === 'AdsGram') {
-      setStep('WATCHING');
-      const hardDefault = actionType === 'SPIN' ? '54111' : '54110';
-      const safeBlockId = sanitizeAdsgramBlockId(currentTier.id, hardDefault);
-      try {
-        const scriptLoaded = await loadAdsgramScript();
-        const adsgramObj = (window as any).Adsgram;
-
-        if (scriptLoaded && adsgramObj && typeof adsgramObj.init === 'function') {
-          // Initialize AdsGram controller with guaranteed safe numeric block ID (54110 or 54111)
-          const AdController = adsgramObj.init({ blockId: safeBlockId, debug: false });
-          const res = await AdController.show();
-
-          if (res && res.done) {
-            // Adsgram completed successfully!
-            incrementNetworkViewCountToday(userId, 'AdsGram');
-            handleClaimReward(`ADSGRAM_${safeBlockId}_COMPLETED`);
-            return;
-          } else {
-            advanceWaterfall('AdsGram ad playback was skipped or closed.');
-            return;
-          }
-        } else {
-          // Adsgram script not supported or blocked in current environment
-          advanceWaterfall('Adsgram SDK not available in this client.');
-          return;
-        }
-      } catch (err: any) {
-        advanceWaterfall(err.message || 'AdsGram ad request failed.');
-        return;
-      }
-    }
-
-    // =========================================================
-    // CASE B: MONETAG TIER (In-App SDK with Zone ID 12044377)
-    // =========================================================
-    if (currentTier.provider === 'Monetag') {
-      setStep('WATCHING');
-      const zoneId = currentTier.id && /^\d+$/.test(currentTier.id) ? currentTier.id : placementConfig.monetag_zone;
-      try {
-        if (typeof (window as any).show_88 === 'function' || typeof (window as any).show_tag === 'function') {
-          const showFn = (window as any).show_88 || (window as any).show_tag;
-          await showFn(zoneId);
-          incrementNetworkViewCountToday(userId, 'Monetag');
-          handleClaimReward(`MONETAG_${zoneId}_COMPLETED`);
-          return;
-        }
-      } catch (err: any) {
-        console.warn('[Monetag] show_88 error:', err);
-      }
-      // If in-app SDK is not mounted, advance waterfall to OnClickA / RichAds / Adexora
-      advanceWaterfall('Monetag in-app ad not available in this session.');
-      return;
-    }
-
-    // =========================================================
-    // CASE C: ONCLICKA, RICHADS, ADEXORA (30s Rewarded Waterfall)
-    // =========================================================
+  // Helper to start timer watch loop
+  const startAdWatchTimer = () => {
     const now = Date.now();
     currentBurstStartTimeRef.current = now;
 
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
-      try {
-        await api.startAdWatching(adSession.sessionId, adSession.token, userId);
-      } catch (err) {
-        console.warn('startAdWatching error:', err);
-      }
-    }
-
-    // Determine target URL for the active network (No direct links to omg10.com)
-    let targetUrl = '#';
-    if (currentTier.provider === 'OnClickA') {
-      const customId = currentTier.id;
-      targetUrl = customId && customId.startsWith('http') ? customId : `https://onclicka.com/zone/${customId || '6153717'}`;
-    } else if (currentTier.provider === 'RichAds') {
-      const customId = currentTier.id;
-      targetUrl = customId && customId.startsWith('http') ? customId : `https://richads.com/zone/${customId || '410260'}`;
-    } else if (currentTier.provider === 'Adexora') {
-      const customId = currentTier.id;
-      targetUrl = customId && customId.startsWith('http') ? customId : `https://adexora.com/zone/${customId || '2217'}`;
-    }
-
-    // Open ad window via Telegram WebApp or browser
-    if (typeof window !== 'undefined' && targetUrl !== '#') {
-      if ((window as any).Telegram?.WebApp?.openLink) {
-        if (e) e.preventDefault();
-        try {
-          (window as any).Telegram.WebApp.openLink(targetUrl);
-        } catch {
-          window.open(targetUrl, '_blank', 'noopener,noreferrer');
-        }
-      } else {
-        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      if (adSession) {
+        api.startAdWatching(adSession.sessionId, adSession.token, userId).catch(() => {});
       }
     }
 
     setStep('WATCHING');
 
-    // Run active tick
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       if (!currentBurstStartTimeRef.current || !isMountedRef.current) return;
@@ -444,6 +345,106 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         triggerAutoClaimRef.current();
       }
     }, 500);
+  };
+
+  // 4. User Clicks "Watch Ad Now"
+  // Waterfall Chain: AdsGram -> OnClickA -> RichAds -> Monetag -> Adexora (with 4s timeout & infinite loop)
+  const handleWatchAdClick = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (!adSession || tiers.length === 0) return;
+    const currentTier = tiers[tierIndex] || tiers[0];
+    const placementConfig = getAdCodesForPlacement(actionType, targetId);
+    setErrorMsg(null);
+
+    // Track Ad View in Supabase e4f_ad_views
+    const placementName = currentTier.placementKey || `${actionType}_${targetId || 1}`;
+    api.logAdView(userId, currentTier.provider, placementName);
+
+    // =========================================================
+    // 1. ADSGRAM FUNCTION (Native Telegram Mini App Video Ad)
+    // =========================================================
+    if (currentTier.provider === 'AdsGram') {
+      setStep('WATCHING');
+      const hardDefault = actionType === 'SPIN' ? '54618' : (actionType === 'GIFT_BOX' ? '54617' : '54597');
+      const safeBlockId = sanitizeAdsgramBlockId(currentTier.id, hardDefault);
+
+      const res = await showAdsgramAd(safeBlockId, 4000);
+      if (res.success && res.completed) {
+        incrementNetworkViewCountToday(userId, 'AdsGram');
+        handleClaimReward(`ADSGRAM_${safeBlockId}_COMPLETED`);
+        return;
+      }
+      advanceWaterfall(res.reason || 'AdsGram ad playback failed or timed out (4s)');
+      return;
+    }
+
+    // =========================================================
+    // 2. ONCLICKA FUNCTION (Zone Direct / Landing Link)
+    // =========================================================
+    if (currentTier.provider === 'OnClickA') {
+      setStep('WATCHING');
+      const zoneId = currentTier.id || (actionType === 'SPIN' ? '6153717' : (actionType === 'GIFT_BOX' ? '6153772' : '6153774'));
+      const res = await showOnclickaAd(zoneId, 4000);
+      if (!res.success) {
+        advanceWaterfall(res.reason || 'OnClickA ad request failed or timed out (4s)');
+        return;
+      }
+      startAdWatchTimer();
+      return;
+    }
+
+    // =========================================================
+    // 3. RICHADS FUNCTION (Zone Direct Link)
+    // =========================================================
+    if (currentTier.provider === 'RichAds') {
+      setStep('WATCHING');
+      const zoneId = currentTier.id || (actionType === 'SPIN' ? '410203' : (actionType === 'GIFT_BOX' ? '410202' : '410204'));
+      const res = await showRichadsAd(zoneId, 4000);
+      if (!res.success) {
+        advanceWaterfall(res.reason || 'RichAds ad request failed or timed out (4s)');
+        return;
+      }
+      startAdWatchTimer();
+      return;
+    }
+
+    // =========================================================
+    // 4. MONETAG FUNCTION (In-App SDK with Zone 12044377 / Fallback)
+    // =========================================================
+    if (currentTier.provider === 'Monetag') {
+      setStep('WATCHING');
+      const zoneId = currentTier.id && /^\d+$/.test(currentTier.id) ? currentTier.id : placementConfig.monetag_zone;
+      const res = await showMonetagAd(zoneId, 4000);
+      if (res.success && res.completed) {
+        incrementNetworkViewCountToday(userId, 'Monetag');
+        handleClaimReward(`MONETAG_${zoneId}_COMPLETED`);
+        return;
+      }
+      if (!res.success) {
+        advanceWaterfall(res.reason || 'Monetag ad load failed or timed out (4s)');
+        return;
+      }
+      startAdWatchTimer();
+      return;
+    }
+
+    // =========================================================
+    // 5. ADEXORA FUNCTION (Zone Direct Link)
+    // =========================================================
+    if (currentTier.provider === 'Adexora') {
+      setStep('WATCHING');
+      const zoneId = currentTier.id || '2217';
+      const res = await showAdexoraAd(zoneId, 4000);
+      if (!res.success) {
+        advanceWaterfall(res.reason || 'Adexora ad request failed or timed out (4s)');
+        return;
+      }
+      startAdWatchTimer();
+      return;
+    }
+
+    // Fallback if provider unknown: loop back to beginning
+    advanceWaterfall('Ad provider unrecognized, restarting waterfall');
   };
 
   // 5. Authoritative Backend Verification & Claim
@@ -660,14 +661,12 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
             )}
 
             {/* Manual next network fallback if stuck */}
-            {tierIndex < tiers.length - 1 && (
-              <button
-                onClick={() => advanceWaterfall('User skipped blocked ad')}
-                className="text-[10px] text-slate-500 hover:text-amber-400 transition-colors cursor-pointer"
-              >
-                Ad blocked or stuck? Try next ad
-              </button>
-            )}
+            <button
+              onClick={() => advanceWaterfall('User requested next ad stream')}
+              className="text-[10px] text-slate-500 hover:text-amber-400 transition-colors cursor-pointer mt-1"
+            >
+              Ad blocked or not loading? Skip to next network
+            </button>
           </div>
         )}
 
@@ -700,14 +699,12 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               <span>Continue Watching Ad ({remainingSeconds}s remaining)</span>
             </a>
 
-            {tierIndex < tiers.length - 1 && (
-              <button
-                onClick={() => advanceWaterfall('Ad playback incomplete')}
-                className="text-[10px] text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
-              >
-                Try next ad
-              </button>
-            )}
+            <button
+              onClick={() => advanceWaterfall('Ad playback incomplete')}
+              className="text-[10px] text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
+            >
+              Try next network
+            </button>
           </div>
         )}
 

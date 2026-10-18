@@ -11,23 +11,23 @@ export interface AdUnitConfig {
 }
 
 export const SPIN_ADS: Record<string, AdUnitConfig> = {
-  spin_01: { adsgram: "54111", monetag: "12044377", onclicka: "6153772", richads: "410260", adexora: "2217" },
-  spin_02: { adsgram: "54111", monetag: "12044377", onclicka: "6153772", richads: "410261", adexora: "2217" },
-  spin_03: { adsgram: "54111", monetag: "12044377", onclicka: "6153772", richads: "410262", adexora: "2217" },
-  spin_04: { adsgram: "54111", monetag: "12044377", onclicka: "6153772", richads: "410263", adexora: "2217" },
-  spin_05: { adsgram: "54111", monetag: "12044377", onclicka: "6153772", richads: "410264", adexora: "2217" }
+  spin_01: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" },
+  spin_02: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" },
+  spin_03: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" },
+  spin_04: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" },
+  spin_05: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" }
 };
 
 export const BOX_ADS: Record<string, AdUnitConfig> = {
-  box_01: { adsgram: "54110", monetag: "12044377", onclicka: "6153774", richads: "410260", adexora: "2217" },
-  box_02: { adsgram: "54110", monetag: "12044377", onclicka: "6153774", richads: "410261", adexora: "2217" },
-  box_03: { adsgram: "54110", monetag: "12044377", onclicka: "6153774", richads: "410262", adexora: "2217" },
-  box_04: { adsgram: "54110", monetag: "12044377", onclicka: "6153774", richads: "410263", adexora: "2217" },
-  box_05: { adsgram: "54110", monetag: "12044377", onclicka: "6153774", richads: "410264", adexora: "2217" }
+  box_01: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" },
+  box_02: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" },
+  box_03: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" },
+  box_04: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" },
+  box_05: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" }
 };
 
 export const MINING_ADS: Record<string, AdUnitConfig> = {
-  mining: { adsgram: "54110", monetag: "12044377", onclicka: "6153717", richads: "410260", adexora: "2217" }
+  mining: { adsgram: "54597", monetag: "12044377", onclicka: "6153774", richads: "410204", adexora: "2217" }
 };
 
 // Backward-compatible AD_CODES mapping
@@ -156,7 +156,7 @@ export function isNetworkCappedToday(userId: string, network: string): boolean {
 
 export interface IntraWaterfallTier {
   index: number;
-  provider: 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora';
+  provider: 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora';
   id: string;
   placementKey: string;
   label: string;
@@ -180,14 +180,12 @@ export function buildIntraWaterfallTiers(
   actionType: 'MINING' | 'SPIN' | 'GIFT_BOX',
   targetId: number | undefined,
   userId: string,
-  isTelegram: boolean = true
+  _isTelegram: boolean = true
 ): IntraWaterfallTier[] {
-  type NetworkName = 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora';
+  type NetworkName = 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora';
 
-  // Base network priority order
-  const defaultNetworks: NetworkName[] = isTelegram
-    ? ['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora']
-    : ['Monetag', 'OnClickA', 'RichAds', 'Adexora', 'AdsGram'];
+  // Best Income Priority Sequence: AdsGram -> OnClickA -> RichAds -> Monetag -> Adexora
+  const defaultNetworks: NetworkName[] = ['AdsGram', 'OnClickA', 'RichAds', 'Monetag', 'Adexora'];
 
   // Put uncapped networks first to strictly enforce 3-ad daily cap per network
   const uncappedNetworks = defaultNetworks.filter(n => !isNetworkCappedToday(userId, n));
@@ -203,11 +201,11 @@ export function buildIntraWaterfallTiers(
   if (actionType === 'MINING') {
     // Mining uses the 5 networks
     orderedNetworks.forEach((net, idx) => {
-      let id = '54110';
+      let id = '54597';
       if (net === 'AdsGram') id = MINING_ADS.mining.adsgram;
-      else if (net === 'Monetag') id = MINING_ADS.mining.monetag;
       else if (net === 'OnClickA') id = MINING_ADS.mining.onclicka;
       else if (net === 'RichAds') id = MINING_ADS.mining.richads;
+      else if (net === 'Monetag') id = MINING_ADS.mining.monetag;
       else if (net === 'Adexora') id = MINING_ADS.mining.adexora;
 
       tiers.push({
@@ -224,7 +222,7 @@ export function buildIntraWaterfallTiers(
   const adsMap = actionType === 'SPIN' ? SPIN_ADS : BOX_ADS;
   const prefix = actionType === 'SPIN' ? 'spin' : 'box';
 
-  // Build INTRA-FALLBACK: All 5 placements for network 1, then all 5 for network 2, etc.
+  // Build INTRA-FALLBACK in priority order: AdsGram -> OnClickA -> RichAds -> Monetag -> Adexora
   orderedNetworks.forEach((net) => {
     slotChain.forEach((pNum, cycleIdx) => {
       const pad = String(pNum).padStart(2, '0');
@@ -233,13 +231,13 @@ export function buildIntraWaterfallTiers(
 
       let id = '';
       if (net === 'AdsGram') {
-        id = sanitizeAdsgramBlockId(conf.adsgram, actionType === 'SPIN' ? '54111' : '54110');
+        id = sanitizeAdsgramBlockId(conf.adsgram, actionType === 'SPIN' ? '54618' : '54617');
+      } else if (net === 'OnClickA') {
+        id = conf.onclicka || (actionType === 'SPIN' ? '6153717' : '6153772');
+      } else if (net === 'RichAds') {
+        id = conf.richads || (actionType === 'SPIN' ? '410203' : '410202');
       } else if (net === 'Monetag') {
         id = conf.monetag || '12044377';
-      } else if (net === 'OnClickA') {
-        id = conf.onclicka || (actionType === 'SPIN' ? '6153772' : '6153774');
-      } else if (net === 'RichAds') {
-        id = conf.richads || '410260';
       } else if (net === 'Adexora') {
         id = conf.adexora || '2217';
       }

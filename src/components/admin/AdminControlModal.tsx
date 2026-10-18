@@ -69,26 +69,26 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   const [monetagTelegramSdkEnabled, setMonetagTelegramSdkEnabled] = useState(true);
 
   // 10 Waterfall Ad Variables for Spin & Gift Box
-  const [spin01Adsgram, setSpin01Adsgram] = useState('54111');
+  const [spin01Adsgram, setSpin01Adsgram] = useState('54618');
   const [spin02Monetag, setSpin02Monetag] = useState('12044377');
-  const [spin03Onclicka, setSpin03Onclicka] = useState('6153772');
-  const [spin04Richads, setSpin04Richads] = useState('410260');
+  const [spin03Onclicka, setSpin03Onclicka] = useState('6153717');
+  const [spin04Richads, setSpin04Richads] = useState('410203');
   const [spin05Adexora, setSpin05Adexora] = useState('2217');
 
-  const [box01Adsgram, setBox01Adsgram] = useState('54110');
+  const [box01Adsgram, setBox01Adsgram] = useState('54617');
   const [box02Monetag, setBox02Monetag] = useState('12044377');
-  const [box03Onclicka, setBox03Onclicka] = useState('6153774');
-  const [box04Richads, setBox04Richads] = useState('410260');
+  const [box03Onclicka, setBox03Onclicka] = useState('6153772');
+  const [box04Richads, setBox04Richads] = useState('410202');
   const [box05Adexora, setBox05Adexora] = useState('2217');
 
   // Mining Ad Network & Waterfall Gate Settings (Real-Time Admin Control)
   const [miningPrimaryNetwork, setMiningPrimaryNetwork] = useState<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'>('AdsGram');
-  const [miningSecondaryNetwork, setMiningSecondaryNetwork] = useState<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'>('Monetag');
+  const [miningSecondaryNetwork, setMiningSecondaryNetwork] = useState<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'>('OnClickA');
   const [miningWaterfallEnabled, setMiningWaterfallEnabled] = useState(true);
-  const [mining01Adsgram, setMining01Adsgram] = useState('54110');
+  const [mining01Adsgram, setMining01Adsgram] = useState('54597');
   const [mining02Monetag, setMining02Monetag] = useState('12044377');
-  const [mining03Onclicka, setMining03Onclicka] = useState('6153717');
-  const [mining04Richads, setMining04Richads] = useState('410260');
+  const [mining03Onclicka, setMining03Onclicka] = useState('6153774');
+  const [mining04Richads, setMining04Richads] = useState('410204');
   const [mining05Adexora, setMining05Adexora] = useState('2217');
   // Hourly Mining Rate (E4F / Hour) - Dynamic Real-Time Admin Control
   const [miningRatePerHour, setMiningRatePerHour] = useState<number>(miningStats?.miningRatePerHour ?? 0.25);
@@ -368,26 +368,26 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
           return t || fallback;
         };
 
-        setSpin01Adsgram(sanitizeAdminAdId(dash.systemSettings.spin_01_adsgram, '54111'));
+        setSpin01Adsgram(sanitizeAdminAdId(dash.systemSettings.spin_01_adsgram, '54618'));
         setSpin02Monetag(sanitizeAdminAdId(dash.systemSettings.spin_02_monetag, '12044377'));
-        setSpin03Onclicka(sanitizeAdminAdId(dash.systemSettings.spin_03_onclicka, '6153772'));
-        setSpin04Richads(sanitizeAdminAdId(dash.systemSettings.spin_04_richads, '410260'));
+        setSpin03Onclicka(sanitizeAdminAdId(dash.systemSettings.spin_03_onclicka, '6153717'));
+        setSpin04Richads(sanitizeAdminAdId(dash.systemSettings.spin_04_richads, '410203'));
         setSpin05Adexora(sanitizeAdminAdId(dash.systemSettings.spin_05_adexora, '2217'));
 
-        setBox01Adsgram(sanitizeAdminAdId(dash.systemSettings.box_01_adsgram, '54110'));
+        setBox01Adsgram(sanitizeAdminAdId(dash.systemSettings.box_01_adsgram, '54617'));
         setBox02Monetag(sanitizeAdminAdId(dash.systemSettings.box_02_monetag, '12044377'));
-        setBox03Onclicka(sanitizeAdminAdId(dash.systemSettings.box_03_onclicka, '6153774'));
-        setBox04Richads(sanitizeAdminAdId(dash.systemSettings.box_04_richads, '410260'));
+        setBox03Onclicka(sanitizeAdminAdId(dash.systemSettings.box_03_onclicka, '6153772'));
+        setBox04Richads(sanitizeAdminAdId(dash.systemSettings.box_04_richads, '410202'));
         setBox05Adexora(sanitizeAdminAdId(dash.systemSettings.box_05_adexora, '2217'));
 
         // Mining Waterfall Gate Settings
         if (dash.systemSettings.miningPrimaryNetwork) setMiningPrimaryNetwork(dash.systemSettings.miningPrimaryNetwork);
         if (dash.systemSettings.miningSecondaryNetwork) setMiningSecondaryNetwork(dash.systemSettings.miningSecondaryNetwork);
         if (dash.systemSettings.miningWaterfallEnabled !== undefined) setMiningWaterfallEnabled(dash.systemSettings.miningWaterfallEnabled);
-        setMining01Adsgram(sanitizeAdminAdId(dash.systemSettings.mining_01_adsgram, '54110'));
+        setMining01Adsgram(sanitizeAdminAdId(dash.systemSettings.mining_01_adsgram, '54597'));
         setMining02Monetag(sanitizeAdminAdId(dash.systemSettings.mining_02_monetag, '12044377'));
-        setMining03Onclicka(sanitizeAdminAdId(dash.systemSettings.mining_03_onclicka, '6153717'));
-        setMining04Richads(sanitizeAdminAdId(dash.systemSettings.mining_04_richads, '410260'));
+        setMining03Onclicka(sanitizeAdminAdId(dash.systemSettings.mining_03_onclicka, '6153774'));
+        setMining04Richads(sanitizeAdminAdId(dash.systemSettings.mining_04_richads, '410204'));
         setMining05Adexora(sanitizeAdminAdId(dash.systemSettings.mining_05_adexora, '2217'));
         if (dash.systemSettings.miningRatePerHour !== undefined) setMiningRatePerHour(dash.systemSettings.miningRatePerHour);
       }
@@ -425,24 +425,24 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
         monetagDirectLink: '',
         monetagZoneId: cleanAdId(monetagZoneId, '12044377'),
         monetagTelegramSdkEnabled,
-        spin_01_adsgram: /^\d+$/.test(spin01Adsgram.trim()) ? spin01Adsgram.trim() : '54111',
+        spin_01_adsgram: /^\d+$/.test(spin01Adsgram.trim()) ? spin01Adsgram.trim() : '54618',
         spin_02_monetag: cleanAdId(spin02Monetag, '12044377'),
-        spin_03_onclicka: cleanAdId(spin03Onclicka, '6153772'),
-        spin_04_richads: cleanAdId(spin04Richads, '410260'),
+        spin_03_onclicka: cleanAdId(spin03Onclicka, '6153717'),
+        spin_04_richads: cleanAdId(spin04Richads, '410203'),
         spin_05_adexora: cleanAdId(spin05Adexora, '2217'),
-        box_01_adsgram: /^\d+$/.test(box01Adsgram.trim()) ? box01Adsgram.trim() : '54110',
+        box_01_adsgram: /^\d+$/.test(box01Adsgram.trim()) ? box01Adsgram.trim() : '54617',
         box_02_monetag: cleanAdId(box02Monetag, '12044377'),
-        box_03_onclicka: cleanAdId(box03Onclicka, '6153774'),
-        box_04_richads: cleanAdId(box04Richads, '410260'),
+        box_03_onclicka: cleanAdId(box03Onclicka, '6153772'),
+        box_04_richads: cleanAdId(box04Richads, '410202'),
         box_05_adexora: cleanAdId(box05Adexora, '2217'),
         // Mining Waterfall Gate Settings
         miningPrimaryNetwork,
         miningSecondaryNetwork,
         miningWaterfallEnabled,
-        mining_01_adsgram: /^\d+$/.test(mining01Adsgram.trim()) ? mining01Adsgram.trim() : '54110',
+        mining_01_adsgram: /^\d+$/.test(mining01Adsgram.trim()) ? mining01Adsgram.trim() : '54597',
         mining_02_monetag: cleanAdId(mining02Monetag, '12044377'),
-        mining_03_onclicka: cleanAdId(mining03Onclicka, '6153717'),
-        mining_04_richads: cleanAdId(mining04Richads, '410260'),
+        mining_03_onclicka: cleanAdId(mining03Onclicka, '6153774'),
+        mining_04_richads: cleanAdId(mining04Richads, '410204'),
         mining_05_adexora: cleanAdId(mining05Adexora, '2217'),
         miningRatePerHour: Number(miningRatePerHour),
       }, adminKey);
@@ -1156,7 +1156,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-400 max-w-sm">
-                          If Primary ad fails to show, automatically fallback to Secondary ad (and remaining networks in the 5-network waterfall chain: AdsGram → Monetag → OnClickA → RichAds → Adexora).
+                          If Primary ad fails to show, automatically fallback to Secondary ad (and remaining networks in the 5-network waterfall chain: AdsGram → OnClickA → RichAds → Monetag → Adexora).
                         </p>
                       </div>
                       <button
@@ -1333,7 +1333,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                           <span>Waterfall Ad Logic Settings (Spin & Gift Box 1–5)</span>
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          Configure 10 Ad Block / Zone / App IDs. Waterfall chain: AdsGram → Monetag → OnClickA → RichAds → Adexora.
+                          Configure 10 Ad Block / Zone / App IDs. Waterfall chain: AdsGram → OnClickA → RichAds → Monetag → Adexora (Best Income Optimization).
                         </div>
                       </div>
                     </div>

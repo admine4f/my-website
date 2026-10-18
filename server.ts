@@ -413,25 +413,25 @@ const systemSettings = {
   spinWheelPrizes: defaultSpinWheelPrizes,
   giftBoxesConfig: defaultGiftBoxesConfig,
   dailyCheckInRewards: defaultDailyCheckInRewards,
-  // Waterfall Ad Block / Zone ID / App IDs (12 Real IDs)
-  spin_01_adsgram: '54111',
+  // Waterfall Ad Block / Zone ID / App IDs (15 Real IDs)
+  spin_01_adsgram: '54618',
   spin_02_monetag: '12044377',
-  spin_03_onclicka: '6153772',
-  spin_04_richads: '410260',
+  spin_03_onclicka: '6153717',
+  spin_04_richads: '410203',
   spin_05_adexora: '2217',
-  box_01_adsgram: '54110',
+  box_01_adsgram: '54617',
   box_02_monetag: '12044377',
-  box_03_onclicka: '6153774',
-  box_04_richads: '410260',
+  box_03_onclicka: '6153772',
+  box_04_richads: '410202',
   box_05_adexora: '2217',
   // Mining Ad Gate & Waterfall Settings (Configurable from Admin without app updates)
-  miningPrimaryNetwork: 'AdsGram' as 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora',
-  miningSecondaryNetwork: 'Monetag' as 'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora',
+  miningPrimaryNetwork: 'AdsGram' as 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora',
+  miningSecondaryNetwork: 'OnClickA' as 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora',
   miningWaterfallEnabled: true,
-  mining_01_adsgram: '54110',
+  mining_01_adsgram: '54597',
   mining_02_monetag: '12044377',
-  mining_03_onclicka: '6153717',
-  mining_04_richads: '410260',
+  mining_03_onclicka: '6153774',
+  mining_04_richads: '410204',
   mining_05_adexora: '2217',
 };
 
@@ -448,20 +448,20 @@ try {
 
 // Guarantee 100% real IDs are present and no placeholder strings exist
 const REAL_DEFAULT_IDS: Record<string, string> = {
-  spin_01_adsgram: '54111',
+  spin_01_adsgram: '54618',
   spin_02_monetag: '12044377',
-  spin_03_onclicka: '6153772',
-  spin_04_richads: '410260',
+  spin_03_onclicka: '6153717',
+  spin_04_richads: '410203',
   spin_05_adexora: '2217',
-  box_01_adsgram: '54110',
+  box_01_adsgram: '54617',
   box_02_monetag: '12044377',
-  box_03_onclicka: '6153774',
-  box_04_richads: '410260',
+  box_03_onclicka: '6153772',
+  box_04_richads: '410202',
   box_05_adexora: '2217',
-  mining_01_adsgram: '54110',
+  mining_01_adsgram: '54597',
   mining_02_monetag: '12044377',
-  mining_03_onclicka: '6153717',
-  mining_04_richads: '410260',
+  mining_03_onclicka: '6153774',
+  mining_04_richads: '410204',
   mining_05_adexora: '2217',
   monetagZoneId: '12044377',
 };
@@ -1265,17 +1265,43 @@ function initializeServerState() {
           .maybeSingle();
         if (data && data.settings && typeof data.settings === 'object') {
           Object.assign(systemSettings, data.settings);
-          if (!systemSettings.spin_01_adsgram || !/^\d+$/.test(String(systemSettings.spin_01_adsgram).trim())) {
-            systemSettings.spin_01_adsgram = '54111';
-          }
-          if (!systemSettings.box_01_adsgram || !/^\d+$/.test(String(systemSettings.box_01_adsgram).trim())) {
-            systemSettings.box_01_adsgram = '54110';
-          }
-          if (!systemSettings.mining_01_adsgram || !/^\d+$/.test(String(systemSettings.mining_01_adsgram).trim())) {
-            systemSettings.mining_01_adsgram = '54110';
-          }
-          console.log('[Supabase] Loaded system settings from Supabase.');
         }
+
+        const TARGET_REAL_IDS: Record<string, string> = {
+          spin_01_adsgram: '54618',
+          spin_02_monetag: '12044377',
+          spin_03_onclicka: '6153717',
+          spin_04_richads: '410203',
+          spin_05_adexora: '2217',
+          box_01_adsgram: '54617',
+          box_02_monetag: '12044377',
+          box_03_onclicka: '6153772',
+          box_04_richads: '410202',
+          box_05_adexora: '2217',
+          mining_01_adsgram: '54597',
+          mining_02_monetag: '12044377',
+          mining_03_onclicka: '6153774',
+          mining_04_richads: '410204',
+          mining_05_adexora: '2217',
+        };
+        const OLD_PLACEHOLDERS = new Set(['54110', '54111', '410260']);
+        let needsDbSync = false;
+        for (const [key, targetVal] of Object.entries(TARGET_REAL_IDS)) {
+          const cur = String((systemSettings as any)[key] || '').trim();
+          if (!cur || OLD_PLACEHOLDERS.has(cur)) {
+            (systemSettings as any)[key] = targetVal;
+            needsDbSync = true;
+          }
+        }
+
+        if (needsDbSync) {
+          (supabase.from('system_settings').upsert({
+            id: 'global_settings',
+            settings: systemSettings,
+            updated_at: new Date().toISOString(),
+          }) as PromiseLike<any>).then(() => {}, () => {});
+        }
+        console.log('[Supabase] Loaded & verified system settings with active IDs.');
 
         const { data: rewardData } = await supabase
           .from('e4f_daily_rewards_config')
@@ -2342,15 +2368,16 @@ app.get(['/api/system/public-settings', '/api/system/settings', '/system/public-
       const { data } = await supabase.from('system_settings').select('settings').eq('id', 'global_settings').maybeSingle();
       if (data && data.settings && typeof data.settings === 'object') {
         Object.assign(systemSettings, data.settings);
-        if (!systemSettings.spin_01_adsgram || !/^\d+$/.test(String(systemSettings.spin_01_adsgram).trim())) {
-          systemSettings.spin_01_adsgram = '54111';
-        }
-        if (!systemSettings.box_01_adsgram || !/^\d+$/.test(String(systemSettings.box_01_adsgram).trim())) {
-          systemSettings.box_01_adsgram = '54110';
-        }
-        if (!systemSettings.mining_01_adsgram || !/^\d+$/.test(String(systemSettings.mining_01_adsgram).trim())) {
-          systemSettings.mining_01_adsgram = '54110';
-        }
+        const OLD_IDS = new Set(['54110', '54111', '410260']);
+        if (!systemSettings.spin_01_adsgram || OLD_IDS.has(systemSettings.spin_01_adsgram)) systemSettings.spin_01_adsgram = '54618';
+        if (!systemSettings.box_01_adsgram || OLD_IDS.has(systemSettings.box_01_adsgram)) systemSettings.box_01_adsgram = '54617';
+        if (!systemSettings.mining_01_adsgram || OLD_IDS.has(systemSettings.mining_01_adsgram)) systemSettings.mining_01_adsgram = '54597';
+        if (!systemSettings.mining_03_onclicka || systemSettings.mining_03_onclicka === '6153717') systemSettings.mining_03_onclicka = '6153774';
+        if (!systemSettings.spin_03_onclicka || systemSettings.spin_03_onclicka === '6153772') systemSettings.spin_03_onclicka = '6153717';
+        if (!systemSettings.box_03_onclicka || systemSettings.box_03_onclicka === '6153774') systemSettings.box_03_onclicka = '6153772';
+        if (!systemSettings.mining_04_richads || systemSettings.mining_04_richads === '410260') systemSettings.mining_04_richads = '410204';
+        if (!systemSettings.spin_04_richads || systemSettings.spin_04_richads === '410260') systemSettings.spin_04_richads = '410203';
+        if (!systemSettings.box_04_richads || systemSettings.box_04_richads === '410260') systemSettings.box_04_richads = '410202';
       }
     } catch {}
   }
@@ -2384,25 +2411,25 @@ app.get(['/api/system/public-settings', '/api/system/settings', '/system/public-
     monetagZoneId: systemSettings.monetagZoneId || '12044377',
     monetagDirectLink: '',
     adsterraDirectLink: systemSettings.adsterraDirectLink || 'https://beta.publishers.adsterra.com/direct-link-demo',
-    // Waterfall Ad IDs (12 Real IDs)
-    spin_01_adsgram: systemSettings.spin_01_adsgram || '54111',
+    // Waterfall Ad IDs (15 Real IDs)
+    spin_01_adsgram: systemSettings.spin_01_adsgram || '54618',
     spin_02_monetag: systemSettings.spin_02_monetag || '12044377',
-    spin_03_onclicka: systemSettings.spin_03_onclicka || '6153772',
-    spin_04_richads: systemSettings.spin_04_richads || '410260',
+    spin_03_onclicka: systemSettings.spin_03_onclicka || '6153717',
+    spin_04_richads: systemSettings.spin_04_richads || '410203',
     spin_05_adexora: systemSettings.spin_05_adexora || '2217',
-    box_01_adsgram: systemSettings.box_01_adsgram || '54110',
+    box_01_adsgram: systemSettings.box_01_adsgram || '54617',
     box_02_monetag: systemSettings.box_02_monetag || '12044377',
-    box_03_onclicka: systemSettings.box_03_onclicka || '6153774',
-    box_04_richads: systemSettings.box_04_richads || '410260',
+    box_03_onclicka: systemSettings.box_03_onclicka || '6153772',
+    box_04_richads: systemSettings.box_04_richads || '410202',
     box_05_adexora: systemSettings.box_05_adexora || '2217',
     // Mining Ad Gate & Waterfall (Configurable by Admin without app updates)
     miningPrimaryNetwork: systemSettings.miningPrimaryNetwork || 'AdsGram',
-    miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'Monetag',
+    miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'OnClickA',
     miningWaterfallEnabled: systemSettings.miningWaterfallEnabled !== false,
-    mining_01_adsgram: systemSettings.mining_01_adsgram || '54110',
+    mining_01_adsgram: systemSettings.mining_01_adsgram || '54597',
     mining_02_monetag: systemSettings.mining_02_monetag || '12044377',
-    mining_03_onclicka: systemSettings.mining_03_onclicka || '6153717',
-    mining_04_richads: systemSettings.mining_04_richads || '410260',
+    mining_03_onclicka: systemSettings.mining_03_onclicka || '6153774',
+    mining_04_richads: systemSettings.mining_04_richads || '410204',
     mining_05_adexora: systemSettings.mining_05_adexora || '2217',
   });
 });
@@ -2618,12 +2645,12 @@ app.get('/api/mining/:userId/status', async (req: Request, res: Response) => {
     giftBoxAdDurationSeconds: systemSettings.giftBoxAdDurationSeconds || 30,
     adProvider: systemSettings.adProvider,
     miningPrimaryNetwork: systemSettings.miningPrimaryNetwork || 'AdsGram',
-    miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'Monetag',
+    miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'OnClickA',
     miningWaterfallEnabled: systemSettings.miningWaterfallEnabled !== false,
-    mining_01_adsgram: systemSettings.mining_01_adsgram || '54110',
+    mining_01_adsgram: systemSettings.mining_01_adsgram || '54597',
     mining_02_monetag: systemSettings.mining_02_monetag || '12044377',
-    mining_03_onclicka: systemSettings.mining_03_onclicka || '6153717',
-    mining_04_richads: systemSettings.mining_04_richads || '410260',
+    mining_03_onclicka: systemSettings.mining_03_onclicka || '6153774',
+    mining_04_richads: systemSettings.mining_04_richads || '410204',
     mining_05_adexora: systemSettings.mining_05_adexora || '2217',
     adsterraDirectLink: systemSettings.adsterraDirectLink,
     monetagDirectLink: systemSettings.monetagDirectLink,
@@ -5245,19 +5272,38 @@ app.get(['/api/admin/dashboard', '/admin/dashboard'], async (_req: Request, res:
 
   if (supabase) {
     try {
-      const { count: uCount, error: uErr } = await supabase
-        .from('users')
+      // 1. Total users: Query profiles table first, fallback to users table
+      const { count: pCount, error: pErr } = await supabase
+        .from('profiles')
         .select('*', { count: 'exact', head: true });
-      if (!uErr && typeof uCount === 'number' && uCount > 0) {
-        totalUsers = Math.max(totalUsers, uCount);
+      if (!pErr && typeof pCount === 'number' && pCount > 0) {
+        totalUsers = pCount;
+      } else {
+        const { count: uCount, error: uErr } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
+        if (!uErr && typeof uCount === 'number' && uCount > 0) {
+          totalUsers = Math.max(totalUsers, uCount);
+        }
       }
 
-      const { count: aCount, error: aErr } = await supabase
-        .from('users')
+      // 2. Active users in last 24 hours (updated_at > now() - 24h)
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count: pActiveCount, error: pActErr } = await supabase
+        .from('profiles')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'ACTIVE');
-      if (!aErr && typeof aCount === 'number') {
-        activeUsers = aCount;
+        .gt('updated_at', twentyFourHoursAgo);
+
+      if (!pActErr && typeof pActiveCount === 'number') {
+        activeUsers = pActiveCount;
+      } else {
+        const { count: aCount, error: aErr } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .or(`status.eq.ACTIVE,updated_at.gt.${twentyFourHoursAgo}`);
+        if (!aErr && typeof aCount === 'number') {
+          activeUsers = aCount;
+        }
       }
     } catch (e: any) {
       console.warn('[Supabase Dashboard Users Count Error]:', e?.message);
@@ -5472,6 +5518,37 @@ app.post(['/api/admin/settings', '/admin/settings'], requireAdminAuth, async (re
 app.get('/api/admin/users', requireAdminAuth, async (_req: Request, res: Response) => {
   if (supabase) {
     try {
+      const { data: dbProfiles, error: pErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!pErr && Array.isArray(dbProfiles) && dbProfiles.length > 0) {
+        for (const p of dbProfiles) {
+          const uId = p.id || p.user_id;
+          if (uId && !users.has(uId)) {
+            users.set(uId, {
+              id: uId,
+              uid: p.uid || `8${Math.abs((p.telegram_id || 0) % 8999999 + 1000000)}`,
+              telegramId: p.telegram_id,
+              firstName: p.first_name || p.username || 'E4F User',
+              lastName: p.last_name || '',
+              username: p.username || '',
+              photoUrl: p.photo_url || '',
+              referralCode: p.referral_code,
+              referredBy: p.referred_by,
+              createdAt: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
+              status: p.status || 'ACTIVE',
+              claimedWelcomeBonus: Boolean(p.claimed_welcome_bonus),
+              isDemoUser: false,
+              isVerified: Boolean(p.is_verified),
+              depositBalance: Number(p.deposit_balance) || 0,
+              depositAddress: p.deposit_address || '',
+            });
+          }
+        }
+      }
+
       const { data: dbUsers, error } = await supabase
         .from('users')
         .select('*')
