@@ -147,19 +147,19 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         try {
           const pub = await api.getPublicSettings();
           if (pub) {
-            if ((pub as any).spin_01_adsgram) SPIN_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).spin_01_adsgram, '54111');
+            if ((pub as any).spin_01_adsgram) SPIN_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).spin_01_adsgram, '54618');
             if ((pub as any).spin_02_monetag) SPIN_02_MONETAG = (pub as any).spin_02_monetag;
             if ((pub as any).spin_03_onclicka) SPIN_03_ONCLICKA = (pub as any).spin_03_onclicka;
             if ((pub as any).spin_04_richads) SPIN_04_RICHADS = (pub as any).spin_04_richads;
             if ((pub as any).spin_05_adexora) SPIN_05_ADEXORA = (pub as any).spin_05_adexora;
 
-            if ((pub as any).box_01_adsgram) BOX_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).box_01_adsgram, '54110');
+            if ((pub as any).box_01_adsgram) BOX_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).box_01_adsgram, '54617');
             if ((pub as any).box_02_monetag) BOX_02_MONETAG = (pub as any).box_02_monetag;
             if ((pub as any).box_03_onclicka) BOX_03_ONCLICKA = (pub as any).box_03_onclicka;
             if ((pub as any).box_04_richads) BOX_04_RICHADS = (pub as any).box_04_richads;
             if ((pub as any).box_05_adexora) BOX_05_ADEXORA = (pub as any).box_05_adexora;
 
-            if ((pub as any).mining_01_adsgram) MINING_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).mining_01_adsgram, '54110');
+            if ((pub as any).mining_01_adsgram) MINING_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).mining_01_adsgram, '54597');
             if ((pub as any).mining_02_monetag) MINING_02_MONETAG = (pub as any).mining_02_monetag;
             if ((pub as any).mining_03_onclicka) MINING_03_ONCLICKA = (pub as any).mining_03_onclicka;
             if ((pub as any).mining_04_richads) MINING_04_RICHADS = (pub as any).mining_04_richads;
@@ -498,20 +498,12 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   const remainingSeconds = Math.max(0, targetWatchSeconds - secondsWatched);
   const progressPercent = Math.min(100, Math.round((secondsWatched / targetWatchSeconds) * 100));
 
-  // Determine current Tier target ad URL
+  // Determine current Tier target ad URL (only if a real direct URL was explicitly configured)
   let activeAdUrl = '#';
   if (adSession && currentTier) {
-    if (currentTier.provider === 'OnClickA') {
-      const customId = currentTier.id;
-      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://onclicka.com/zone/${customId || '6153717'}`;
-    } else if (currentTier.provider === 'RichAds') {
-      const customId = currentTier.id;
-      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://richads.com/zone/${customId || '410260'}`;
-    } else if (currentTier.provider === 'Adexora') {
-      const customId = currentTier.id;
-      activeAdUrl = customId && customId.startsWith('http') ? customId : `https://adexora.com/zone/${customId || '2217'}`;
-    } else {
-      activeAdUrl = '#';
+    const customId = currentTier.id;
+    if (customId && customId.startsWith('http')) {
+      activeAdUrl = customId;
     }
   }
 
@@ -531,8 +523,6 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
             <X className="w-4 h-4" />
           </button>
         )}
-
-
 
         {/* Modal Title */}
         <h3 className="text-lg font-black text-white mb-1 mt-1">{title}</h3>
@@ -582,26 +572,17 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
             </p>
 
             {/* Watch Ad Button */}
-            {currentTier?.provider === 'AdsGram' ? (
-              <button
-                onClick={() => handleWatchAdClick()}
-                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Play className="w-4 h-4 fill-slate-950" />
-                <span>Watch Video Ad</span>
-              </button>
-            ) : (
-              <a
-                href={activeAdUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleWatchAdClick}
-                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Play className="w-4 h-4 fill-slate-950" />
-                <span>Watch Video Ad ({targetWatchSeconds}s)</span>
-              </a>
-            )}
+            <button
+              onClick={() => handleWatchAdClick()}
+              className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Play className="w-4 h-4 fill-slate-950" />
+              <span>
+                {currentTier?.provider === 'AdsGram'
+                  ? 'Watch Video Ad'
+                  : `Watch Video Ad (${targetWatchSeconds}s)`}
+              </span>
+            </button>
           </div>
         )}
 
@@ -646,8 +627,8 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               </p>
             </div>
 
-            {/* Re-open / Return to Ad button */}
-            {currentTier?.provider !== 'AdsGram' && (
+            {/* Re-open / Return to Ad button - only shown if an actual external ad URL was provided */}
+            {activeAdUrl && activeAdUrl.startsWith('http') && (
               <a
                 href={activeAdUrl}
                 target="_blank"
@@ -688,16 +669,13 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
             {errorMsg && <p className="text-[11px] text-amber-400 px-2">{errorMsg}</p>}
 
-            <a
-              href={activeAdUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleWatchAdClick}
+            <button
+              onClick={() => handleWatchAdClick()}
               className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
             >
               <Play className="w-4 h-4 fill-slate-950" />
               <span>Continue Watching Ad ({remainingSeconds}s remaining)</span>
-            </a>
+            </button>
 
             <button
               onClick={() => advanceWaterfall('Ad playback incomplete')}

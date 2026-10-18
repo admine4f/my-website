@@ -206,23 +206,24 @@ export async function showAdsgramAd(
 
 /**
  * 2. OnClickA Ad Handler
- * Zone ID direct delivery or landing link with 4s response check
+ * Zone direct link or in-app countdown timer (Never dumps user onto onclicka.com homepage)
  */
 export async function showOnclickaAd(
   zoneId: string,
-  timeoutMs: number = 4000
+  _timeoutMs: number = 4000
 ): Promise<{ success: boolean; completed: boolean; reason?: string }> {
   try {
     const cleanId = String(zoneId || '6153717').trim();
-    const targetUrl = cleanId.startsWith('http')
-      ? cleanId
-      : `https://onclicka.com/zone/${cleanId}`;
-
-    const opened = openExternalAdUrl(targetUrl);
-    if (!opened) {
-      return { success: false, completed: false, reason: 'Could not launch OnClickA link' };
+    // Only open if the user/admin explicitly provided a real URL direct link
+    if (cleanId.startsWith('http://') || cleanId.startsWith('https://')) {
+      const opened = openExternalAdUrl(cleanId);
+      if (!opened) {
+        return { success: false, completed: false, reason: 'Could not launch OnClickA link' };
+      }
+      return { success: true, completed: false };
     }
 
+    // If numeric zone ID, keep user inside Telegram Mini App and let the countdown run
     return { success: true, completed: false };
   } catch (err: any) {
     console.warn('[OnClickA Error]:', err?.message || err);
@@ -232,21 +233,20 @@ export async function showOnclickaAd(
 
 /**
  * 3. RichAds Ad Handler
- * High-performing RichAds zone redirect with 4s timeout check
+ * High-performing RichAds zone redirect or in-app countdown timer
  */
 export async function showRichadsAd(
   zoneId: string,
-  timeoutMs: number = 4000
+  _timeoutMs: number = 4000
 ): Promise<{ success: boolean; completed: boolean; reason?: string }> {
   try {
     const cleanId = String(zoneId || '410203').trim();
-    const targetUrl = cleanId.startsWith('http')
-      ? cleanId
-      : `https://richads.com/zone/${cleanId}`;
-
-    const opened = openExternalAdUrl(targetUrl);
-    if (!opened) {
-      return { success: false, completed: false, reason: 'Could not launch RichAds link' };
+    if (cleanId.startsWith('http://') || cleanId.startsWith('https://')) {
+      const opened = openExternalAdUrl(cleanId);
+      if (!opened) {
+        return { success: false, completed: false, reason: 'Could not launch RichAds link' };
+      }
+      return { success: true, completed: false };
     }
 
     return { success: true, completed: false };
@@ -258,7 +258,7 @@ export async function showRichadsAd(
 
 /**
  * 4. Monetag Ad Handler
- * In-App SDK with show_88 / show_tag or fallback direct link with 4s timeout
+ * In-App SDK with show_88 / show_tag or in-app countdown timer with 4s timeout
  */
 export async function showMonetagAd(
   zoneId: string,
@@ -267,7 +267,7 @@ export async function showMonetagAd(
   try {
     const cleanId = String(zoneId || '12044377').trim();
 
-    // Check In-App SDK if available
+    // Check In-App SDK if available in Telegram WebApp
     const showFn = (window as any).show_88 || (window as any).show_tag;
     if (typeof showFn === 'function') {
       let timerId: any;
@@ -288,12 +288,15 @@ export async function showMonetagAd(
       return { success: true, completed: true };
     }
 
-    // Direct zone link fallback
-    const targetUrl = `https://monetag.com/zone/${cleanId}`;
-    const opened = openExternalAdUrl(targetUrl);
-    if (!opened) {
-      return { success: false, completed: false, reason: 'Monetag SDK not loaded and link blocked' };
+    // Direct link if provided as URL
+    if (cleanId.startsWith('http://') || cleanId.startsWith('https://')) {
+      const opened = openExternalAdUrl(cleanId);
+      if (!opened) {
+        return { success: false, completed: false, reason: 'Could not launch Monetag link' };
+      }
+      return { success: true, completed: false };
     }
+
     return { success: true, completed: false };
   } catch (err: any) {
     console.warn('[Monetag Error]:', err?.message || err);
@@ -303,21 +306,20 @@ export async function showMonetagAd(
 
 /**
  * 5. Adexora Ad Handler
- * Adexora zone launcher with 4s timeout check
+ * Adexora zone launcher or in-app countdown timer
  */
 export async function showAdexoraAd(
   zoneId: string,
-  timeoutMs: number = 4000
+  _timeoutMs: number = 4000
 ): Promise<{ success: boolean; completed: boolean; reason?: string }> {
   try {
     const cleanId = String(zoneId || '2217').trim();
-    const targetUrl = cleanId.startsWith('http')
-      ? cleanId
-      : `https://adexora.com/zone/${cleanId}`;
-
-    const opened = openExternalAdUrl(targetUrl);
-    if (!opened) {
-      return { success: false, completed: false, reason: 'Could not launch Adexora link' };
+    if (cleanId.startsWith('http://') || cleanId.startsWith('https://')) {
+      const opened = openExternalAdUrl(cleanId);
+      if (!opened) {
+        return { success: false, completed: false, reason: 'Could not launch Adexora link' };
+      }
+      return { success: true, completed: false };
     }
 
     return { success: true, completed: false };
