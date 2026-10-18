@@ -145,8 +145,9 @@ export function incrementNetworkViewCountToday(userId: string, network: string):
   } catch {}
 }
 
-export function isNetworkCappedToday(userId: string, network: string): boolean {
-  return getNetworkViewCountToday(userId, network) >= MAX_DAILY_ADS_PER_NETWORK;
+export function isNetworkCappedToday(_userId: string, _network: string): boolean {
+  // Infinite looping as requested: "৫ নং Ad ও ফেল করলে আবার ১ নং Ad থেকে শুরু হবে। মানে লুপ চলতেই থাকবে, কখনো ফাঁকা যাবে না।"
+  return false;
 }
 
 // =========================================================================
@@ -177,17 +178,19 @@ export function getAdChain(clickedSlot: number): number[] {
 }
 
 export function buildIntraWaterfallTiers(
-  actionType: 'MINING' | 'SPIN' | 'GIFT_BOX',
+  actionType: 'MINING' | 'SPIN' | 'GIFT_BOX' | 'WITHDRAW' | 'SELL',
   targetId: number | undefined,
   userId: string,
-  _isTelegram: boolean = true
+  isTelegram: boolean = true
 ): IntraWaterfallTier[] {
   type NetworkName = 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora';
 
-  // Best Income Priority Sequence: AdsGram -> OnClickA -> RichAds -> Monetag -> Adexora
-  const defaultNetworks: NetworkName[] = ['AdsGram', 'OnClickA', 'RichAds', 'Monetag', 'Adexora'];
+  // Inside Telegram: AdsGram is Primary
+  // Outside Telegram (Web browser / Preview): OnClickA / Monetag is Primary
+  const defaultNetworks: NetworkName[] = isTelegram
+    ? ['AdsGram', 'OnClickA', 'RichAds', 'Monetag', 'Adexora']
+    : ['OnClickA', 'RichAds', 'Monetag', 'Adexora', 'AdsGram'];
 
-  // Put uncapped networks first to strictly enforce 3-ad daily cap per network
   const uncappedNetworks = defaultNetworks.filter(n => !isNetworkCappedToday(userId, n));
   const cappedNetworks = defaultNetworks.filter(n => isNetworkCappedToday(userId, n));
   const orderedNetworks = uncappedNetworks.length > 0 ? [...uncappedNetworks, ...cappedNetworks] : defaultNetworks;
@@ -198,8 +201,8 @@ export function buildIntraWaterfallTiers(
 
   const tiers: IntraWaterfallTier[] = [];
 
-  if (actionType === 'MINING') {
-    // Mining uses the 5 networks
+  if (actionType === 'MINING' || actionType === 'WITHDRAW' || actionType === 'SELL') {
+    // Security & transaction verification uses the 5 networks
     orderedNetworks.forEach((net, idx) => {
       let id = '54597';
       if (net === 'AdsGram') id = MINING_ADS.mining.adsgram;
@@ -212,7 +215,7 @@ export function buildIntraWaterfallTiers(
         index: idx + 1,
         provider: net,
         id,
-        placementKey: 'mining',
+        placementKey: actionType.toLowerCase(),
         label: `${net} ${idx === 0 ? '(Primary)' : `(Tier ${idx + 1})`}`,
       });
     });

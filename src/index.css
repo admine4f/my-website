@@ -1,13 +1,27 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+  }
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: #070B14;
     color: #F1F5F9;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100%;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
+  }
+  #root {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 }
 

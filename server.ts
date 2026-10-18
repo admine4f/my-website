@@ -2667,9 +2667,9 @@ app.post('/api/ads/session/create', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'User ID and actionType are required' });
   }
 
-  const validActions = ['MINING', 'SPIN', 'GIFT_BOX'];
+  const validActions = ['MINING', 'SPIN', 'GIFT_BOX', 'WITHDRAW', 'SELL'];
   if (!validActions.includes(actionType)) {
-    return res.status(400).json({ success: false, error: 'Invalid actionType. Must be MINING, SPIN, or GIFT_BOX' });
+    return res.status(400).json({ success: false, error: 'Invalid actionType. Must be MINING, SPIN, GIFT_BOX, WITHDRAW, or SELL' });
   }
 
   const user = await getUserFromSupabase(userId);

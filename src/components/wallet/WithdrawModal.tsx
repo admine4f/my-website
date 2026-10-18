@@ -127,6 +127,12 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({ onClose }) => {
       return;
     }
 
+    // Input verified -> Directly execute withdrawal
+    executeWithdrawal();
+  };
+
+  const executeWithdrawal = async () => {
+    if (!user) return;
     setLoading(true);
     try {
       await api.withdraw(user.id, {

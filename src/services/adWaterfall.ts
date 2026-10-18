@@ -139,6 +139,14 @@ export function loadAdsgramScript(): Promise<boolean> {
   });
 }
 
+// Check whether app is currently running inside Telegram with valid launch parameters
+export function isTelegramClientWithParams(): boolean {
+  if (typeof window === 'undefined') return false;
+  const tg = (window as any).Telegram?.WebApp;
+  if (!tg) return false;
+  return Boolean(tg.initData && tg.initData.length > 0) || Boolean(tg.initDataUnsafe?.user);
+}
+
 // Helper: Open external URL safely in Telegram WebApp or browser
 function openExternalAdUrl(targetUrl: string): boolean {
   try {
@@ -162,27 +170,26 @@ function openExternalAdUrl(targetUrl: string): boolean {
 
 /**
  * 1. AdsGram Ad Handler
- * Plays video ad using AdsGram Telegram Mini App SDK with 4s init timeout
+ * Plays video ad using AdsGram Telegram Mini App SDK with Telegram environment guard
  */
 export async function showAdsgramAd(
   blockId: string,
-  timeoutMs: number = 4000
+  _timeoutMs: number = 6000
 ): Promise<{ success: boolean; completed: boolean; reason?: string }> {
   try {
+    // If outside Telegram, return immediately to prevent AdsgramError: Unable to retrieve launch parameters
+    if (!isTelegramClientWithParams()) {
+      return {
+        success: false,
+        completed: false,
+        reason: 'AdsGram requires Telegram environment with valid launch parameters',
+      };
+    }
+
     const safeBlockId = String(blockId || '54618').trim();
-    const scriptPromise = loadAdsgramScript();
-
-    // 4-second timeout promise
-    let timerId: any;
-    const timeoutPromise = new Promise<{ timeout: true }>(resolve => {
-      timerId = setTimeout(() => resolve({ timeout: true }), timeoutMs);
-    });
-
-    const initResult = await Promise.race([scriptPromise, timeoutPromise]);
-    clearTimeout(timerId);
-
-    if ((initResult as any)?.timeout) {
-      return { success: false, completed: false, reason: 'AdsGram load timed out after 4 seconds' };
+    const loaded = await loadAdsgramScript().catch(() => false);
+    if (!loaded) {
+      return { success: false, completed: false, reason: 'Could not load AdsGram SDK' };
     }
 
     const adsgramObj = (window as any).Adsgram;
@@ -190,8 +197,18 @@ export async function showAdsgramAd(
       return { success: false, completed: false, reason: 'AdsGram SDK unavailable in this client' };
     }
 
-    const AdController = adsgramObj.init({ blockId: safeBlockId, debug: false });
-    const res = await AdController.show();
+    let res: any;
+    try {
+      const AdController = adsgramObj.init({ blockId: safeBlockId, debug: false });
+      res = await AdController.show();
+    } catch (liveErr: any) {
+      console.warn('[AdsGram playback notice]:', liveErr?.message || liveErr);
+      return {
+        success: false,
+        completed: false,
+        reason: liveErr?.message || 'AdsGram playback unavailable',
+      };
+    }
 
     if (res && res.done) {
       return { success: true, completed: true };
@@ -199,7 +216,7 @@ export async function showAdsgramAd(
       return { success: false, completed: false, reason: 'AdsGram playback was skipped or closed' };
     }
   } catch (err: any) {
-    console.warn('[AdsGram Error]:', err?.message || err);
+    console.warn('[AdsGram Handled Notice]:', err?.message || err);
     return { success: false, completed: false, reason: err?.message || 'AdsGram execution failed' };
   }
 }
@@ -258,35 +275,14 @@ export async function showRichadsAd(
 
 /**
  * 4. Monetag Ad Handler
- * In-App SDK with show_88 / show_tag or in-app countdown timer with 4s timeout
+ * In-App SDK with show_88 / show_tag or direct link
  */
 export async function showMonetagAd(
   zoneId: string,
-  timeoutMs: number = 4000
+  _timeoutMs: number = 6000
 ): Promise<{ success: boolean; completed: boolean; reason?: string }> {
   try {
     const cleanId = String(zoneId || '12044377').trim();
-
-    // Check In-App SDK if available in Telegram WebApp
-    const showFn = (window as any).show_88 || (window as any).show_tag;
-    if (typeof showFn === 'function') {
-      let timerId: any;
-      const timeoutPromise = new Promise<{ timeout: true }>(resolve => {
-        timerId = setTimeout(() => resolve({ timeout: true }), timeoutMs);
-      });
-
-      const showPromise = showFn(cleanId).then(() => ({ done: true })).catch((e: any) => ({ error: e }));
-      const result: any = await Promise.race([showPromise, timeoutPromise]);
-      clearTimeout(timerId);
-
-      if (result?.timeout) {
-        return { success: false, completed: false, reason: 'Monetag in-app ad load timed out after 4 seconds' };
-      }
-      if (result?.error) {
-        return { success: false, completed: false, reason: result.error?.message || 'Monetag SDK error' };
-      }
-      return { success: true, completed: true };
-    }
 
     // Direct link if provided as URL
     if (cleanId.startsWith('http://') || cleanId.startsWith('https://')) {
@@ -295,6 +291,18 @@ export async function showMonetagAd(
         return { success: false, completed: false, reason: 'Could not launch Monetag link' };
       }
       return { success: true, completed: false };
+    }
+
+    // Check In-App SDK if available in Telegram WebApp
+    const showFn = (window as any).show_88 || (window as any).show_tag;
+    if (typeof showFn === 'function') {
+      try {
+        await showFn();
+        return { success: true, completed: true };
+      } catch (sdkErr: any) {
+        console.warn('[Monetag SDK Error]:', sdkErr);
+        return { success: false, completed: false, reason: sdkErr?.message || 'Monetag SDK error' };
+      }
     }
 
     return { success: true, completed: false };

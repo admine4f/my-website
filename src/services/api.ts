@@ -759,7 +759,7 @@ export const api = {
 
   async createUniversalAdSession(
     userId: string,
-    actionType: 'MINING' | 'SPIN' | 'GIFT_BOX',
+    actionType: 'MINING' | 'SPIN' | 'GIFT_BOX' | 'WITHDRAW' | 'SELL',
     targetId?: number
   ): Promise<{
     success: boolean;

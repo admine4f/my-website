@@ -78,7 +78,7 @@ interface WaterfallTier {
 
 interface UnifiedRewardedAdModalProps {
   userId: string;
-  actionType: 'MINING' | 'SPIN' | 'GIFT_BOX';
+  actionType: 'MINING' | 'SPIN' | 'GIFT_BOX' | 'WITHDRAW' | 'SELL';
   targetId?: number;
   title: string;
   description: string;
@@ -128,6 +128,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   const timerRef = useRef<any>(null);
   const isMountedRef = useRef<boolean>(true);
   const hasStartedRef = useRef<boolean>(false);
+  const isVerifyingRef = useRef<boolean>(false);
 
   // 1. Initialize Waterfall Tiers & Ad Session
   useEffect(() => {
@@ -194,8 +195,10 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         setTiers(computedTiers);
         setTierIndex(0);
 
-        // Preload AdsGram script if on tier 1
-        loadAdsgramScript().catch(() => {});
+        // Preload AdsGram script only if running inside Telegram
+        if (isTg) {
+          loadAdsgramScript().catch(() => {});
+        }
 
         // Create authoritative backend session
         const session = await api.createUniversalAdSession(userId, actionType, targetId);
@@ -275,51 +278,33 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     [tierIndex, tiers]
   );
 
-  // Monitor Tab Visibility / App Minimize (for external watch ad tabs)
-  const currentBurstStartTimeRef = useRef<number | null>(null);
-  const isVerifyingRef = useRef<boolean>(false);
+  // Monitor Tab Visibility / App Minimize - Strict Pause on Switch
+  // "শর্ত হলো ৩০ সেকেন্ড এড ২৫ সেকেন্ড দেখে অন্য ট্যাবে গেলে বা বের হলে সময় ওখানে আটকে যাবে যত remaining 5 sec দেখাবে। যত সময় কম্পিলিট করবে না তত সময় এই বাটন কাজ করবে না।"
   const triggerAutoClaimRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!isMountedRef.current || !hasStartedRef.current || !currentBurstStartTimeRef.current) return;
+    const handleVisibility = () => {
+      if (!isMountedRef.current || !hasStartedRef.current) return;
 
-      if (document.visibilityState === 'visible') {
-        const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
-        const burstElapsed = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
-        const accumulated = Math.min(targetSec, totalWatchedSecondsRef.current + burstElapsed);
-        setSecondsWatched(accumulated);
-
-        if (accumulated >= targetSec) {
-          totalWatchedSecondsRef.current = targetSec;
-          currentBurstStartTimeRef.current = null;
-          if (timerRef.current) clearInterval(timerRef.current);
-          setStep('COMPLETED');
-          triggerAutoClaimRef.current();
-        } else {
-          // User returned before completing full duration
-          totalWatchedSecondsRef.current = accumulated;
-          currentBurstStartTimeRef.current = null;
-          if (timerRef.current) clearInterval(timerRef.current);
-          setStep('EARLY_EXIT');
+      if (document.hidden || document.visibilityState === 'hidden') {
+        // User switched tabs or minimized app -> FREEZE TIMER IMMEDIATELY!
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
         }
+        setStep('EARLY_EXIT');
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
-  // Helper to start timer watch loop
+  // Helper to start timer watch loop with 1-second active visible countdown
   const startAdWatchTimer = () => {
-    const now = Date.now();
-    currentBurstStartTimeRef.current = now;
-
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
       if (adSession) {
@@ -331,20 +316,37 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      if (!currentBurstStartTimeRef.current || !isMountedRef.current) return;
+      if (!isMountedRef.current) return;
 
-      const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
-      const currentBurst = Math.floor((Date.now() - currentBurstStartTimeRef.current) / 1000);
-      const total = Math.min(targetSec, totalWatchedSecondsRef.current + currentBurst);
-      setSecondsWatched(total);
-
-      if (total >= targetSec) {
+      // If document is not visible, freeze the timer immediately!
+      if (document.hidden || document.visibilityState === 'hidden') {
         clearInterval(timerRef.current);
-        totalWatchedSecondsRef.current = targetSec;
-        setStep('COMPLETED');
-        triggerAutoClaimRef.current();
+        timerRef.current = null;
+        setStep('EARLY_EXIT');
+        return;
       }
-    }, 500);
+
+      setSecondsWatched(prev => {
+        const targetSec = requiredWatchSecondsRef.current || DEFAULT_WATCH_SECONDS;
+        const nextSec = prev + 1;
+        totalWatchedSecondsRef.current = nextSec;
+
+        if (nextSec >= targetSec) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+          setStep('COMPLETED');
+          triggerAutoClaimRef.current();
+          return targetSec;
+        }
+        return nextSec;
+      });
+    }, 1000);
+  };
+
+  // Helper to resume watching from where it was paused (e.g. 25s watched -> remaining 5s)
+  const handleResumeWatching = () => {
+    setErrorMsg(null);
+    startAdWatchTimer();
   };
 
   // 4. User Clicks "Watch Ad Now"
@@ -353,7 +355,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     if (e) e.preventDefault();
     if (!adSession || tiers.length === 0) return;
     const currentTier = tiers[tierIndex] || tiers[0];
-    const placementConfig = getAdCodesForPlacement(actionType, targetId);
+    const placementConfig = getAdCodesForPlacement(actionType as any, targetId);
     setErrorMsg(null);
 
     // Track Ad View in Supabase e4f_ad_views
@@ -374,12 +376,21 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         handleClaimReward(`ADSGRAM_${safeBlockId}_COMPLETED`);
         return;
       }
+
+      // If AdsGram had No Fill in current region, immediately try Monetag in-app SDK!
+      const monetagRes = await showMonetagAd('12044377', 4000);
+      if (monetagRes.success && monetagRes.completed) {
+        incrementNetworkViewCountToday(userId, 'Monetag');
+        handleClaimReward(`MONETAG_12044377_COMPLETED`);
+        return;
+      }
+
       advanceWaterfall(res.reason || 'AdsGram ad playback failed or timed out (4s)');
       return;
     }
 
     // =========================================================
-    // 2. ONCLICKA FUNCTION (Zone Direct / Landing Link)
+    // 2. ONCLICKA FUNCTION (In-App Ad Stream & Zone Delivery)
     // =========================================================
     if (currentTier.provider === 'OnClickA') {
       setStep('WATCHING');
@@ -394,7 +405,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // =========================================================
-    // 3. RICHADS FUNCTION (Zone Direct Link)
+    // 3. RICHADS FUNCTION (In-App Ad Stream & Zone Delivery)
     // =========================================================
     if (currentTier.provider === 'RichAds') {
       setStep('WATCHING');
@@ -409,7 +420,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // =========================================================
-    // 4. MONETAG FUNCTION (In-App SDK with Zone 12044377 / Fallback)
+    // 4. MONETAG FUNCTION (In-App SDK with Zone 12044377 / In-App Overlay)
     // =========================================================
     if (currentTier.provider === 'Monetag') {
       setStep('WATCHING');
@@ -429,7 +440,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // =========================================================
-    // 5. ADEXORA FUNCTION (Zone Direct Link)
+    // 5. ADEXORA FUNCTION (In-App Ad Stream & Zone Delivery)
     // =========================================================
     if (currentTier.provider === 'Adexora') {
       setStep('WATCHING');
@@ -602,29 +613,87 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               </div>
             </div>
 
-            {/* Live Watch Timer Card */}
-            <div className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 space-y-2 mt-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 flex items-center gap-1.5 font-medium">
-                  <Clock className="w-4 h-4 text-amber-400" />
-                  <span>Ad Watch Time:</span>
-                </span>
-                <span className="font-mono font-bold text-amber-400 text-sm">
-                  {remainingSeconds > 0 ? `${remainingSeconds}s remaining` : `${targetWatchSeconds}s Completed!`}
+            {/* In-App Interactive Ad Creative Showcase Player */}
+            <div className="w-full rounded-2xl bg-gradient-to-b from-slate-900 via-[#0A1020] to-slate-950 border border-amber-500/30 p-3 space-y-2.5 shadow-xl">
+              {/* Header Badge */}
+              <div className="flex items-center justify-between text-[11px] pb-1.5 border-b border-slate-800">
+                <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                  <span>{currentTier?.provider || 'Sponsored'} Video Stream</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono text-[10px] font-semibold">
+                  Zone: {currentTier?.id || 'Active'}
                 </span>
               </div>
 
-              {/* Progress bar */}
-              <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-300"
-                  style={{ width: `${progressPercent}%` }}
-                />
+              {/* Active Visual Ad Container */}
+              <div className="relative w-full h-36 rounded-xl overflow-hidden bg-gradient-to-br from-slate-950 via-[#0B132B] to-[#070B14] border border-amber-500/20 flex flex-col items-center justify-center p-3 text-center shadow-inner">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.12)_0%,transparent_70%)] pointer-events-none" />
+                <div className="relative z-10 space-y-2 w-full">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500/30 via-amber-400/20 to-sky-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-md">
+                      <Play className="w-5 h-5 fill-amber-400 animate-pulse ml-0.5" />
+                    </div>
+                    {/* Visual Audio/Video Stream Bars */}
+                    <div className="flex items-end gap-1 h-6">
+                      <span className="w-1 bg-amber-400 rounded-full animate-bounce [animation-delay:0ms] h-4" />
+                      <span className="w-1 bg-amber-300 rounded-full animate-bounce [animation-delay:150ms] h-6" />
+                      <span className="w-1 bg-sky-400 rounded-full animate-bounce [animation-delay:300ms] h-5" />
+                      <span className="w-1 bg-emerald-400 rounded-full animate-bounce [animation-delay:450ms] h-3" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-black text-white tracking-wide flex items-center justify-center gap-1.5">
+                      <span>{currentTier?.provider} Verified Ad Stream</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping" />
+                    </div>
+                    <div className="text-[10px] text-amber-300/90 font-medium mt-0.5">
+                      Sponsored Video & Partner Media • 0% Skip Required
+                    </div>
+                  </div>
+
+                  {activeAdUrl && activeAdUrl.startsWith('http') && (
+                    <button
+                      onClick={() => {
+                        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.openLink) {
+                          (window as any).Telegram.WebApp.openLink(activeAdUrl);
+                        } else {
+                          window.open(activeAdUrl, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[10px] font-bold transition-all cursor-pointer"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Visit Sponsored Partner</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <p className="text-[10px] text-slate-400 pt-1">
-                Please remain on the ad window until the timer completes.
-              </p>
+              {/* Watch Timer & Progress */}
+              <div className="space-y-1 pt-0.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 flex items-center gap-1.5 font-medium">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Watch Progress:</span>
+                  </span>
+                  <span className="font-mono font-bold text-amber-400 text-sm">
+                    {remainingSeconds > 0 ? `${remainingSeconds}s remaining` : 'Complete!'}
+                  </span>
+                </div>
+
+                <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-300"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+
+                <p className="text-[10px] text-slate-400 text-center pt-0.5">
+                  Remain on screen. Switching tabs or exiting pauses the timer.
+                </p>
+              </div>
             </div>
 
             {/* Re-open / Return to Ad button - only shown if an actual external ad URL was provided */}
@@ -670,7 +739,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
             {errorMsg && <p className="text-[11px] text-amber-400 px-2">{errorMsg}</p>}
 
             <button
-              onClick={() => handleWatchAdClick()}
+              onClick={handleResumeWatching}
               className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
             >
               <Play className="w-4 h-4 fill-slate-950" />

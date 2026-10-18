@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowUpDown, AlertCircle, CheckCircle2, History, ChevronDown } from 'lucide-react';
+import { ArrowUpDown, AlertCircle, CheckCircle2, History, ChevronDown, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { api, formatCoinBalance } from '../../services/api';
 import { OrderBook, SpotOrder } from '../../types';
@@ -16,6 +16,7 @@ export const TradeView: React.FC = () => {
   const [orders, setOrders] = useState<SpotOrder[]>([]);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [activeTabSub, setActiveTabSub] = useState<'BOOK' | 'ORDERS'>('BOOK');
+  const [showConfirmSellModal, setShowConfirmSellModal] = useState(false);
 
   const pairs = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'E4F/USDT'];
 
@@ -89,20 +90,10 @@ export const TradeView: React.FC = () => {
     }
   };
 
-  const handlePlaceOrder = async () => {
+  const executePlaceOrder = async () => {
     if (!user) return;
-    if (selectedPair.startsWith('E4F')) {
-      addToast('Trading Unavailable', 'E4F is not listed yet. Pre-listing phase active.', 'error');
-      return;
-    }
-
     const amt = parseFloat(amountInput);
     const prc = parseFloat(priceInput);
-
-    if (isNaN(amt) || amt <= 0) {
-      addToast('Invalid Amount', 'Please enter a valid order amount.', 'error');
-      return;
-    }
 
     setLoadingOrder(true);
     try {
@@ -132,6 +123,35 @@ export const TradeView: React.FC = () => {
     } finally {
       setLoadingOrder(false);
     }
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!user) return;
+    if (selectedPair.startsWith('E4F')) {
+      addToast('Trading Unavailable', 'E4F is not listed yet. Pre-listing phase active.', 'error');
+      return;
+    }
+
+    const amt = parseFloat(amountInput);
+    const prc = parseFloat(priceInput);
+
+    if (isNaN(amt) || amt <= 0) {
+      addToast('Invalid Amount', 'Please enter a valid order amount.', 'error');
+      return;
+    }
+
+    if (side === 'SELL') {
+      if (amt > availableCoin) {
+        addToast('Insufficient Balance', `You only have ${availableCoin} ${selectedPair.split('/')[0]} available to sell.`, 'error');
+        return;
+      }
+      // Open Confirm Sell Dialog
+      setShowConfirmSellModal(true);
+      return;
+    }
+
+    // BUY order executes directly
+    executePlaceOrder();
   };
 
   const totalCost = (parseFloat(priceInput || '0') * parseFloat(amountInput || '0')).toFixed(2);
@@ -386,6 +406,66 @@ export const TradeView: React.FC = () => {
             )}
           </div>
         </>
+      )}
+
+      {/* Confirm Sell Modal */}
+      {showConfirmSellModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative w-full max-w-sm bg-[#0C1324] border border-slate-700 rounded-3xl p-6 text-slate-200 shadow-2xl space-y-4">
+            <button
+              onClick={() => setShowConfirmSellModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div>
+              <h3 className="text-lg font-black text-white">Confirm Sell Order</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Review your order details before executing</p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between items-center text-slate-400">
+                <span>Trading Pair:</span>
+                <span className="font-bold text-white">{selectedPair}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-400">
+                <span>Selling Amount:</span>
+                <span className="font-mono font-bold text-rose-400">{amountInput} {selectedPair.split('/')[0]}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-400">
+                <span>Execution Price:</span>
+                <span className="font-mono font-bold text-slate-200">${parseFloat(priceInput).toFixed(2)} USDT</span>
+              </div>
+              <div className="flex justify-between items-center font-bold text-white pt-2 border-t border-slate-800">
+                <span>Estimated Return:</span>
+                <span className="font-mono text-emerald-400 text-sm">${totalCost} USDT</span>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-amber-400/90 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
+              Complete the 30-second sponsored ad to verify and execute this sell trade.
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => setShowConfirmSellModal(false)}
+                className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmSellModal(false);
+                  executePlaceOrder();
+                }}
+                className="py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 text-white font-black text-xs shadow-lg shadow-rose-500/20 active:scale-95 transition-transform"
+              >
+                Confirm Sell
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

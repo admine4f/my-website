@@ -39,14 +39,14 @@ const AppContent: React.FC = () => {
   } = useApp();
 
   return (
-    <div className="min-h-screen bg-[#070B14] text-slate-100 font-sans flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-[#070B14] text-slate-100 font-sans flex flex-col selection:bg-amber-500 selection:text-slate-950">
       <SplashScreen />
 
       {/* Main Top Navigation Header */}
       <TopBar />
 
       {/* Active Tab View */}
-      <main className="flex-1 w-full max-w-md mx-auto overflow-y-auto">
+      <main className="flex-1 w-full max-w-md mx-auto pb-24">
         {activeTab === 'home' && <HomeView />}
         {activeTab === 'mining' && <MiningView />}
         {activeTab === 'market' && <MarketView />}

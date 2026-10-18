@@ -208,6 +208,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const tg = (window as any).Telegram.WebApp;
         tg.ready();
         tg.expand();
+        if (typeof tg.disableVerticalSwipes === 'function') {
+          tg.disableVerticalSwipes();
+        }
         initData = tg.initData || '';
         tgUser = tg.initDataUnsafe?.user;
         const tgStartParam = tg.initDataUnsafe?.start_param;
