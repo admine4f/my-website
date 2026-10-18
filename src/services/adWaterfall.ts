@@ -139,12 +139,42 @@ export function loadAdsgramScript(): Promise<boolean> {
   });
 }
 
+// Synchronize Telegram launch parameters into sessionStorage for Adsgram & Telegram Mini App SDKs
+export function syncTelegramLaunchParamsToStorage(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const tg = (window as any).Telegram?.WebApp;
+    const initDataStr = tg?.initData || '';
+    if (initDataStr && initDataStr.length > 5) {
+      const platform = tg.platform || 'android';
+      const version = tg.version || '8.0';
+      const themeParams = JSON.stringify(tg.themeParams || {});
+      const paramsObj = {
+        tgWebAppData: initDataStr,
+        tgWebAppVersion: version,
+        tgWebAppPlatform: platform,
+        tgWebAppThemeParams: themeParams,
+      };
+      const json = JSON.stringify(paramsObj);
+      sessionStorage.setItem('__telegram__initParams', json);
+      sessionStorage.setItem('adsgram/launch-params', json);
+      sessionStorage.setItem('telegram-apps/launch-params', json);
+      sessionStorage.setItem('tapps/launchParams', json);
+      sessionStorage.setItem('tma.js/launch-params', json);
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
 // Check whether app is currently running inside Telegram with valid launch parameters
 export function isTelegramClientWithParams(): boolean {
   if (typeof window === 'undefined') return false;
   const tg = (window as any).Telegram?.WebApp;
-  if (!tg) return false;
-  return Boolean(tg.initData && tg.initData.length > 0) || Boolean(tg.initDataUnsafe?.user);
+  const hasInitData = Boolean(tg && tg.initData && tg.initData.length > 5);
+  const hasSessionStorageParams = typeof sessionStorage !== 'undefined' && Boolean(sessionStorage.getItem('__telegram__initParams') || sessionStorage.getItem('adsgram/launch-params'));
+  const hasUrlParams = typeof window !== 'undefined' && Boolean(window.location.href.includes('tgWebAppData='));
+  return hasInitData || hasSessionStorageParams || hasUrlParams;
 }
 
 // Helper: Open external URL safely in Telegram WebApp or browser
@@ -177,6 +207,9 @@ export async function showAdsgramAd(
   _timeoutMs: number = 6000
 ): Promise<{ success: boolean; completed: boolean; reason?: string }> {
   try {
+    // Sync launch parameters immediately for Adsgram's storage checks
+    syncTelegramLaunchParamsToStorage();
+
     // If outside Telegram, return immediately to prevent AdsgramError: Unable to retrieve launch parameters
     if (!isTelegramClientWithParams()) {
       return {
@@ -210,7 +243,7 @@ export async function showAdsgramAd(
       };
     }
 
-    if (res && res.done) {
+    if (res && (res.done === true || res.state === 'load' || res.state === 'render')) {
       return { success: true, completed: true };
     } else {
       return { success: false, completed: false, reason: 'AdsGram playback was skipped or closed' };

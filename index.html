@@ -16,6 +16,83 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      (function() {
+        try {
+          // 1. Immediate Telegram Viewport Initialization
+          if (window.Telegram && window.Telegram.WebApp) {
+            var tg = window.Telegram.WebApp;
+            try { tg.ready(); } catch (e) {}
+            try { tg.expand(); } catch (e) {}
+            try {
+              if (typeof tg.disableVerticalSwipes === 'function') {
+                tg.disableVerticalSwipes();
+              }
+            } catch (e) {}
+          }
+
+          // 2. Sync Launch Params to SessionStorage for Adsgram & Telegram Mini App SDKs
+          var fullHref = window.location.href || '';
+          var hash = window.location.hash || '';
+          var search = window.location.search || '';
+          var srcStr = (hash.indexOf('tgWebAppData=') !== -1) ? hash : ((search.indexOf('tgWebAppData=') !== -1) ? search : '');
+          var initData = '';
+          var platform = 'android';
+          var version = '8.0';
+          var theme = '{}';
+
+          if (srcStr) {
+            var clean = srcStr.replace(/^[#?]/, '');
+            var p = new URLSearchParams(clean);
+            initData = p.get('tgWebAppData') || '';
+            platform = p.get('tgWebAppPlatform') || platform;
+            version = p.get('tgWebAppVersion') || version;
+            theme = p.get('tgWebAppThemeParams') || theme;
+          } else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+            initData = window.Telegram.WebApp.initData;
+            platform = window.Telegram.WebApp.platform || platform;
+            version = window.Telegram.WebApp.version || version;
+            try {
+              theme = JSON.stringify(window.Telegram.WebApp.themeParams || {});
+            } catch (e) {}
+          }
+
+          if (initData) {
+            var payload = JSON.stringify({
+              tgWebAppData: initData,
+              tgWebAppPlatform: platform,
+              tgWebAppVersion: version,
+              tgWebAppThemeParams: theme
+            });
+            sessionStorage.setItem('__telegram__initParams', payload);
+            sessionStorage.setItem('adsgram/launch-params', payload);
+            sessionStorage.setItem('telegram-apps/launch-params', payload);
+            sessionStorage.setItem('tapps/launchParams', payload);
+            sessionStorage.setItem('tma.js/launch-params', payload);
+
+            // Ensure window.location.hash retains tgWebAppData for Adsgram URL parser
+            if (!window.location.hash.includes('tgWebAppData=')) {
+              var newHash = 'tgWebAppData=' + encodeURIComponent(initData) + '&tgWebAppPlatform=' + encodeURIComponent(platform) + '&tgWebAppVersion=' + encodeURIComponent(version);
+              if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search + '#' + newHash);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[TG Param Sync Warn]:', err);
+        }
+
+        // Global safeguard against unhandled Adsgram launch errors outside Telegram
+        window.addEventListener('unhandledrejection', function(event) {
+          if (event && event.reason && String(event.reason).indexOf('Adsgram') !== -1) {
+            event.preventDefault();
+            console.warn('[Handled Adsgram Rejection]:', event.reason);
+          }
+        });
+      })();
+    </script>
+    <!-- Adsgram Telegram Mini App Video SDK -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <!-- Monetag Telegram Mini App Rewarded SDK (App ID 3534792, Zone 12044377) -->
     <script src="https://alwingulla.com/88/tag.min.js" data-zone="12044377" data-cfasync="false" async></script>
   </head>

@@ -443,8 +443,8 @@ export const TradeView: React.FC = () => {
               </div>
             </div>
 
-            <div className="text-[11px] text-amber-400/90 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
-              Complete the 30-second sponsored ad to verify and execute this sell trade.
+            <div className="text-[11px] text-slate-400 bg-slate-900/60 border border-slate-800 p-2.5 rounded-xl">
+              Please review your order details carefully before executing this sell trade.
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1">
