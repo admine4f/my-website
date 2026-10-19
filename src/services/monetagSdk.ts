@@ -10,8 +10,10 @@ declare global {
     show_tag?: (zoneId?: string) => Promise<void>;
     show_12044377?: any;
     showMonetagInsideTelegram?: () => Promise<boolean>;
+    showRichAdsInTelegram?: (richadsId?: string | number) => Promise<boolean>;
     showMonetagAd?: (zoneId?: string) => Promise<boolean>;
     Telegram?: any;
+    TelegramAdsController?: any;
   }
 }
 

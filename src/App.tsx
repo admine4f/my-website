@@ -106,6 +106,8 @@ const AppContent: React.FC = () => {
 declare global {
   interface Window {
     showMonetagInsideTelegram?: () => Promise<boolean>;
+    showRichAdsInTelegram?: (richadsId?: string | number) => Promise<boolean>;
+    TelegramAdsController?: any;
   }
 }
 
@@ -125,6 +127,39 @@ if (typeof window !== 'undefined') {
       }
     }
   });
+
+  window.showRichAdsInTelegram = async (richadsId?: string | number) => {
+    console.log('Attempt RichAds', richadsId);
+    return new Promise((resolve) => {
+      let resolved = false;
+      const safeResolve = (val: boolean) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(val);
+        }
+      };
+
+      try {
+        const ctrl = (window as any).TelegramAdsController;
+        if (ctrl) {
+          const idStr = String(richadsId || '410204');
+          if (typeof ctrl.show === 'function') {
+            try { ctrl.show({ id: idStr, zone: idStr, placement: idStr }); } catch (e) {}
+          } else if (typeof ctrl.showAd === 'function') {
+            try { ctrl.showAd({ id: idStr, zone: idStr }); } catch (e) {}
+          } else if (typeof ctrl.showInterstitial === 'function') {
+            try { ctrl.showInterstitial(); } catch (e) {}
+          } else if (typeof ctrl.showVideo === 'function') {
+            try { ctrl.showVideo(); } catch (e) {}
+          }
+        }
+        setTimeout(() => safeResolve(true), 30000); // 30s watch duration reward fallback
+      } catch (e) {
+        console.error('RichAds error:', e);
+        safeResolve(false);
+      }
+    });
+  };
 }
 
 import { initAllTmaAds } from './components/TmaAdManager';

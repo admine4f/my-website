@@ -6,7 +6,9 @@ import { getAdTargetUrl, openAdDirectly, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } 
 declare global {
   interface Window {
     showMonetagInsideTelegram?: () => Promise<boolean>;
+    showRichAdsInTelegram?: (richadsId?: string | number) => Promise<boolean>;
     show_12044377?: any;
+    TelegramAdsController?: any;
   }
 }
 
@@ -150,7 +152,19 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
       api.startAdWatching(sessionData.sessionId, sessionData.token, userId).catch(console.warn);
-      if (typeof window !== 'undefined' && typeof window.showMonetagInsideTelegram === 'function') {
+      if (sessionData.provider === 'RichAds' || String(sessionData.zoneId).startsWith('4102')) {
+        if (typeof window !== 'undefined' && typeof window.showRichAdsInTelegram === 'function') {
+          window.showRichAdsInTelegram(sessionData.zoneId || '410204').then((success: boolean) => {
+            if (success) {
+              totalWatchedSecondsRef.current = REQUIRED_MINING_SECONDS;
+              setSecondsWatched(REQUIRED_MINING_SECONDS);
+              if (timerRef.current) clearInterval(timerRef.current);
+              setStep('COMPLETED');
+              triggerAutoVerifyRef.current();
+            }
+          });
+        }
+      } else if (typeof window !== 'undefined' && typeof window.showMonetagInsideTelegram === 'function') {
         window.showMonetagInsideTelegram().then((success: boolean) => {
           if (success) {
             totalWatchedSecondsRef.current = REQUIRED_MINING_SECONDS;

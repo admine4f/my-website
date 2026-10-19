@@ -185,18 +185,24 @@ export function openExternalSponsorAd(url: string) {
 
 /**
  * 1. RichAds Real Ad Handler (Slot 1 & Slot 4)
- * Opens external ad via Telegram.WebApp.openLink() / window.open()
+ * Runs 100% INSIDE Telegram Mini App WebView via window.showRichAdsInTelegram()
+ * Never uses window.open, location.href, or Telegram.WebApp.openLink
  */
 export async function showRichadsAd(
   zoneId: string,
   _timeoutMs: number = 4000
 ): Promise<{ success: boolean; completed: boolean; adUrl: string; reason?: string }> {
-  const cleanId = String(zoneId || '410202').trim();
+  const cleanId = String(zoneId || '410204').trim();
   const adUrl = getRichadsAdUrl(cleanId);
 
   try {
-    openExternalSponsorAd(adUrl);
-    return { success: true, completed: false, adUrl };
+    if (typeof window !== 'undefined' && typeof (window as any).showRichAdsInTelegram === 'function') {
+      const ok = await (window as any).showRichAdsInTelegram(cleanId);
+      if (ok) {
+        return { success: true, completed: true, adUrl };
+      }
+    }
+    return { success: false, completed: false, adUrl, reason: 'RichAds in-app ad failed' };
   } catch (err: any) {
     console.warn('[RichAds Error]:', err);
     return { success: false, completed: false, adUrl, reason: err?.message || 'RichAds failed to open' };

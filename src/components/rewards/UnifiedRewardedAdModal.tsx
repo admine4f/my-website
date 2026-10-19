@@ -375,16 +375,17 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     // =========================================================
     // 1. RICHADS FUNCTION (Slot 1 & Slot 4)
     // =========================================================
-    if (currentTier.provider === 'RichAds') {
+    if (currentTier.provider === 'RichAds' || String(currentTier.id).startsWith('4102')) {
       const zoneId = currentTier.id || (actionType === 'SPIN' ? '410203' : (actionType === 'GIFT_BOX' ? '410202' : '410204'));
-      const res = await showRichadsAd(zoneId, 4000);
-      if (!res.success) {
-        advanceWaterfall(res.reason || 'RichAds ad request failed or timed out (4s)');
+      const ok = await (window as any).showRichAdsInTelegram?.(zoneId);
+      if (ok) {
+        incrementNetworkViewCountToday(userId, 'RichAds');
+        handleClaimReward(`RICHADS_${zoneId}_COMPLETED`);
+        return;
+      } else {
+        advanceWaterfall('RichAds ad load failed or timed out');
         return;
       }
-      setRenderedAdUrl(res.adUrl || getProviderAdUrl('RichAds', zoneId));
-      startAdWatchTimer();
-      return;
     }
 
     // =========================================================
@@ -487,6 +488,20 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
   const handleOpenSponsorAd = async () => {
     if (!currentTier) return;
+    if (currentTier.provider === 'RichAds' || String(currentTier.id).startsWith('4102')) {
+      if (typeof (window as any).showRichAdsInTelegram === 'function') {
+        try {
+          const ok = await (window as any).showRichAdsInTelegram(currentTier.id || '410204');
+          if (ok) {
+            handleClaimReward(`RICHADS_${currentTier.id || '410204'}_COMPLETED`);
+            return;
+          }
+        } catch (e) {
+          console.warn('[RichAds in-app error]:', e);
+        }
+      }
+      return;
+    }
     if (currentTier.provider === 'Monetag') {
       if (typeof (window as any).showMonetagInsideTelegram === 'function') {
         try {
