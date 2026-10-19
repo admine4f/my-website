@@ -103,6 +103,30 @@ const AppContent: React.FC = () => {
   );
 };
 
+declare global {
+  interface Window {
+    showMonetagInsideTelegram?: () => Promise<boolean>;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.showMonetagInsideTelegram = () => new Promise(async (resolve) => {
+    try {
+      const fn = (window as any).show_12044377;
+      if (typeof fn !== 'function') return resolve(false);
+      await fn('pop');
+      resolve(true);
+    } catch (e) {
+      try {
+        await (window as any).show_12044377();
+        resolve(true);
+      } catch (e2) {
+        resolve(false);
+      }
+    }
+  });
+}
+
 import { initAllTmaAds } from './components/TmaAdManager';
 
 export default function App() {

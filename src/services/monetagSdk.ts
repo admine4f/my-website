@@ -8,7 +8,8 @@ declare global {
   interface Window {
     show_88?: (zoneId?: string) => Promise<void>;
     show_tag?: (zoneId?: string) => Promise<void>;
-    show_12044377?: (zoneId?: string) => Promise<void>;
+    show_12044377?: any;
+    showMonetagInsideTelegram?: () => Promise<boolean>;
     showMonetagAd?: (zoneId?: string) => Promise<boolean>;
     Telegram?: any;
   }
@@ -64,41 +65,44 @@ export const ensureMonetagSdkLoaded = loadMonetagScript;
 
 /**
  * Official Monetag Rewarded Ad trigger:
- * Dynamically loads script, calls window.show_12044377(), and resolves on complete
+ * 100% INSIDE Telegram Mini App. Calls window.showMonetagInsideTelegram() or show_12044377('pop')
  */
 export async function showMonetagAd(zoneId: string = DEFAULT_ZONE_ID): Promise<boolean> {
   if (typeof window === 'undefined') return false;
   const cleanZone = String(zoneId || DEFAULT_ZONE_ID).trim();
 
-  await loadMonetagScript(cleanZone);
+  if (typeof window.showMonetagInsideTelegram === 'function') {
+    try {
+      const res = await window.showMonetagInsideTelegram();
+      return Boolean(res);
+    } catch (err) {
+      console.warn('[showMonetagInsideTelegram error]:', err);
+    }
+  }
 
   const showFn =
-    (window as any)[`show_${cleanZone}`] ||
     window.show_12044377 ||
-    window.show_88 ||
-    window.show_tag;
+    (window as any)[`show_${cleanZone}`] ||
+    window.show_88;
 
   if (typeof showFn === 'function') {
     try {
-      const res = showFn(cleanZone);
+      const res = showFn('pop');
       if (res && typeof res.then === 'function') {
         await res;
       }
       return true;
     } catch (err) {
-      console.warn('[Monetag SDK Error]:', err);
-      return false;
-    }
-  }
-
-  // Fallback: If in Telegram WebApp, open direct link
-  const adUrl = getAdTargetUrl(undefined, cleanZone);
-  if ((window as any).Telegram?.WebApp?.openLink) {
-    try {
-      (window as any).Telegram.WebApp.openLink(adUrl);
-      return true;
-    } catch (e) {
-      console.warn('[TG openLink fallback]:', e);
+      try {
+        const res2 = showFn();
+        if (res2 && typeof res2.then === 'function') {
+          await res2;
+        }
+        return true;
+      } catch (err2) {
+        console.warn('[Monetag SDK Error]:', err2);
+        return false;
+      }
     }
   }
 
@@ -116,31 +120,32 @@ if (typeof window !== 'undefined') {
 export function getAdTargetUrl(directLink?: string, zoneId: string = DEFAULT_ZONE_ID): string {
   if (directLink && directLink.trim().length > 0) return directLink.trim();
   const clean = String(zoneId || DEFAULT_ZONE_ID).trim();
-  return `https://alwingulla.com/88/${clean}`;
+  return `https://libtl.com/sdk.js?zone=${clean}`;
 }
 
 /**
- * Opens the ad directly via Telegram WebApp or browser.
+ * Opens the ad directly via Monetag In-App function. Never opens outside Telegram.
  */
-export function openAdDirectly(directLink?: string, zoneId: string = DEFAULT_ZONE_ID): boolean {
+export function openAdDirectly(_directLink?: string, zoneId: string = DEFAULT_ZONE_ID): boolean {
   const cleanId = String(zoneId || DEFAULT_ZONE_ID).trim();
-  const targetUrl = getAdTargetUrl(directLink, cleanId);
 
   if (typeof window !== 'undefined') {
+    if (typeof window.showMonetagInsideTelegram === 'function') {
+      window.showMonetagInsideTelegram().catch(() => {});
+      return true;
+    }
     if (typeof window.showMonetagAd === 'function') {
       window.showMonetagAd(cleanId).catch(() => {});
       return true;
     }
-
-    if ((window as any).Telegram?.WebApp?.openLink && targetUrl) {
+    if (typeof window.show_12044377 === 'function') {
       try {
-        (window as any).Telegram.WebApp.openLink(targetUrl);
-        return true;
-      } catch (e) {
-        console.warn('[Telegram openLink error]:', e);
+        window.show_12044377('pop');
+      } catch {
+        window.show_12044377();
       }
+      return true;
     }
-    window.open(targetUrl, '_blank', 'noopener,noreferrer');
   }
 
   return true;

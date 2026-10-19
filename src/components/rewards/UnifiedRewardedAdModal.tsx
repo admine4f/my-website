@@ -488,18 +488,35 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   const handleOpenSponsorAd = async () => {
     if (!currentTier) return;
     if (currentTier.provider === 'Monetag') {
-      const showFn = (window as any).showMonetagAd || (window as any).show_12044377 || (window as any).show_88;
-      if (typeof showFn === 'function') {
+      if (typeof (window as any).showMonetagInsideTelegram === 'function') {
         try {
-          const ok = await showFn(currentTier.id || '12044377');
+          const ok = await (window as any).showMonetagInsideTelegram();
           if (ok) {
             handleClaimReward(`MONETAG_${currentTier.id || '12044377'}_COMPLETED`);
             return;
           }
         } catch (e) {
-          console.warn('[Monetag open error]:', e);
+          console.warn('[Monetag in-app error]:', e);
+        }
+      } else {
+        const showFn = (window as any).show_12044377;
+        if (typeof showFn === 'function') {
+          try {
+            await showFn('pop');
+            handleClaimReward(`MONETAG_${currentTier.id || '12044377'}_COMPLETED`);
+            return;
+          } catch {
+            try {
+              await showFn();
+              handleClaimReward(`MONETAG_${currentTier.id || '12044377'}_COMPLETED`);
+              return;
+            } catch (err2) {
+              console.warn('[Monetag interstitial error]:', err2);
+            }
+          }
         }
       }
+      return;
     }
     openExternalSponsorAd(activeAdUrl);
   };

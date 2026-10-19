@@ -3,6 +3,13 @@ import { ShieldCheck, CheckCircle2, AlertTriangle, X, Play, Loader2, Clock, Exte
 import { api } from '../../services/api';
 import { getAdTargetUrl, openAdDirectly, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
 
+declare global {
+  interface Window {
+    showMonetagInsideTelegram?: () => Promise<boolean>;
+    show_12044377?: any;
+  }
+}
+
 export interface AdSessionData {
   sessionId: string;
   token: string;
@@ -143,7 +150,23 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
       api.startAdWatching(sessionData.sessionId, sessionData.token, userId).catch(console.warn);
-      openAdDirectly(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
+      if (typeof window !== 'undefined' && typeof window.showMonetagInsideTelegram === 'function') {
+        window.showMonetagInsideTelegram().then((success: boolean) => {
+          if (success) {
+            totalWatchedSecondsRef.current = REQUIRED_MINING_SECONDS;
+            setSecondsWatched(REQUIRED_MINING_SECONDS);
+            if (timerRef.current) clearInterval(timerRef.current);
+            setStep('COMPLETED');
+            triggerAutoVerifyRef.current();
+          } else {
+            openAdDirectly(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
+          }
+        }).catch(() => {
+          openAdDirectly(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
+        });
+      } else {
+        openAdDirectly(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
+      }
     }
 
     setStep('WATCHING');

@@ -205,7 +205,8 @@ export async function showRichadsAd(
 
 /**
  * 2. Monetag Real Ad Handler (Slot 2 & Slot 5 - Native Telegram SDK Zone 12044377)
- * Runs window.showMonetagAd() / show_12044377() official rewarded function
+ * Runs 100% INSIDE Telegram via window.showMonetagInsideTelegram() / show_12044377('pop')
+ * Never uses window.open, location.href, or Telegram.WebApp.openLink
  */
 export async function showMonetagAd(
   zoneId: string,
@@ -216,18 +217,30 @@ export async function showMonetagAd(
 
   try {
     if (typeof window !== 'undefined') {
-      const triggerFn = window.showMonetagAd || sdkShowMonetagAd;
-      if (typeof triggerFn === 'function') {
-        const completed = await triggerFn(cleanId);
-        if (completed) {
+      if (typeof (window as any).showMonetagInsideTelegram === 'function') {
+        const success = await (window as any).showMonetagInsideTelegram();
+        if (success) {
+          return { success: true, completed: true, adUrl };
+        } else {
+          return { success: false, completed: false, adUrl, reason: 'Monetag in-app ad failed' };
+        }
+      }
+
+      const showFn = (window as any).show_12044377 || window.showMonetagAd || sdkShowMonetagAd;
+      if (typeof showFn === 'function') {
+        try {
+          const res = showFn('pop');
+          if (res && typeof res.then === 'function') await res;
+          return { success: true, completed: true, adUrl };
+        } catch {
+          const res2 = showFn();
+          if (res2 && typeof res2.then === 'function') await res2;
           return { success: true, completed: true, adUrl };
         }
       }
     }
 
-    // Fallback: Open external direct link
-    openExternalSponsorAd(adUrl);
-    return { success: true, completed: false, adUrl };
+    return { success: false, completed: false, adUrl, reason: 'Monetag SDK not ready' };
   } catch (err: any) {
     console.warn('[Monetag Error]:', err?.message || err);
     return { success: false, completed: false, adUrl, reason: err?.message || 'Monetag failed' };
