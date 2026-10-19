@@ -63,28 +63,19 @@ export function getAdTargetUrl(directLink?: string, zoneId: string = DEFAULT_ZON
  * Opens the ad directly via Telegram WebApp or browser without triggering pop-up blocker.
  * Must only be called ONCE per user gesture.
  */
-export function openAdDirectly(directLink?: string, zoneId: string = DEFAULT_ZONE_ID): boolean {
-  const targetUrl = getAdTargetUrl(directLink, zoneId);
-
-  // 1. If running inside Telegram Mini App, use Telegram WebApp API
-  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openLink) {
-    try {
-      window.Telegram.WebApp.openLink(targetUrl);
-      return true;
-    } catch (err) {
-      console.warn('[Ad SDK] Telegram WebApp openLink failed:', err);
-    }
-  }
-
-  // 2. In browser environment, open single new tab
+export function openAdDirectly(_directLink?: string, zoneId: string = DEFAULT_ZONE_ID): boolean {
+  // If Monetag In-App SDK is available, trigger native in-app rewarded ad
   if (typeof window !== 'undefined') {
-    try {
-      const win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
-      if (win) return true;
-    } catch (err) {
-      console.warn('[Ad SDK] window.open error:', err);
+    const showFn = (window as any).show_88 || (window as any).show_tag;
+    if (typeof showFn === 'function') {
+      try {
+        showFn(zoneId);
+        return true;
+      } catch (e) {
+        console.warn('[Monetag In-App error]:', e);
+      }
     }
   }
-
-  return false;
+  // Keep 100% inside Telegram Mini App without redirecting away to external sites
+  return true;
 }

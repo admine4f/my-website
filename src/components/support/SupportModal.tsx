@@ -13,7 +13,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ onClose }) => {
   const faqs = [
     {
       q: 'What is E4F and when is the planned listing?',
-      a: 'E4F is the native utility token powering the E4F ecosystem. The planned target listing date is 28 February 2028 with a planned target price range of 3–5 USDT. Before listing, E4F is in pre-listing phase with no market price.',
+      a: 'E4F is the native utility token powering the E4F ecosystem. The planned target listing date is 28 February 2028. Before listing, E4F is in pre-listing phase with no market price or valuation.',
     },
     {
       q: 'How does the 8-Hour Mining work?',

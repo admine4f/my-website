@@ -5,9 +5,10 @@
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     min-height: 100%;
     height: auto;
-    scroll-behavior: smooth;
+    overscroll-behavior-y: contain;
   }
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -15,17 +16,21 @@
     color: #F1F5F9;
     overflow-x: hidden;
     overflow-y: auto;
-    min-height: 100vh;
-    user-select: none;
-    -webkit-user-select: none;
+    min-height: 100%;
+    height: auto;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: contain;
   }
   #root {
-    min-height: 100vh;
+    min-height: 100%;
+    width: 100%;
     display: flex;
     flex-direction: column;
     overflow-x: hidden;
+    overflow-y: visible;
+    touch-action: pan-y;
   }
 }
 

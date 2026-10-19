@@ -58,15 +58,14 @@ export const HomeView: React.FC = () => {
   const ethPrice = marketAssets.find(a => a.baseAsset === 'ETH')?.price || 2430.5;
   const solPrice = marketAssets.find(a => a.baseAsset === 'SOL')?.price || 103.8;
   const bnbPrice = marketAssets.find(a => a.baseAsset === 'BNB')?.price || 729.3;
-  const e4fPrice = 3.5;
   const usdtVal = Number((balances.usdt || 0).toFixed(2));
   const depositVal = Number(((user?.depositBalance || 0)).toFixed(2));
-  const e4fVal = Number(((balances.e4f || 0) * e4fPrice).toFixed(2));
+  const e4fVal = 0; // E4F is unlisted, excluded from liquid spot valuation
   const btcVal = Number(((balances.btc || 0) * btcPrice).toFixed(2));
   const ethVal = Number(((balances.eth || 0) * ethPrice).toFixed(2));
   const solVal = Number(((balances.sol || 0) * solPrice).toFixed(2));
   const bnbVal = Number(((balances.bnb || 0) * bnbPrice).toFixed(2));
-  const totalSpotUSDT = (usdtVal + depositVal + e4fVal + btcVal + ethVal + solVal + bnbVal).toFixed(2);
+  const totalSpotUSDT = (usdtVal + depositVal + btcVal + ethVal + solVal + bnbVal).toFixed(2);
 
   return (
     <div className="flex flex-col gap-4 pb-20 pt-2 px-4 max-w-md mx-auto">
@@ -132,7 +131,7 @@ export const HomeView: React.FC = () => {
             <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
               Listing: 2028
             </div>
-            <div className="text-[9px] text-slate-400">Target 3–5 USDT*</div>
+            <div className="text-[9px] text-amber-400/90 font-medium">Not Listed Yet</div>
           </div>
         </div>
 

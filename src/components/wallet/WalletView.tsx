@@ -82,14 +82,14 @@ export const WalletView: React.FC = () => {
   // Exact coin USD calculations matching individual cards:
   const usdtVal = Number((balances.usdt || 0).toFixed(2));
   const depositVal = Number(((user?.depositBalance || 0)).toFixed(2));
-  const e4fVal = Number(((balances.e4f || 0) * 3.5).toFixed(2));
+  const e4fVal = 0; // E4F is unlisted, no fiat valuation until official 2028 listing
   const btcVal = Number(((balances.btc || 0) * btcPrice).toFixed(2));
   const ethVal = Number(((balances.eth || 0) * ethPrice).toFixed(2));
   const solVal = Number(((balances.sol || 0) * solPrice).toFixed(2));
   const bnbVal = Number(((balances.bnb || 0) * bnbPrice).toFixed(2));
 
-  // Total Spot calculation: exact mathematical sum of all coins and available balance
-  const totalSpotUSD = (usdtVal + depositVal + e4fVal + btcVal + ethVal + solVal + bnbVal).toFixed(2);
+  // Total Spot calculation: exact mathematical sum of liquid assets (E4F is unlisted)
+  const totalSpotUSD = (usdtVal + depositVal + btcVal + ethVal + solVal + bnbVal).toFixed(2);
 
   const filteredTxs = transactions.filter(t => {
     if (filterSource === 'ALL') return true;
@@ -240,7 +240,7 @@ export const WalletView: React.FC = () => {
               {balances.e4f.toFixed(2)} E4F
             </div>
             <div className="text-[10px] text-slate-400 font-mono">
-              Price: $3.50 | ≈ ${e4fVal.toFixed(2)}
+              Unlisted | Price: —
             </div>
           </div>
         </div>

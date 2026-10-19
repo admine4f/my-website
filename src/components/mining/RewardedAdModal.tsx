@@ -145,17 +145,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
       api.startAdWatching(sessionData.sessionId, sessionData.token, userId).catch(console.warn);
     }
 
-    const targetUrl = getAdTargetUrl(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
-
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openLink) {
-      if (e) e.preventDefault();
-      try {
-        window.Telegram.WebApp.openLink(targetUrl);
-      } catch {
-        // Fallback
-      }
-    }
-
+    // Keep ad viewing 100% in-app inside Telegram Mini App without redirecting to external sites
     setStep('WATCHING');
 
     if (timerRef.current) clearInterval(timerRef.current);

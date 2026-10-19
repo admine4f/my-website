@@ -26,7 +26,7 @@ export const TradeView: React.FC = () => {
     if (selectedPair.includes('ETH')) defaultPrice = '2430.50';
     else if (selectedPair.includes('SOL')) defaultPrice = '103.80';
     else if (selectedPair.includes('BNB')) defaultPrice = '729.30';
-    else if (selectedPair.includes('E4F')) defaultPrice = '3.50';
+    else if (selectedPair.includes('E4F')) defaultPrice = '';
     if (orderType === 'MARKET') {
       setPriceInput(defaultPrice);
     }

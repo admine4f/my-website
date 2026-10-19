@@ -654,7 +654,7 @@ export const api = {
       durationHours: 8,
       adRequired: true,
       adProvider: 'MONETAG',
-      plannedTargetPriceRange: '3–5 USDT',
+      plannedTargetPriceRange: 'Not Listed Yet',
     };
   },
 
@@ -1920,10 +1920,16 @@ export const api = {
   // Admin
   async adminLogin(pin: string, key?: string): Promise<{ success: boolean; token: string; key?: string; role: string }> {
     const cleanPassword = (pin || key || '').trim();
-    const payload = JSON.stringify({ password: cleanPassword });
+    let tgId: any = undefined;
+    try {
+      tgId = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    } catch {}
+    const payload = JSON.stringify({ password: cleanPassword, telegramId: tgId });
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (tgId) headers['x-telegram-id'] = String(tgId);
     let res = await fetch('/api/admin/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: payload,
     });
 
@@ -1931,7 +1937,7 @@ export const api = {
       try {
         const alt = await fetch('/admin/login', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: payload,
         });
         if (alt.ok) res = alt;
@@ -1957,10 +1963,15 @@ export const api = {
   getAdminHeaders(adminKey?: string): Record<string, string> {
     const token = typeof window !== 'undefined' ? (localStorage.getItem('e4f_admin_token') || '') : '';
     const savedKey = typeof window !== 'undefined' ? localStorage.getItem('e4f_admin_key') : null;
+    let tgId: any = undefined;
+    try {
+      tgId = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    } catch {}
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     if (token) headers['x-admin-token'] = token;
+    if (tgId) headers['x-telegram-id'] = String(tgId);
     const effectiveKey = adminKey || savedKey;
     if (effectiveKey) headers['x-admin-key'] = effectiveKey;
     return headers;

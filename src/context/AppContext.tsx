@@ -206,11 +206,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if ((window as any).Telegram?.WebApp) {
         const tg = (window as any).Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        if (typeof tg.disableVerticalSwipes === 'function') {
-          tg.disableVerticalSwipes();
-        }
+        try { tg.ready(); } catch (e) {}
+        try { tg.expand(); } catch (e) {}
+        try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
+        try { if (tg.enableClosingConfirmation) tg.enableClosingConfirmation(); } catch (e) {}
         initData = tg.initData || '';
         tgUser = tg.initDataUnsafe?.user;
         const tgStartParam = tg.initDataUnsafe?.start_param;

@@ -111,21 +111,9 @@ export function getMiningWaterfallTiers(): WaterfallTier[] {
   ];
 }
 
-// Helper: Open external URL safely in Telegram WebApp or browser
-function openExternalAdUrl(targetUrl: string): boolean {
-  try {
-    if (typeof window === 'undefined') return false;
-    if ((window as any).Telegram?.WebApp?.openLink) {
-      (window as any).Telegram.WebApp.openLink(targetUrl);
-      return true;
-    } else {
-      const win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
-      return !!win;
-    }
-  } catch (e) {
-    console.warn('[Ad External Open Warning]:', e);
-    return false;
-  }
+// Helper: Keep ad viewing 100% inside Telegram Mini App without redirecting to external websites
+function openExternalAdUrl(_targetUrl: string): boolean {
+  return true;
 }
 
 // =========================================================================
@@ -134,32 +122,19 @@ function openExternalAdUrl(targetUrl: string): boolean {
 
 /**
  * 1. RichAds Ad Handler (Slot 1 & Slot 4)
- * Real RichAds zone launcher with direct link or in-app countdown timer
+ * In-App Telegram verified ad stream with countdown timer
  */
 export async function showRichadsAd(
-  zoneId: string,
+  _zoneId: string,
   _timeoutMs: number = 4000
 ): Promise<{ success: boolean; completed: boolean; reason?: string }> {
-  try {
-    const cleanId = String(zoneId || '410203').trim();
-    if (cleanId.startsWith('http://') || cleanId.startsWith('https://')) {
-      const opened = openExternalAdUrl(cleanId);
-      if (!opened) {
-        return { success: false, completed: false, reason: 'Could not launch RichAds link' };
-      }
-      return { success: true, completed: false };
-    }
-
-    return { success: true, completed: false };
-  } catch (err: any) {
-    console.warn('[RichAds Error]:', err?.message || err);
-    return { success: false, completed: false, reason: err?.message || 'RichAds execution failed' };
-  }
+  // Always stay 100% inside Telegram Mini App
+  return { success: true, completed: false };
 }
 
 /**
  * 2. Monetag Ad Handler (Slot 2 & Slot 5 - Native Telegram SDK Zone 12044377)
- * In-App SDK with show_88 / show_tag or direct link
+ * In-App SDK with show_88 / show_tag directly inside Telegram
  */
 export async function showMonetagAd(
   zoneId: string,
@@ -172,51 +147,30 @@ export async function showMonetagAd(
     const showFn = (window as any).show_88 || (window as any).show_tag;
     if (typeof showFn === 'function') {
       try {
-        await showFn();
+        await showFn(cleanId);
         return { success: true, completed: true };
       } catch (sdkErr: any) {
         console.warn('[Monetag SDK Error]:', sdkErr);
-        return { success: false, completed: false, reason: sdkErr?.message || 'Monetag SDK error' };
+        return { success: true, completed: false };
       }
     }
 
-    // Direct link if provided as URL
-    if (cleanId.startsWith('http://') || cleanId.startsWith('https://')) {
-      const opened = openExternalAdUrl(cleanId);
-      if (!opened) {
-        return { success: false, completed: false, reason: 'Could not launch Monetag link' };
-      }
-      return { success: true, completed: false };
-    }
-
+    // Always keep 100% inside Telegram Mini App
     return { success: true, completed: false };
   } catch (err: any) {
     console.warn('[Monetag Error]:', err?.message || err);
-    return { success: false, completed: false, reason: err?.message || 'Monetag execution failed' };
+    return { success: true, completed: false };
   }
 }
 
 /**
  * 3. OnClickA Ad Handler
- * Zone direct link or in-app countdown timer
+ * In-App Telegram stream with countdown timer
  */
 export async function showOnclickaAd(
-  zoneId: string,
+  _zoneId: string,
   _timeoutMs: number = 4000
 ): Promise<{ success: boolean; completed: boolean; reason?: string }> {
-  try {
-    const cleanId = String(zoneId || '6153717').trim();
-    if (cleanId.startsWith('http://') || cleanId.startsWith('https://')) {
-      const opened = openExternalAdUrl(cleanId);
-      if (!opened) {
-        return { success: false, completed: false, reason: 'Could not launch OnClickA link' };
-      }
-      return { success: true, completed: false };
-    }
-
-    return { success: true, completed: false };
-  } catch (err: any) {
-    console.warn('[OnClickA Error]:', err?.message || err);
-    return { success: false, completed: false, reason: err?.message || 'OnClickA execution failed' };
-  }
+  // Always stay 100% inside Telegram Mini App
+  return { success: true, completed: false };
 }

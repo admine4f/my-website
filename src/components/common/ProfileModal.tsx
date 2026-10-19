@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Wallet,
   ExternalLink,
+  Sliders,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
@@ -575,6 +576,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   {balances.e4f.toFixed(1)} E4F
                 </div>
               </div>
+            </div>
+
+            {/* Direct Admin Mission Control Access */}
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  onClose();
+                  openModal('ADMIN');
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/5 hover:from-amber-500/25 hover:to-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                <span>Admin Mission Control</span>
+              </button>
             </div>
 
             {/* Account Deletion */}

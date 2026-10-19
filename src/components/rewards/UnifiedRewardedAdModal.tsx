@@ -598,22 +598,6 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
                       Sponsored Video & Partner Media • 0% Skip Required
                     </div>
                   </div>
-
-                  {activeAdUrl && activeAdUrl.startsWith('http') && (
-                    <button
-                      onClick={() => {
-                        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.openLink) {
-                          (window as any).Telegram.WebApp.openLink(activeAdUrl);
-                        } else {
-                          window.open(activeAdUrl, '_blank', 'noopener,noreferrer');
-                        }
-                      }}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[10px] font-bold transition-all cursor-pointer"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      <span>Visit Sponsored Partner</span>
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -641,20 +625,6 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
                 </p>
               </div>
             </div>
-
-            {/* Re-open / Return to Ad button - only shown if an actual external ad URL was provided */}
-            {activeAdUrl && activeAdUrl.startsWith('http') && (
-              <a
-                href={activeAdUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleWatchAdClick}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-700"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Return to Ad Window</span>
-              </a>
-            )}
 
             {/* Manual next network fallback if stuck */}
             <button

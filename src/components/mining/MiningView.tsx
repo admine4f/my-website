@@ -227,9 +227,9 @@ export const MiningView: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-800/80">
           <div>
-            <div className="text-[10px] text-slate-400 font-medium">Estimated Price</div>
-            <div className="text-base font-extrabold text-emerald-400">
-              {miningStats?.plannedTargetPriceRange || '3–5 USDT'}
+            <div className="text-[10px] text-slate-400 font-medium">Listing Status</div>
+            <div className="text-sm font-extrabold text-amber-400">
+              Not Listed Yet
             </div>
           </div>
           <div className="text-right">
