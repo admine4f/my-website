@@ -7,21 +7,21 @@
 // Spin 1-5 Waterfall IDs
 export let spin_01_richads = '410203';
 export let spin_02_monetag = '12044377';
-export let spin_03_onclicka = '6153717';
+export let spin_03_onclicka = '6153717E4F';
 export let spin_04_richads = '410203';
 export let spin_05_monetag = '12044377';
 
 // Gift Box 1-5 Waterfall IDs
 export let box_01_richads = '410202';
 export let box_02_monetag = '12044377';
-export let box_03_onclicka = '6153772';
+export let box_03_onclicka = '6153772E4F';
 export let box_04_richads = '410202';
 export let box_05_monetag = '12044377';
 
 // Mining 1-5 Waterfall IDs
 export let mining_01_richads = '410204';
 export let mining_02_monetag = '12044377';
-export let mining_03_onclicka = '6153774';
+export let mining_03_onclicka = '6153774E4F';
 export let mining_04_richads = '410204';
 export let mining_05_monetag = '12044377';
 
@@ -234,9 +234,11 @@ export async function showMonetagAd(
   }
 }
 
+import { showTmaAd } from '../components/TmaAdManager';
+
 /**
  * 3. OnClickA Real Ad Handler (Slot 3)
- * Opens direct delivery link externally via Telegram.WebApp.openLink()
+ * Plays in-stream TMA rewarded ad INSIDE Telegram via window.initCdTma
  */
 export async function showOnclickaAd(
   zoneId: string,
@@ -246,10 +248,23 @@ export async function showOnclickaAd(
   const adUrl = getOnclickaAdUrl(cleanId);
 
   try {
-    openExternalSponsorAd(adUrl);
-    return { success: true, completed: false, adUrl };
+    // type mapping: mining_03 -> MINING, box_03 -> GIFTBOX, spin_03 -> SPIN
+    let tmaType: 'MINING' | 'GIFTBOX' | 'SPIN' = 'MINING';
+    const lower = cleanId.toLowerCase();
+    if (lower.includes('spin') || lower.includes('6153717')) {
+      tmaType = 'SPIN';
+    } else if (lower.includes('box') || lower.includes('gift') || lower.includes('6153772')) {
+      tmaType = 'GIFTBOX';
+    } else {
+      tmaType = 'MINING';
+    }
+
+    await showTmaAd(tmaType);
+    // Ad watched successfully INSIDE Telegram
+    return { success: true, completed: true, adUrl };
   } catch (err: any) {
-    console.warn('[OnClickA Error]:', err);
-    return { success: false, completed: false, adUrl, reason: err?.message || 'OnClickA failed to open' };
+    console.warn('[OnClickA TMA Ad failed, falling back to next waterfall network]:', err);
+    return { success: false, completed: false, adUrl, reason: err?.message || 'OnClickA failed' };
   }
 }
+

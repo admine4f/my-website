@@ -103,7 +103,13 @@ const AppContent: React.FC = () => {
   );
 };
 
+import { initAllTmaAds } from './components/TmaAdManager';
+
 export default function App() {
+  React.useEffect(() => {
+    initAllTmaAds();
+  }, []);
+
   return (
     <AppProvider>
       <AppContent />

@@ -40,20 +40,20 @@ import {
 // =========================================================================
 export let SPIN_01_RICHADS = '410203';
 export let SPIN_02_MONETAG = '12044377';
-export let SPIN_03_ONCLICKA = '6153717';
+export let SPIN_03_ONCLICKA = '6153717E4F';
 export let SPIN_04_RICHADS = '410203';
 export let SPIN_05_MONETAG = '12044377';
 
 export let BOX_01_RICHADS = '410202';
 export let BOX_02_MONETAG = '12044377';
-export let BOX_03_ONCLICKA = '6153772';
+export let BOX_03_ONCLICKA = '6153772E4F';
 export let BOX_04_RICHADS = '410202';
 export let BOX_05_MONETAG = '12044377';
 
 // Mining Waterfall Ad Variables
 export let MINING_01_RICHADS = '410204';
 export let MINING_02_MONETAG = '12044377';
-export let MINING_03_ONCLICKA = '6153774';
+export let MINING_03_ONCLICKA = '6153774E4F';
 export let MINING_04_RICHADS = '410204';
 export let MINING_05_MONETAG = '12044377';
 export let MINING_PRIMARY_NETWORK: 'RichAds' | 'Monetag' | 'OnClickA' = 'RichAds';
@@ -411,8 +411,13 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     // 3. ONCLICKA FUNCTION (In-App Ad Stream & Zone Delivery)
     // =========================================================
     if (currentTier.provider === 'OnClickA') {
-      const zoneId = currentTier.id || (actionType === 'SPIN' ? '6153717' : (actionType === 'GIFT_BOX' ? '6153772' : '6153774'));
+      const zoneId = currentTier.id || (actionType === 'SPIN' ? '6153717E4F' : (actionType === 'GIFT_BOX' ? '6153772E4F' : '6153774E4F'));
       const res = await showOnclickaAd(zoneId, 4000);
+      if (res.success && res.completed) {
+        incrementNetworkViewCountToday(userId, 'OnClickA');
+        handleClaimReward(`ONCLICKA_${zoneId}_COMPLETED`);
+        return;
+      }
       if (!res.success) {
         advanceWaterfall(res.reason || 'OnClickA ad request failed or timed out (4s)');
         return;

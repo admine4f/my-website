@@ -12,23 +12,23 @@ export interface AdUnitConfig {
 }
 
 export const SPIN_ADS: Record<string, AdUnitConfig> = {
-  spin_01: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" },
-  spin_02: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" },
-  spin_03: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" },
-  spin_04: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" },
-  spin_05: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" }
+  spin_01: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717E4F", richads_2: "410203", monetag_2: "12044377" },
+  spin_02: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717E4F", richads_2: "410203", monetag_2: "12044377" },
+  spin_03: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717E4F", richads_2: "410203", monetag_2: "12044377" },
+  spin_04: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717E4F", richads_2: "410203", monetag_2: "12044377" },
+  spin_05: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717E4F", richads_2: "410203", monetag_2: "12044377" }
 };
 
 export const BOX_ADS: Record<string, AdUnitConfig> = {
-  box_01: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" },
-  box_02: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" },
-  box_03: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" },
-  box_04: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" },
-  box_05: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" }
+  box_01: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772E4F", richads_2: "410202", monetag_2: "12044377" },
+  box_02: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772E4F", richads_2: "410202", monetag_2: "12044377" },
+  box_03: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772E4F", richads_2: "410202", monetag_2: "12044377" },
+  box_04: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772E4F", richads_2: "410202", monetag_2: "12044377" },
+  box_05: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772E4F", richads_2: "410202", monetag_2: "12044377" }
 };
 
 export const MINING_ADS: Record<string, AdUnitConfig> = {
-  mining: { richads_1: "410204", monetag_1: "12044377", onclicka: "6153774", richads_2: "410204", monetag_2: "12044377" }
+  mining: { richads_1: "410204", monetag_1: "12044377", onclicka: "6153774E4F", richads_2: "410204", monetag_2: "12044377" }
 };
 
 // Backward-compatible AD_CODES mapping
@@ -159,7 +159,7 @@ export function buildIntraWaterfallTiers(
   if (actionType === 'GIFT_BOX') {
     const box01 = dynamicSettings?.box_01_richads || BOX_ADS.box_01.richads_1 || '410202';
     const box02 = dynamicSettings?.box_02_monetag || BOX_ADS.box_02.monetag_1 || '12044377';
-    const box03 = dynamicSettings?.box_03_onclicka || BOX_ADS.box_03.onclicka || '6153772';
+    const box03 = dynamicSettings?.box_03_onclicka || BOX_ADS.box_03.onclicka || '6153772E4F';
     const box04 = dynamicSettings?.box_04_richads || BOX_ADS.box_04.richads_2 || '410202';
     const box05 = dynamicSettings?.box_05_monetag || BOX_ADS.box_05.monetag_2 || '12044377';
 
@@ -184,7 +184,7 @@ export function buildIntraWaterfallTiers(
   if (actionType === 'SPIN') {
     const spin01 = dynamicSettings?.spin_01_richads || SPIN_ADS.spin_01.richads_1 || '410203';
     const spin02 = dynamicSettings?.spin_02_monetag || SPIN_ADS.spin_02.monetag_1 || '12044377';
-    const spin03 = dynamicSettings?.spin_03_onclicka || SPIN_ADS.spin_03.onclicka || '6153717';
+    const spin03 = dynamicSettings?.spin_03_onclicka || SPIN_ADS.spin_03.onclicka || '6153717E4F';
     const spin04 = dynamicSettings?.spin_04_richads || SPIN_ADS.spin_04.richads_2 || '410203';
     const spin05 = dynamicSettings?.spin_05_monetag || SPIN_ADS.spin_05.monetag_2 || '12044377';
 
@@ -209,7 +209,7 @@ export function buildIntraWaterfallTiers(
   // Mining / Withdraw / Sell
   const mining01 = dynamicSettings?.mining_01_richads || MINING_ADS.mining.richads_1 || '410204';
   const mining02 = dynamicSettings?.mining_02_monetag || MINING_ADS.mining.monetag_1 || '12044377';
-  const mining03 = dynamicSettings?.mining_03_onclicka || MINING_ADS.mining.onclicka || '6153774';
+  const mining03 = dynamicSettings?.mining_03_onclicka || MINING_ADS.mining.onclicka || '6153774E4F';
   const mining04 = dynamicSettings?.mining_04_richads || MINING_ADS.mining.richads_2 || '410204';
   const mining05 = dynamicSettings?.mining_05_monetag || MINING_ADS.mining.monetag_2 || '12044377';
 

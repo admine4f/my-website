@@ -71,13 +71,13 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   // 10 Waterfall Ad Variables for Spin & Gift Box
   const [spin01Richads, setSpin01Richads] = useState('410203');
   const [spin02Monetag, setSpin02Monetag] = useState('12044377');
-  const [spin03Onclicka, setSpin03Onclicka] = useState('6153717');
+  const [spin03Onclicka, setSpin03Onclicka] = useState('6153717E4F');
   const [spin04Richads, setSpin04Richads] = useState('410203');
   const [spin05Monetag, setSpin05Monetag] = useState('12044377');
 
   const [box01Richads, setBox01Richads] = useState('410202');
   const [box02Monetag, setBox02Monetag] = useState('12044377');
-  const [box03Onclicka, setBox03Onclicka] = useState('6153772');
+  const [box03Onclicka, setBox03Onclicka] = useState('6153772E4F');
   const [box04Richads, setBox04Richads] = useState('410202');
   const [box05Monetag, setBox05Monetag] = useState('12044377');
 
@@ -87,7 +87,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   const [miningWaterfallEnabled, setMiningWaterfallEnabled] = useState(true);
   const [mining01Richads, setMining01Richads] = useState('410204');
   const [mining02Monetag, setMining02Monetag] = useState('12044377');
-  const [mining03Onclicka, setMining03Onclicka] = useState('6153774');
+  const [mining03Onclicka, setMining03Onclicka] = useState('6153774E4F');
   const [mining04Richads, setMining04Richads] = useState('410204');
   const [mining05Monetag, setMining05Monetag] = useState('12044377');
   // Hourly Mining Rate (E4F / Hour) - Dynamic Real-Time Admin Control
@@ -412,13 +412,13 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
 
         setSpin01Richads(sanitizeAdminAdId(dash.systemSettings.spin_01_richads, '410203'));
         setSpin02Monetag(sanitizeAdminAdId(dash.systemSettings.spin_02_monetag, '12044377'));
-        setSpin03Onclicka(sanitizeAdminAdId(dash.systemSettings.spin_03_onclicka, '6153717'));
+        setSpin03Onclicka(sanitizeAdminAdId(dash.systemSettings.spin_03_onclicka, '6153717E4F'));
         setSpin04Richads(sanitizeAdminAdId(dash.systemSettings.spin_04_richads, '410203'));
         setSpin05Monetag(sanitizeAdminAdId(dash.systemSettings.spin_05_monetag, '12044377'));
 
         setBox01Richads(sanitizeAdminAdId(dash.systemSettings.box_01_richads, '410202'));
         setBox02Monetag(sanitizeAdminAdId(dash.systemSettings.box_02_monetag, '12044377'));
-        setBox03Onclicka(sanitizeAdminAdId(dash.systemSettings.box_03_onclicka, '6153772'));
+        setBox03Onclicka(sanitizeAdminAdId(dash.systemSettings.box_03_onclicka, '6153772E4F'));
         setBox04Richads(sanitizeAdminAdId(dash.systemSettings.box_04_richads, '410202'));
         setBox05Monetag(sanitizeAdminAdId(dash.systemSettings.box_05_monetag, '12044377'));
 
@@ -436,7 +436,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
         if (dash.systemSettings.miningWaterfallEnabled !== undefined) setMiningWaterfallEnabled(dash.systemSettings.miningWaterfallEnabled);
         setMining01Richads(sanitizeAdminAdId(dash.systemSettings.mining_01_richads, '410204'));
         setMining02Monetag(sanitizeAdminAdId(dash.systemSettings.mining_02_monetag, '12044377'));
-        setMining03Onclicka(sanitizeAdminAdId(dash.systemSettings.mining_03_onclicka, '6153774'));
+        setMining03Onclicka(sanitizeAdminAdId(dash.systemSettings.mining_03_onclicka, '6153774E4F'));
         setMining04Richads(sanitizeAdminAdId(dash.systemSettings.mining_04_richads, '410204'));
         setMining05Monetag(sanitizeAdminAdId(dash.systemSettings.mining_05_monetag, '12044377'));
         if (dash.systemSettings.miningRatePerHour !== undefined) setMiningRatePerHour(dash.systemSettings.miningRatePerHour);
@@ -477,12 +477,12 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
         monetagTelegramSdkEnabled,
         spin_01_richads: cleanAdId(spin01Richads, '410203'),
         spin_02_monetag: cleanAdId(spin02Monetag, '12044377'),
-        spin_03_onclicka: cleanAdId(spin03Onclicka, '6153717'),
+        spin_03_onclicka: cleanAdId(spin03Onclicka, '6153717E4F'),
         spin_04_richads: cleanAdId(spin04Richads, '410203'),
         spin_05_monetag: cleanAdId(spin05Monetag, '12044377'),
         box_01_richads: cleanAdId(box01Richads, '410202'),
         box_02_monetag: cleanAdId(box02Monetag, '12044377'),
-        box_03_onclicka: cleanAdId(box03Onclicka, '6153772'),
+        box_03_onclicka: cleanAdId(box03Onclicka, '6153772E4F'),
         box_04_richads: cleanAdId(box04Richads, '410202'),
         box_05_monetag: cleanAdId(box05Monetag, '12044377'),
         // Mining Waterfall Gate Settings
@@ -491,7 +491,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
         miningWaterfallEnabled,
         mining_01_richads: cleanAdId(mining01Richads, '410204'),
         mining_02_monetag: cleanAdId(mining02Monetag, '12044377'),
-        mining_03_onclicka: cleanAdId(mining03Onclicka, '6153774'),
+        mining_03_onclicka: cleanAdId(mining03Onclicka, '6153774E4F'),
         mining_04_richads: cleanAdId(mining04Richads, '410204'),
         mining_05_monetag: cleanAdId(mining05Monetag, '12044377'),
         miningRatePerHour: Number(miningRatePerHour),
@@ -1262,7 +1262,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={mining03Onclicka}
                             onChange={e => setMining03Onclicka(e.target.value)}
-                            placeholder="e.g. 6153774"
+                            placeholder="e.g. 6153774E4F"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1425,7 +1425,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={spin03Onclicka}
                             onChange={e => setSpin03Onclicka(e.target.value)}
-                            placeholder="e.g. 6153717"
+                            placeholder="e.g. 6153717E4F"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1536,7 +1536,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={box03Onclicka}
                             onChange={e => setBox03Onclicka(e.target.value)}
-                            placeholder="e.g. 6153772"
+                            placeholder="e.g. 6153772E4F"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
