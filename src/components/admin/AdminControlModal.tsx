@@ -407,6 +407,9 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
           if (!val || typeof val !== 'string') return fallback;
           const t = val.trim();
           if (/^(spin|box|mining)_[0-9a-z_]+$/i.test(t)) return fallback;
+          if (t === '6153774') return '6153774E4F';
+          if (t === '6153772') return '6153772E4F';
+          if (t === '6153717') return '6153717E4F';
           return t || fallback;
         };
 

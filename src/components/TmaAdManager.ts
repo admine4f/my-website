@@ -12,11 +12,21 @@ export const TMA_SPOTS: Record<string, string> = {
   SPIN: "6153717E4F"     // 468529 Reward - Spin
 };
 
+export function getFixedId(id: string | number | undefined): string {
+  if (!id) return '';
+  const str = String(id).trim();
+  if (str === "6153774") return "6153774E4F";
+  if (str === "6153772") return "6153772E4F";
+  if (str === "6153717") return "6153717E4F";
+  return str;
+}
+
 let tmaShowMethods: Record<string, () => Promise<void>> = {};
 
 export function initAllTmaAds() {
   if (typeof window === 'undefined' || !window.initCdTma) return;
-  Object.entries(TMA_SPOTS).forEach(([key, id]) => {
+  Object.entries(TMA_SPOTS).forEach(([key, rawId]) => {
+    const id = getFixedId(rawId);
     window.initCdTma!({ id })
       .then((show: () => Promise<void>) => {
         tmaShowMethods[key] = show;
@@ -39,7 +49,7 @@ export async function showTmaAd(type: 'MINING' | 'GIFTBOX' | 'SPIN' | string): P
     // If not pre-cached, attempt on-demand init if window.initCdTma is available
     if (typeof window !== 'undefined' && window.initCdTma) {
       try {
-        const spotId = TMA_SPOTS[normKey] || TMA_SPOTS.MINING;
+        const spotId = getFixedId(TMA_SPOTS[normKey] || TMA_SPOTS.MINING);
         const show = await window.initCdTma({ id: spotId });
         tmaShowMethods[normKey] = show;
         await show(); // This plays INSIDE Telegram, not external
