@@ -18,6 +18,7 @@ import {
   showOnclickaAd,
   showRichadsAd,
   showMonetagAd,
+  getProviderAdUrl,
 } from '../../services/adWaterfall';
 import {
   SPIN_ADS,
@@ -113,6 +114,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   const [tiers, setTiers] = useState<WaterfallTier[]>([]);
   const [tierIndex, setTierIndex] = useState<number>(0);
   const [tierFailReason, setTierFailReason] = useState<string | null>(null);
+  const [renderedAdUrl, setRenderedAdUrl] = useState<string>('');
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [secondsWatched, setSecondsWatched] = useState<number>(0);
@@ -270,6 +272,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
       setTierIndex(nextIndex);
       setTierFailReason(`Switching to ${tiers[nextIndex]?.provider || 'next network'}...`);
+      setRenderedAdUrl('');
       setSecondsWatched(0);
       totalWatchedSecondsRef.current = 0;
       watchStartTimeRef.current = null;
@@ -372,13 +375,13 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     // 1. RICHADS FUNCTION (Slot 1 & Slot 4)
     // =========================================================
     if (currentTier.provider === 'RichAds') {
-      setStep('WATCHING');
       const zoneId = currentTier.id || (actionType === 'SPIN' ? '410203' : (actionType === 'GIFT_BOX' ? '410202' : '410204'));
       const res = await showRichadsAd(zoneId, 4000);
       if (!res.success) {
         advanceWaterfall(res.reason || 'RichAds ad request failed or timed out (4s)');
         return;
       }
+      setRenderedAdUrl(res.adUrl || getProviderAdUrl('RichAds', zoneId));
       startAdWatchTimer();
       return;
     }
@@ -387,9 +390,8 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     // 2. MONETAG FUNCTION (Slot 2 & Slot 5 - In-App Telegram SDK with Zone 12044377)
     // =========================================================
     if (currentTier.provider === 'Monetag') {
-      setStep('WATCHING');
       const zoneId = currentTier.id && /^\d+$/.test(currentTier.id) ? currentTier.id : placementConfig.monetag_zone;
-      const res = await showMonetagAd(zoneId, 4000);
+      const res = await showMonetagAd(zoneId, 5000);
       if (res.success && res.completed) {
         incrementNetworkViewCountToday(userId, 'Monetag');
         handleClaimReward(`MONETAG_${zoneId}_COMPLETED`);
@@ -399,6 +401,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         advanceWaterfall(res.reason || 'Monetag ad load failed or timed out (4s)');
         return;
       }
+      setRenderedAdUrl(res.adUrl || getProviderAdUrl('Monetag', zoneId));
       startAdWatchTimer();
       return;
     }
@@ -407,13 +410,13 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     // 3. ONCLICKA FUNCTION (In-App Ad Stream & Zone Delivery)
     // =========================================================
     if (currentTier.provider === 'OnClickA') {
-      setStep('WATCHING');
       const zoneId = currentTier.id || (actionType === 'SPIN' ? '6153717' : (actionType === 'GIFT_BOX' ? '6153772' : '6153774'));
       const res = await showOnclickaAd(zoneId, 4000);
       if (!res.success) {
         advanceWaterfall(res.reason || 'OnClickA ad request failed or timed out (4s)');
         return;
       }
+      setRenderedAdUrl(res.adUrl || getProviderAdUrl('OnClickA', zoneId));
       startAdWatchTimer();
       return;
     }
@@ -473,14 +476,8 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   const remainingSeconds = Math.max(0, targetWatchSeconds - secondsWatched);
   const progressPercent = Math.min(100, Math.round((secondsWatched / targetWatchSeconds) * 100));
 
-  // Determine current Tier target ad URL (only if a real direct URL was explicitly configured)
-  let activeAdUrl = '#';
-  if (adSession && currentTier) {
-    const customId = currentTier.id;
-    if (customId && customId.startsWith('http')) {
-      activeAdUrl = customId;
-    }
-  }
+  // Determine current Tier target ad URL (real ad link for RichAds, Monetag, OnClickA)
+  const activeAdUrl = renderedAdUrl || (currentTier ? getProviderAdUrl(currentTier.provider, currentTier.id) : '');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
@@ -583,41 +580,48 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               <div className="flex items-center justify-between text-[11px] pb-1.5 border-b border-slate-800">
                 <div className="flex items-center gap-1.5 font-bold text-amber-300">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                  <span>{currentTier?.provider || 'Sponsored'} Video Stream</span>
+                  <span>{currentTier?.provider || 'Sponsored'} Real Ad</span>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono text-[10px] font-semibold">
                   Zone: {currentTier?.id || 'Active'}
                 </span>
               </div>
 
-              {/* Active Visual Ad Container */}
-              <div className="relative w-full h-36 rounded-xl overflow-hidden bg-gradient-to-br from-slate-950 via-[#0B132B] to-[#070B14] border border-amber-500/20 flex flex-col items-center justify-center p-3 text-center shadow-inner">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.12)_0%,transparent_70%)] pointer-events-none" />
-                <div className="relative z-10 space-y-2 w-full">
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500/30 via-amber-400/20 to-sky-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-md">
-                      <Play className="w-5 h-5 fill-amber-400 animate-pulse ml-0.5" />
-                    </div>
-                    {/* Visual Audio/Video Stream Bars */}
-                    <div className="flex items-end gap-1 h-6">
-                      <span className="w-1 bg-amber-400 rounded-full animate-bounce [animation-delay:0ms] h-4" />
-                      <span className="w-1 bg-amber-300 rounded-full animate-bounce [animation-delay:150ms] h-6" />
-                      <span className="w-1 bg-sky-400 rounded-full animate-bounce [animation-delay:300ms] h-5" />
-                      <span className="w-1 bg-emerald-400 rounded-full animate-bounce [animation-delay:450ms] h-3" />
-                    </div>
+              {/* Real Active Ad Creative Player */}
+              <div className="relative w-full h-44 rounded-xl overflow-hidden bg-slate-950 border border-amber-500/30 flex flex-col items-center justify-center text-center shadow-inner">
+                {activeAdUrl ? (
+                  <iframe
+                    src={activeAdUrl}
+                    title={`${currentTier?.provider} Ad`}
+                    className="w-full h-full border-0 rounded-xl bg-slate-900"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  />
+                ) : (
+                  <div className="p-4 space-y-2">
+                    <Loader2 className="w-6 h-6 text-amber-400 animate-spin mx-auto" />
+                    <div className="text-xs font-bold text-white">Loading Real Sponsor Creative...</div>
+                    <div className="text-[10px] text-slate-400 font-mono">Zone: {currentTier?.id}</div>
                   </div>
-
-                  <div>
-                    <div className="text-xs font-black text-white tracking-wide flex items-center justify-center gap-1.5">
-                      <span>{currentTier?.provider} Verified Ad Stream</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping" />
-                    </div>
-                    <div className="text-[10px] text-amber-300/90 font-medium mt-0.5">
-                      Sponsored Video & Partner Media • 0% Skip Required
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
+
+              {/* Real Ad Direct Link Trigger for Telegram WebApp */}
+              {activeAdUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if ((window as any).Telegram?.WebApp?.openLink) {
+                      (window as any).Telegram.WebApp.openLink(activeAdUrl);
+                    } else {
+                      window.open(activeAdUrl, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-[11px] font-bold text-amber-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open & View {currentTier?.provider} Sponsor Ad</span>
+                </button>
+              )}
 
               {/* Watch Timer & Progress */}
               <div className="space-y-1 pt-0.5">

@@ -131,66 +131,139 @@ export function getMiningWaterfallTiers(): WaterfallTier[] {
   ];
 }
 
-// Helper: Keep ad viewing 100% inside Telegram Mini App without redirecting to external websites
-function openExternalAdUrl(_targetUrl: string): boolean {
-  return true;
+import { ensureMonetagSdkLoaded } from './monetagSdk';
+
+export function getRichadsAdUrl(zoneId: string): string {
+  const clean = String(zoneId || '410202').trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+  return `https://richinfo.co/delivery/site/${clean}`;
+}
+
+export function getMonetagAdUrl(zoneId: string): string {
+  const clean = String(zoneId || '12044377').trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+  return `https://alwingulla.com/88/${clean}`;
+}
+
+export function getOnclickaAdUrl(zoneId: string): string {
+  const clean = String(zoneId || '6153772').trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+  return `https://onclicka.com/delivery/site/${clean}`;
+}
+
+export function getProviderAdUrl(provider: 'RichAds' | 'Monetag' | 'OnClickA', zoneId: string): string {
+  if (provider === 'RichAds') return getRichadsAdUrl(zoneId);
+  if (provider === 'Monetag') return getMonetagAdUrl(zoneId);
+  if (provider === 'OnClickA') return getOnclickaAdUrl(zoneId);
+  return getMonetagAdUrl(zoneId);
 }
 
 // =========================================================================
-// 3 DEDICATED AD HANDLERS (RichAds, Monetag, OnClickA)
+// 3 DEDICATED REAL AD HANDLERS (RichAds, Monetag, OnClickA)
 // =========================================================================
 
 /**
- * 1. RichAds Ad Handler (Slot 1 & Slot 4)
- * In-App Telegram verified ad stream with countdown timer
+ * 1. RichAds Real Ad Handler (Slot 1 & Slot 4)
+ * Loads RichAds zone script and serves real ad creative inside modal & Telegram WebApp
  */
 export async function showRichadsAd(
-  _zoneId: string,
-  _timeoutMs: number = 4000
-): Promise<{ success: boolean; completed: boolean; reason?: string }> {
-  // Always stay 100% inside Telegram Mini App
-  return { success: true, completed: false };
-}
-
-/**
- * 2. Monetag Ad Handler (Slot 2 & Slot 5 - Native Telegram SDK Zone 12044377)
- * In-App SDK with show_88 / show_tag directly inside Telegram
- */
-export async function showMonetagAd(
   zoneId: string,
-  _timeoutMs: number = 6000
-): Promise<{ success: boolean; completed: boolean; reason?: string }> {
-  try {
-    const cleanId = String(zoneId || '12044377').trim();
+  _timeoutMs: number = 4000
+): Promise<{ success: boolean; completed: boolean; adUrl: string; reason?: string }> {
+  const cleanId = String(zoneId || '410202').trim();
+  const adUrl = getRichadsAdUrl(cleanId);
 
-    // Check In-App SDK if available in Telegram WebApp
-    const showFn = (window as any).show_88 || (window as any).show_tag;
-    if (typeof showFn === 'function') {
-      try {
-        await showFn(cleanId);
-        return { success: true, completed: true };
-      } catch (sdkErr: any) {
-        console.warn('[Monetag SDK Error]:', sdkErr);
-        return { success: true, completed: false };
+  try {
+    if (typeof window !== 'undefined' && !cleanId.startsWith('http')) {
+      // Mount real RichAds dynamic script tag if not already injected
+      const scriptId = `richads_tag_${cleanId}`;
+      if (!document.getElementById(scriptId)) {
+        const script = document.createElement('script');
+        script.id = scriptId;
+        script.src = `https://richinfo.co/app/${cleanId}.js`;
+        script.async = true;
+        document.head.appendChild(script);
       }
     }
 
-    // Always keep 100% inside Telegram Mini App
-    return { success: true, completed: false };
+    return { success: true, completed: false, adUrl };
   } catch (err: any) {
-    console.warn('[Monetag Error]:', err?.message || err);
-    return { success: true, completed: false };
+    console.warn('[RichAds Error]:', err);
+    return { success: false, completed: false, adUrl, reason: err?.message || 'RichAds failed to load' };
   }
 }
 
 /**
- * 3. OnClickA Ad Handler
- * In-App Telegram stream with countdown timer
+ * 2. Monetag Real Ad Handler (Slot 2 & Slot 5 - Native Telegram SDK Zone 12044377)
+ * Runs native show_12044377 / show_88 / show_tag or provides real Monetag ad URL
+ */
+export async function showMonetagAd(
+  zoneId: string,
+  _timeoutMs: number = 6000
+): Promise<{ success: boolean; completed: boolean; adUrl: string; reason?: string }> {
+  const cleanId = String(zoneId || '12044377').trim();
+  const adUrl = getMonetagAdUrl(cleanId);
+
+  try {
+    // Ensure Monetag official Telegram Mini App SDK is mounted
+    await ensureMonetagSdkLoaded(cleanId);
+
+    const showFn =
+      (window as any)[`show_${cleanId}`] ||
+      (window as any).show_12044377 ||
+      (window as any).show_88 ||
+      (window as any).show_tag;
+
+    if (typeof showFn === 'function') {
+      try {
+        const maybePromise = showFn(cleanId);
+        if (maybePromise && typeof maybePromise.then === 'function') {
+          await maybePromise;
+          return { success: true, completed: true, adUrl };
+        }
+        return { success: true, completed: true, adUrl };
+      } catch (sdkErr: any) {
+        console.warn('[Monetag SDK Run Warning]:', sdkErr);
+        // Fallback to in-app stream ad URL
+        return { success: true, completed: false, adUrl };
+      }
+    }
+
+    // Return true with adUrl to show Monetag in real ad player
+    return { success: true, completed: false, adUrl };
+  } catch (err: any) {
+    console.warn('[Monetag Error]:', err?.message || err);
+    return { success: false, completed: false, adUrl, reason: err?.message || 'Monetag failed' };
+  }
+}
+
+/**
+ * 3. OnClickA Real Ad Handler
+ * Loads OnClickA zone script and serves real ad creative inside modal & Telegram WebApp
  */
 export async function showOnclickaAd(
-  _zoneId: string,
+  zoneId: string,
   _timeoutMs: number = 4000
-): Promise<{ success: boolean; completed: boolean; reason?: string }> {
-  // Always stay 100% inside Telegram Mini App
-  return { success: true, completed: false };
+): Promise<{ success: boolean; completed: boolean; adUrl: string; reason?: string }> {
+  const cleanId = String(zoneId || '6153772').trim();
+  const adUrl = getOnclickaAdUrl(cleanId);
+
+  try {
+    if (typeof window !== 'undefined' && !cleanId.startsWith('http')) {
+      const scriptId = `onclicka_tag_${cleanId}`;
+      if (!document.getElementById(scriptId)) {
+        const script = document.createElement('script');
+        script.id = scriptId;
+        script.src = 'https://onclicka.com/tag.js';
+        script.setAttribute('data-zone', cleanId);
+        script.async = true;
+        document.head.appendChild(script);
+      }
+    }
+
+    return { success: true, completed: false, adUrl };
+  } catch (err: any) {
+    console.warn('[OnClickA Error]:', err);
+    return { success: false, completed: false, adUrl, reason: err?.message || 'OnClickA failed to load' };
+  }
 }

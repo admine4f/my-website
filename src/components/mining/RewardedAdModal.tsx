@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ShieldCheck, CheckCircle2, AlertTriangle, X, Play, Loader2, Clock, ExternalLink } from 'lucide-react';
 import { api } from '../../services/api';
-import { getAdTargetUrl, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
+import { getAdTargetUrl, openAdDirectly, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
 
 export interface AdSessionData {
   sessionId: string;
@@ -143,9 +143,9 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
       api.startAdWatching(sessionData.sessionId, sessionData.token, userId).catch(console.warn);
+      openAdDirectly(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
     }
 
-    // Keep ad viewing 100% in-app inside Telegram Mini App without redirecting to external sites
     setStep('WATCHING');
 
     if (timerRef.current) clearInterval(timerRef.current);
@@ -302,16 +302,39 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               </p>
             </div>
 
-            <a
-              href={adUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleAdClick}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-700"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Return to Ad Window</span>
-            </a>
+            {/* Real Active Mining Ad Creative Player */}
+            <div className="w-full h-44 rounded-xl overflow-hidden bg-slate-950 border border-amber-500/30 flex flex-col items-center justify-center text-center shadow-inner mt-2">
+              {adUrl ? (
+                <iframe
+                  src={adUrl}
+                  title="Mining Sponsor Ad"
+                  className="w-full h-full border-0 rounded-xl bg-slate-900"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                />
+              ) : (
+                <div className="p-4 space-y-2">
+                  <Play className="w-6 h-6 text-amber-400 animate-pulse mx-auto" />
+                  <div className="text-xs font-bold text-white">Loading Sponsored Mining Ad...</div>
+                </div>
+              )}
+            </div>
+
+            {adUrl && (
+              <button
+                type="button"
+                onClick={() => {
+                  if ((window as any).Telegram?.WebApp?.openLink) {
+                    (window as any).Telegram.WebApp.openLink(adUrl);
+                  } else {
+                    window.open(adUrl, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-[11px] font-bold text-amber-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Open & View Sponsor Ad</span>
+              </button>
+            )}
           </div>
         )}
 
