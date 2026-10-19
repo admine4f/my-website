@@ -19,6 +19,7 @@ import {
   showRichadsAd,
   showMonetagAd,
   getProviderAdUrl,
+  openExternalSponsorAd,
 } from '../../services/adWaterfall';
 import {
   SPIN_ADS,
@@ -479,6 +480,25 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   // Determine current Tier target ad URL (real ad link for RichAds, Monetag, OnClickA)
   const activeAdUrl = renderedAdUrl || (currentTier ? getProviderAdUrl(currentTier.provider, currentTier.id) : '');
 
+  const handleOpenSponsorAd = async () => {
+    if (!currentTier) return;
+    if (currentTier.provider === 'Monetag') {
+      const showFn = (window as any).showMonetagAd || (window as any).show_12044377 || (window as any).show_88;
+      if (typeof showFn === 'function') {
+        try {
+          const ok = await showFn(currentTier.id || '12044377');
+          if (ok) {
+            handleClaimReward(`MONETAG_${currentTier.id || '12044377'}_COMPLETED`);
+            return;
+          }
+        } catch (e) {
+          console.warn('[Monetag open error]:', e);
+        }
+      }
+    }
+    openExternalSponsorAd(activeAdUrl);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-sm max-h-[92vh] overflow-y-auto my-auto bg-[#0C1326] border border-amber-500/40 rounded-3xl p-6 text-center shadow-2xl no-scrollbar">
@@ -500,6 +520,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         <h3 className="text-lg font-black text-white mb-1 mt-1">{title}</h3>
         <p className="text-xs text-slate-400 mb-2">{description}</p>
 
+        {/* Top Reward Text */}
         {rewardHint && (
           <div className="mb-3 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-center gap-1.5">
             <span className="text-amber-400 font-bold">Reward:</span>
@@ -561,10 +582,12 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         {/* STATE: WATCHING */}
         {step === 'WATCHING' && (
           <div className="py-2 flex flex-col items-center justify-center gap-3">
+            {/* Middle: Big Play button */}
             <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner">
               <Play className="w-7 h-7 fill-amber-400 animate-pulse ml-0.5" />
             </div>
 
+            {/* Middle: WATCH FULL ADS TO GET REWARD - AD IN PROGRESS */}
             <div className="space-y-1">
               <div className="text-sm font-extrabold text-amber-300 uppercase tracking-wide">
                 WATCH FULL ADS TO GET REWARD
@@ -574,54 +597,39 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               </div>
             </div>
 
-            {/* In-App Interactive Ad Creative Showcase Player */}
-            <div className="w-full rounded-2xl bg-gradient-to-b from-slate-900 via-[#0A1020] to-slate-950 border border-amber-500/30 p-3 space-y-2.5 shadow-xl">
-              {/* Header Badge */}
-              <div className="flex items-center justify-between text-[11px] pb-1.5 border-b border-slate-800">
+            {/* In-App Interactive Ad Creative Showcase Player (NO IFRAME) */}
+            <div className="w-full rounded-2xl bg-gradient-to-b from-slate-900 via-[#0A1020] to-slate-950 border border-amber-500/30 p-3.5 space-y-3 shadow-xl">
+              {/* Middle: Network label with green dot */}
+              <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
                 <div className="flex items-center gap-1.5 font-bold text-amber-300">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                  <span>{currentTier?.provider || 'Sponsored'} Real Ad</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                  <span>{currentTier?.provider} Real Ad</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono text-[10px] font-semibold">
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono text-[10px] font-semibold border border-slate-700">
                   Zone: {currentTier?.id || 'Active'}
                 </span>
               </div>
 
-              {/* Real Active Ad Creative Player */}
-              <div className="relative w-full h-44 rounded-xl overflow-hidden bg-slate-950 border border-amber-500/30 flex flex-col items-center justify-center text-center shadow-inner">
-                {activeAdUrl ? (
-                  <iframe
-                    src={activeAdUrl}
-                    title={`${currentTier?.provider} Ad`}
-                    className="w-full h-full border-0 rounded-xl bg-slate-900"
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                  />
-                ) : (
-                  <div className="p-4 space-y-2">
-                    <Loader2 className="w-6 h-6 text-amber-400 animate-spin mx-auto" />
-                    <div className="text-xs font-bold text-white">Loading Real Sponsor Creative...</div>
-                    <div className="text-[10px] text-slate-400 font-mono">Zone: {currentTier?.id}</div>
-                  </div>
-                )}
+              {/* Instead of iframe box, show informative card */}
+              <div className="py-4 px-3 rounded-xl bg-slate-950 border border-slate-800/80 flex flex-col items-center justify-center text-center gap-1.5 shadow-inner">
+                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Real Ad will open externally</span>
+                </div>
+                <p className="text-[11px] text-slate-400 max-w-[240px]">
+                  Click below to view the official sponsor ad while your watch progress timer runs.
+                </p>
               </div>
 
-              {/* Real Ad Direct Link Trigger for Telegram WebApp */}
-              {activeAdUrl && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if ((window as any).Telegram?.WebApp?.openLink) {
-                      (window as any).Telegram.WebApp.openLink(activeAdUrl);
-                    } else {
-                      window.open(activeAdUrl, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
-                  className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-[11px] font-bold text-amber-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open & View {currentTier?.provider} Sponsor Ad</span>
-                </button>
-              )}
+              {/* Primary Action Button: Open & View Sponsor Ad */}
+              <button
+                type="button"
+                onClick={handleOpenSponsorAd}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+                <span>Open & View {currentTier?.provider} Sponsor Ad</span>
+              </button>
 
               {/* Watch Timer & Progress */}
               <div className="space-y-1 pt-0.5">

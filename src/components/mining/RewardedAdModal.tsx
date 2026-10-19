@@ -302,21 +302,15 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               </p>
             </div>
 
-            {/* Real Active Mining Ad Creative Player */}
-            <div className="w-full h-44 rounded-xl overflow-hidden bg-slate-950 border border-amber-500/30 flex flex-col items-center justify-center text-center shadow-inner mt-2">
-              {adUrl ? (
-                <iframe
-                  src={adUrl}
-                  title="Mining Sponsor Ad"
-                  className="w-full h-full border-0 rounded-xl bg-slate-900"
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                />
-              ) : (
-                <div className="p-4 space-y-2">
-                  <Play className="w-6 h-6 text-amber-400 animate-pulse mx-auto" />
-                  <div className="text-xs font-bold text-white">Loading Sponsored Mining Ad...</div>
-                </div>
-              )}
+            {/* Informative Card (NO IFRAME) */}
+            <div className="w-full py-4 px-3 rounded-xl bg-slate-950 border border-slate-800/80 flex flex-col items-center justify-center text-center gap-1.5 shadow-inner mt-2">
+              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                <span>Real Ad will open externally</span>
+              </div>
+              <p className="text-[11px] text-slate-400 max-w-[240px]">
+                Click below to view the official sponsor ad while your 60-second mining timer runs.
+              </p>
             </div>
 
             {adUrl && (
@@ -329,9 +323,9 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                     window.open(adUrl, '_blank', 'noopener,noreferrer');
                   }
                 }}
-                className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-[11px] font-bold text-amber-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-4 h-4 stroke-[2.5]" />
                 <span>Open & View Sponsor Ad</span>
               </button>
             )}

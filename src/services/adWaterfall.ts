@@ -131,7 +131,7 @@ export function getMiningWaterfallTiers(): WaterfallTier[] {
   ];
 }
 
-import { ensureMonetagSdkLoaded } from './monetagSdk';
+import { ensureMonetagSdkLoaded, showMonetagAd as sdkShowMonetagAd } from './monetagSdk';
 
 export function getRichadsAdUrl(zoneId: string): string {
   const clean = String(zoneId || '410202').trim();
@@ -158,13 +158,34 @@ export function getProviderAdUrl(provider: 'RichAds' | 'Monetag' | 'OnClickA', z
   return getMonetagAdUrl(zoneId);
 }
 
+/**
+ * Opens sponsor ad externally via Telegram WebApp or browser window.
+ * Eliminates iframe AccessDenied, ERR_BLOCKED_BY_RESPONSE, and raw code errors.
+ */
+export function openExternalSponsorAd(url: string) {
+  if (!url || typeof window === 'undefined') return;
+  try {
+    if ((window as any).Telegram?.WebApp?.openLink) {
+      (window as any).Telegram.WebApp.openLink(url);
+      return;
+    }
+  } catch (err) {
+    console.warn('[Telegram openLink warn]:', err);
+  }
+  try {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } catch (err) {
+    console.warn('[window.open warn]:', err);
+  }
+}
+
 // =========================================================================
 // 3 DEDICATED REAL AD HANDLERS (RichAds, Monetag, OnClickA)
 // =========================================================================
 
 /**
  * 1. RichAds Real Ad Handler (Slot 1 & Slot 4)
- * Loads RichAds zone script and serves real ad creative inside modal & Telegram WebApp
+ * Opens external ad via Telegram.WebApp.openLink() / window.open()
  */
 export async function showRichadsAd(
   zoneId: string,
@@ -174,28 +195,17 @@ export async function showRichadsAd(
   const adUrl = getRichadsAdUrl(cleanId);
 
   try {
-    if (typeof window !== 'undefined' && !cleanId.startsWith('http')) {
-      // Mount real RichAds dynamic script tag if not already injected
-      const scriptId = `richads_tag_${cleanId}`;
-      if (!document.getElementById(scriptId)) {
-        const script = document.createElement('script');
-        script.id = scriptId;
-        script.src = `https://richinfo.co/app/${cleanId}.js`;
-        script.async = true;
-        document.head.appendChild(script);
-      }
-    }
-
+    openExternalSponsorAd(adUrl);
     return { success: true, completed: false, adUrl };
   } catch (err: any) {
     console.warn('[RichAds Error]:', err);
-    return { success: false, completed: false, adUrl, reason: err?.message || 'RichAds failed to load' };
+    return { success: false, completed: false, adUrl, reason: err?.message || 'RichAds failed to open' };
   }
 }
 
 /**
  * 2. Monetag Real Ad Handler (Slot 2 & Slot 5 - Native Telegram SDK Zone 12044377)
- * Runs native show_12044377 / show_88 / show_tag or provides real Monetag ad URL
+ * Runs window.showMonetagAd() / show_12044377() official rewarded function
  */
 export async function showMonetagAd(
   zoneId: string,
@@ -205,31 +215,18 @@ export async function showMonetagAd(
   const adUrl = getMonetagAdUrl(cleanId);
 
   try {
-    // Ensure Monetag official Telegram Mini App SDK is mounted
-    await ensureMonetagSdkLoaded(cleanId);
-
-    const showFn =
-      (window as any)[`show_${cleanId}`] ||
-      (window as any).show_12044377 ||
-      (window as any).show_88 ||
-      (window as any).show_tag;
-
-    if (typeof showFn === 'function') {
-      try {
-        const maybePromise = showFn(cleanId);
-        if (maybePromise && typeof maybePromise.then === 'function') {
-          await maybePromise;
+    if (typeof window !== 'undefined') {
+      const triggerFn = window.showMonetagAd || sdkShowMonetagAd;
+      if (typeof triggerFn === 'function') {
+        const completed = await triggerFn(cleanId);
+        if (completed) {
           return { success: true, completed: true, adUrl };
         }
-        return { success: true, completed: true, adUrl };
-      } catch (sdkErr: any) {
-        console.warn('[Monetag SDK Run Warning]:', sdkErr);
-        // Fallback to in-app stream ad URL
-        return { success: true, completed: false, adUrl };
       }
     }
 
-    // Return true with adUrl to show Monetag in real ad player
+    // Fallback: Open external direct link
+    openExternalSponsorAd(adUrl);
     return { success: true, completed: false, adUrl };
   } catch (err: any) {
     console.warn('[Monetag Error]:', err?.message || err);
@@ -238,8 +235,8 @@ export async function showMonetagAd(
 }
 
 /**
- * 3. OnClickA Real Ad Handler
- * Loads OnClickA zone script and serves real ad creative inside modal & Telegram WebApp
+ * 3. OnClickA Real Ad Handler (Slot 3)
+ * Opens direct delivery link externally via Telegram.WebApp.openLink()
  */
 export async function showOnclickaAd(
   zoneId: string,
@@ -249,21 +246,10 @@ export async function showOnclickaAd(
   const adUrl = getOnclickaAdUrl(cleanId);
 
   try {
-    if (typeof window !== 'undefined' && !cleanId.startsWith('http')) {
-      const scriptId = `onclicka_tag_${cleanId}`;
-      if (!document.getElementById(scriptId)) {
-        const script = document.createElement('script');
-        script.id = scriptId;
-        script.src = 'https://onclicka.com/tag.js';
-        script.setAttribute('data-zone', cleanId);
-        script.async = true;
-        document.head.appendChild(script);
-      }
-    }
-
+    openExternalSponsorAd(adUrl);
     return { success: true, completed: false, adUrl };
   } catch (err: any) {
     console.warn('[OnClickA Error]:', err);
-    return { success: false, completed: false, adUrl, reason: err?.message || 'OnClickA failed to load' };
+    return { success: false, completed: false, adUrl, reason: err?.message || 'OnClickA failed to open' };
   }
 }
