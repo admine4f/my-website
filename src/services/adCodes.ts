@@ -1,79 +1,58 @@
 // =========================================================================
-// E4F FINAL AD CODES - DISTINCT ADS FOR 5 SPINS + 5 GIFT BOXES WITH INTRA-FALLBACK
+// E4F FINAL AD CODES - 5 WATERFALL SLOTS (RichAds, Monetag, OnClickA)
+// 5-Slot Waterfall Architecture: RichAds -> Monetag -> OnClickA -> RichAds -> Monetag
 // =========================================================================
 
 export interface AdUnitConfig {
-  adsgram: string;
-  monetag: string;
+  richads_1: string;
+  monetag_1: string;
   onclicka: string;
-  richads: string;
-  adexora: string;
+  richads_2: string;
+  monetag_2: string;
 }
 
 export const SPIN_ADS: Record<string, AdUnitConfig> = {
-  spin_01: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" },
-  spin_02: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" },
-  spin_03: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" },
-  spin_04: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" },
-  spin_05: { adsgram: "54618", monetag: "12044377", onclicka: "6153717", richads: "410203", adexora: "2217" }
+  spin_01: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" },
+  spin_02: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" },
+  spin_03: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" },
+  spin_04: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" },
+  spin_05: { richads_1: "410203", monetag_1: "12044377", onclicka: "6153717", richads_2: "410203", monetag_2: "12044377" }
 };
 
 export const BOX_ADS: Record<string, AdUnitConfig> = {
-  box_01: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" },
-  box_02: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" },
-  box_03: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" },
-  box_04: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" },
-  box_05: { adsgram: "54617", monetag: "12044377", onclicka: "6153772", richads: "410202", adexora: "2217" }
+  box_01: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" },
+  box_02: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" },
+  box_03: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" },
+  box_04: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" },
+  box_05: { richads_1: "410202", monetag_1: "12044377", onclicka: "6153772", richads_2: "410202", monetag_2: "12044377" }
 };
 
 export const MINING_ADS: Record<string, AdUnitConfig> = {
-  mining: { adsgram: "54597", monetag: "12044377", onclicka: "6153774", richads: "410204", adexora: "2217" }
+  mining: { richads_1: "410204", monetag_1: "12044377", onclicka: "6153774", richads_2: "410204", monetag_2: "12044377" }
 };
 
 // Backward-compatible AD_CODES mapping
 export const AD_CODES: Record<string, {
-  adsgram: string;
   monetag_zone: string;
   onclicka_zone: string;
   richads_zone: string;
-  adexora_zone: string;
 }> = {
   mining: {
-    adsgram: MINING_ADS.mining.adsgram,
-    monetag_zone: MINING_ADS.mining.monetag,
+    monetag_zone: MINING_ADS.mining.monetag_1,
     onclicka_zone: MINING_ADS.mining.onclicka,
-    richads_zone: MINING_ADS.mining.richads,
-    adexora_zone: MINING_ADS.mining.adexora,
+    richads_zone: MINING_ADS.mining.richads_1,
   },
-  spin_01: { adsgram: SPIN_ADS.spin_01.adsgram, monetag_zone: SPIN_ADS.spin_01.monetag, onclicka_zone: SPIN_ADS.spin_01.onclicka, richads_zone: SPIN_ADS.spin_01.richads, adexora_zone: SPIN_ADS.spin_01.adexora },
-  spin_02: { adsgram: SPIN_ADS.spin_02.adsgram, monetag_zone: SPIN_ADS.spin_02.monetag, onclicka_zone: SPIN_ADS.spin_02.onclicka, richads_zone: SPIN_ADS.spin_02.richads, adexora_zone: SPIN_ADS.spin_02.adexora },
-  spin_03: { adsgram: SPIN_ADS.spin_03.adsgram, monetag_zone: SPIN_ADS.spin_03.monetag, onclicka_zone: SPIN_ADS.spin_03.onclicka, richads_zone: SPIN_ADS.spin_03.richads, adexora_zone: SPIN_ADS.spin_03.adexora },
-  spin_04: { adsgram: SPIN_ADS.spin_04.adsgram, monetag_zone: SPIN_ADS.spin_04.monetag, onclicka_zone: SPIN_ADS.spin_04.onclicka, richads_zone: SPIN_ADS.spin_04.richads, adexora_zone: SPIN_ADS.spin_04.adexora },
-  spin_05: { adsgram: SPIN_ADS.spin_05.adsgram, monetag_zone: SPIN_ADS.spin_05.monetag, onclicka_zone: SPIN_ADS.spin_05.onclicka, richads_zone: SPIN_ADS.spin_05.richads, adexora_zone: SPIN_ADS.spin_05.adexora },
-  box_01: { adsgram: BOX_ADS.box_01.adsgram, monetag_zone: BOX_ADS.box_01.monetag, onclicka_zone: BOX_ADS.box_01.onclicka, richads_zone: BOX_ADS.box_01.richads, adexora_zone: BOX_ADS.box_01.adexora },
-  box_02: { adsgram: BOX_ADS.box_02.adsgram, monetag_zone: BOX_ADS.box_02.monetag, onclicka_zone: BOX_ADS.box_02.onclicka, richads_zone: BOX_ADS.box_02.richads, adexora_zone: BOX_ADS.box_02.adexora },
-  box_03: { adsgram: BOX_ADS.box_03.adsgram, monetag_zone: BOX_ADS.box_03.monetag, onclicka_zone: BOX_ADS.box_03.onclicka, richads_zone: BOX_ADS.box_03.richads, adexora_zone: BOX_ADS.box_03.adexora },
-  box_04: { adsgram: BOX_ADS.box_04.adsgram, monetag_zone: BOX_ADS.box_04.monetag, onclicka_zone: BOX_ADS.box_04.onclicka, richads_zone: BOX_ADS.box_04.richads, adexora_zone: BOX_ADS.box_04.adexora },
-  box_05: { adsgram: BOX_ADS.box_05.adsgram, monetag_zone: BOX_ADS.box_05.monetag, onclicka_zone: BOX_ADS.box_05.onclicka, richads_zone: BOX_ADS.box_05.richads, adexora_zone: BOX_ADS.box_05.adexora }
+  spin_01: { monetag_zone: SPIN_ADS.spin_01.monetag_1, onclicka_zone: SPIN_ADS.spin_01.onclicka, richads_zone: SPIN_ADS.spin_01.richads_1 },
+  spin_02: { monetag_zone: SPIN_ADS.spin_02.monetag_1, onclicka_zone: SPIN_ADS.spin_02.onclicka, richads_zone: SPIN_ADS.spin_02.richads_1 },
+  spin_03: { monetag_zone: SPIN_ADS.spin_03.monetag_1, onclicka_zone: SPIN_ADS.spin_03.onclicka, richads_zone: SPIN_ADS.spin_03.richads_1 },
+  spin_04: { monetag_zone: SPIN_ADS.spin_04.monetag_1, onclicka_zone: SPIN_ADS.spin_04.onclicka, richads_zone: SPIN_ADS.spin_04.richads_1 },
+  spin_05: { monetag_zone: SPIN_ADS.spin_05.monetag_1, onclicka_zone: SPIN_ADS.spin_05.onclicka, richads_zone: SPIN_ADS.spin_05.richads_1 },
+  box_01: { monetag_zone: BOX_ADS.box_01.monetag_1, onclicka_zone: BOX_ADS.box_01.onclicka, richads_zone: BOX_ADS.box_01.richads_1 },
+  box_02: { monetag_zone: BOX_ADS.box_02.monetag_1, onclicka_zone: BOX_ADS.box_02.onclicka, richads_zone: BOX_ADS.box_02.richads_1 },
+  box_03: { monetag_zone: BOX_ADS.box_03.monetag_1, onclicka_zone: BOX_ADS.box_03.onclicka, richads_zone: BOX_ADS.box_03.richads_1 },
+  box_04: { monetag_zone: BOX_ADS.box_04.monetag_1, onclicka_zone: BOX_ADS.box_04.onclicka, richads_zone: BOX_ADS.box_04.richads_1 },
+  box_05: { monetag_zone: BOX_ADS.box_05.monetag_1, onclicka_zone: BOX_ADS.box_05.onclicka, richads_zone: BOX_ADS.box_05.richads_1 }
 };
-
-/**
- * Strict sanitizer that prevents passing placeholder strings (like 'spin_01_adsgram'
- * or 'box_01_adsgram') to Adsgram SDK. Adsgram strictly requires a numeric string
- * or 'int-' followed by numbers.
- */
-export function sanitizeAdsgramBlockId(rawId: any, fallbackId: string = '54111'): string {
-  const safeFallback = /^\d+$/.test(String(fallbackId).trim()) || /^int-\d+$/i.test(String(fallbackId).trim())
-    ? String(fallbackId).trim()
-    : '54111';
-
-  if (!rawId || typeof rawId !== 'string') return safeFallback;
-  const trimmed = rawId.trim();
-  if (/^\d+$/.test(trimmed) || /^int-\d+$/i.test(trimmed)) {
-    return trimmed;
-  }
-  return safeFallback;
-}
 
 export function sanitizeAdZoneId(rawId: any, fallbackId: string): string {
   if (!rawId || typeof rawId !== 'string') return fallbackId;
@@ -85,11 +64,9 @@ export function sanitizeAdZoneId(rawId: any, fallbackId: string): string {
 }
 
 export interface AdPlacementConfig {
-  adsgram: string;
   monetag_zone: string;
   onclicka_zone: string;
   richads_zone: string;
-  adexora_zone: string;
 }
 
 export function getAdCodesForPlacement(
@@ -110,8 +87,7 @@ export function getAdCodesForPlacement(
 }
 
 // =========================================================================
-// 🛡️ DAILY NETWORK FREQUENCY CAPPING (MAX 3 ADS PER NETWORK PER DAY)
-// "Also keep 3-time daily cap per network per user (Spin+Box combined count)"
+// 🛡️ DAILY NETWORK FREQUENCY CAPPING
 // =========================================================================
 
 export const MAX_DAILY_ADS_PER_NETWORK = 3;
@@ -146,114 +122,58 @@ export function incrementNetworkViewCountToday(userId: string, network: string):
 }
 
 export function isNetworkCappedToday(_userId: string, _network: string): boolean {
-  // Infinite looping as requested: "৫ নং Ad ও ফেল করলে আবার ১ নং Ad থেকে শুরু হবে। মানে লুপ চলতেই থাকবে, কখনো ফাঁকা যাবে না।"
+  // Infinite looping to ensure ads always load
   return false;
 }
 
 // =========================================================================
-// 🚀 INTRA-FALLBACK WATERFALL BUILDER
-// Try box_01 to box_05 / spin_01 to spin_05 within same network before switching
+// 🚀 INTRA-FALLBACK WATERFALL BUILDER (5 Tiers: RichAds -> Monetag -> OnClickA -> RichAds -> Monetag)
 // =========================================================================
 
 export interface IntraWaterfallTier {
   index: number;
-  provider: 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora';
+  provider: 'RichAds' | 'Monetag' | 'OnClickA';
   id: string;
   placementKey: string;
   label: string;
 }
 
 /**
- * "যার ঘর, সে আগে" Ad Chain Slot Order
- * Slot 1: [1, 2, 3, 4, 5]
- * Slot 2: [2, 1, 3, 4, 5]
- * Slot 3: [3, 1, 2, 4, 5]
- * Slot 4: [4, 1, 2, 3, 5]
- * Slot 5: [5, 1, 2, 3, 4]
+ * 5 Active Waterfall Tiers per Slot:
+ * Slot 1: RichAds (Primary)
+ * Slot 2: Monetag (Tier 2)
+ * Slot 3: OnClickA (Tier 3)
+ * Slot 4: RichAds (Tier 4)
+ * Slot 5: Monetag (Tier 5)
  */
-export function getAdChain(clickedSlot: number): number[] {
-  const slot = Math.max(1, Math.min(5, Number(clickedSlot) || 1));
-  const remaining = [1, 2, 3, 4, 5].filter(s => s !== slot);
-  return [slot, ...remaining];
-}
-
 export function buildIntraWaterfallTiers(
   actionType: 'MINING' | 'SPIN' | 'GIFT_BOX' | 'WITHDRAW' | 'SELL',
   targetId: number | undefined,
-  userId: string,
-  isTelegram: boolean = true
+  _userId: string,
+  _isTelegram: boolean = true
 ): IntraWaterfallTier[] {
-  type NetworkName = 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora';
-
-  // Inside Telegram: AdsGram is Primary
-  // Outside Telegram (Web browser / Preview): OnClickA / Monetag is Primary
-  const defaultNetworks: NetworkName[] = isTelegram
-    ? ['AdsGram', 'OnClickA', 'RichAds', 'Monetag', 'Adexora']
-    : ['OnClickA', 'RichAds', 'Monetag', 'Adexora', 'AdsGram'];
-
-  const uncappedNetworks = defaultNetworks.filter(n => !isNetworkCappedToday(userId, n));
-  const cappedNetworks = defaultNetworks.filter(n => isNetworkCappedToday(userId, n));
-  const orderedNetworks = uncappedNetworks.length > 0 ? [...uncappedNetworks, ...cappedNetworks] : defaultNetworks;
-
-  // "যার ঘর, সে আগে": clickedSlot is always primary, followed by remaining slots in order
-  const clickedSlot = Math.max(1, Math.min(5, Number(targetId) || 1));
-  const slotChain = getAdChain(clickedSlot);
-
-  const tiers: IntraWaterfallTier[] = [];
+  const padIndex = String(Math.max(1, Math.min(5, Number(targetId) || 1))).padStart(2, '0');
+  const prefix = actionType === 'SPIN' ? 'spin' : actionType === 'GIFT_BOX' ? 'box' : 'mining';
+  const placementKey = `${prefix}_${padIndex}`;
 
   if (actionType === 'MINING' || actionType === 'WITHDRAW' || actionType === 'SELL') {
-    // Security & transaction verification uses the 5 networks
-    orderedNetworks.forEach((net, idx) => {
-      let id = '54597';
-      if (net === 'AdsGram') id = MINING_ADS.mining.adsgram;
-      else if (net === 'OnClickA') id = MINING_ADS.mining.onclicka;
-      else if (net === 'RichAds') id = MINING_ADS.mining.richads;
-      else if (net === 'Monetag') id = MINING_ADS.mining.monetag;
-      else if (net === 'Adexora') id = MINING_ADS.mining.adexora;
-
-      tiers.push({
-        index: idx + 1,
-        provider: net,
-        id,
-        placementKey: actionType.toLowerCase(),
-        label: `${net} ${idx === 0 ? '(Primary)' : `(Tier ${idx + 1})`}`,
-      });
-    });
-    return tiers;
+    return [
+      { index: 1, provider: 'RichAds', id: MINING_ADS.mining.richads_1, placementKey: 'mining_01', label: 'RichAds (Primary)' },
+      { index: 2, provider: 'Monetag', id: MINING_ADS.mining.monetag_1, placementKey: 'mining_02', label: 'Monetag (Tier 2)' },
+      { index: 3, provider: 'OnClickA', id: MINING_ADS.mining.onclicka, placementKey: 'mining_03', label: 'OnClickA (Tier 3)' },
+      { index: 4, provider: 'RichAds', id: MINING_ADS.mining.richads_2, placementKey: 'mining_04', label: 'RichAds (Tier 4)' },
+      { index: 5, provider: 'Monetag', id: MINING_ADS.mining.monetag_2, placementKey: 'mining_05', label: 'Monetag (Tier 5)' },
+    ];
   }
 
   const adsMap = actionType === 'SPIN' ? SPIN_ADS : BOX_ADS;
-  const prefix = actionType === 'SPIN' ? 'spin' : 'box';
+  const conf = adsMap[placementKey] || adsMap[`${prefix}_01`];
 
-  // Build INTRA-FALLBACK in priority order: AdsGram -> OnClickA -> RichAds -> Monetag -> Adexora
-  orderedNetworks.forEach((net) => {
-    slotChain.forEach((pNum, cycleIdx) => {
-      const pad = String(pNum).padStart(2, '0');
-      const key = `${prefix}_${pad}`;
-      const conf = adsMap[key] || adsMap[`${prefix}_01`];
-
-      let id = '';
-      if (net === 'AdsGram') {
-        id = sanitizeAdsgramBlockId(conf.adsgram, actionType === 'SPIN' ? '54618' : '54617');
-      } else if (net === 'OnClickA') {
-        id = conf.onclicka || (actionType === 'SPIN' ? '6153717' : '6153772');
-      } else if (net === 'RichAds') {
-        id = conf.richads || (actionType === 'SPIN' ? '410203' : '410202');
-      } else if (net === 'Monetag') {
-        id = conf.monetag || '12044377';
-      } else if (net === 'Adexora') {
-        id = conf.adexora || '2217';
-      }
-
-      tiers.push({
-        index: tiers.length + 1,
-        provider: net,
-        id,
-        placementKey: key,
-        label: `${net} (${actionType === 'SPIN' ? 'Spin' : 'Box'} #${pNum}${cycleIdx === 0 ? '' : ' fallback'})`,
-      });
-    });
-  });
-
-  return tiers;
+  return [
+    { index: 1, provider: 'RichAds', id: conf.richads_1, placementKey, label: `RichAds (${actionType === 'SPIN' ? 'Spin' : 'Box'} #1)` },
+    { index: 2, provider: 'Monetag', id: conf.monetag_1, placementKey, label: `Monetag (${actionType === 'SPIN' ? 'Spin' : 'Box'} #2)` },
+    { index: 3, provider: 'OnClickA', id: conf.onclicka, placementKey, label: `OnClickA (${actionType === 'SPIN' ? 'Spin' : 'Box'} #3)` },
+    { index: 4, provider: 'RichAds', id: conf.richads_2, placementKey, label: `RichAds (${actionType === 'SPIN' ? 'Spin' : 'Box'} #4)` },
+    { index: 5, provider: 'Monetag', id: conf.monetag_2, placementKey, label: `Monetag (${actionType === 'SPIN' ? 'Spin' : 'Box'} #5)` },
+  ];
 }

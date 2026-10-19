@@ -81,18 +81,8 @@
         } catch (err) {
           console.warn('[TG Param Sync Warn]:', err);
         }
-
-        // Global safeguard against unhandled Adsgram launch errors outside Telegram
-        window.addEventListener('unhandledrejection', function(event) {
-          if (event && event.reason && String(event.reason).indexOf('Adsgram') !== -1) {
-            event.preventDefault();
-            console.warn('[Handled Adsgram Rejection]:', event.reason);
-          }
-        });
       })();
     </script>
-    <!-- Adsgram Telegram Mini App Video SDK -->
-    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <!-- Monetag Telegram Mini App Rewarded SDK (App ID 3534792, Zone 12044377) -->
     <script src="https://alwingulla.com/88/tag.min.js" data-zone="12044377" data-cfasync="false" async></script>
   </head>

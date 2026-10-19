@@ -69,27 +69,27 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   const [monetagTelegramSdkEnabled, setMonetagTelegramSdkEnabled] = useState(true);
 
   // 10 Waterfall Ad Variables for Spin & Gift Box
-  const [spin01Adsgram, setSpin01Adsgram] = useState('54618');
+  const [spin01Richads, setSpin01Richads] = useState('410203');
   const [spin02Monetag, setSpin02Monetag] = useState('12044377');
   const [spin03Onclicka, setSpin03Onclicka] = useState('6153717');
   const [spin04Richads, setSpin04Richads] = useState('410203');
-  const [spin05Adexora, setSpin05Adexora] = useState('2217');
+  const [spin05Monetag, setSpin05Monetag] = useState('12044377');
 
-  const [box01Adsgram, setBox01Adsgram] = useState('54617');
+  const [box01Richads, setBox01Richads] = useState('410202');
   const [box02Monetag, setBox02Monetag] = useState('12044377');
   const [box03Onclicka, setBox03Onclicka] = useState('6153772');
   const [box04Richads, setBox04Richads] = useState('410202');
-  const [box05Adexora, setBox05Adexora] = useState('2217');
+  const [box05Monetag, setBox05Monetag] = useState('12044377');
 
   // Mining Ad Network & Waterfall Gate Settings (Real-Time Admin Control)
-  const [miningPrimaryNetwork, setMiningPrimaryNetwork] = useState<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'>('AdsGram');
-  const [miningSecondaryNetwork, setMiningSecondaryNetwork] = useState<'AdsGram' | 'Monetag' | 'OnClickA' | 'RichAds' | 'Adexora'>('OnClickA');
+  const [miningPrimaryNetwork, setMiningPrimaryNetwork] = useState<'Monetag' | 'OnClickA' | 'RichAds'>('RichAds');
+  const [miningSecondaryNetwork, setMiningSecondaryNetwork] = useState<'Monetag' | 'OnClickA' | 'RichAds'>('Monetag');
   const [miningWaterfallEnabled, setMiningWaterfallEnabled] = useState(true);
-  const [mining01Adsgram, setMining01Adsgram] = useState('54597');
+  const [mining01Richads, setMining01Richads] = useState('410204');
   const [mining02Monetag, setMining02Monetag] = useState('12044377');
   const [mining03Onclicka, setMining03Onclicka] = useState('6153774');
   const [mining04Richads, setMining04Richads] = useState('410204');
-  const [mining05Adexora, setMining05Adexora] = useState('2217');
+  const [mining05Monetag, setMining05Monetag] = useState('12044377');
   // Hourly Mining Rate (E4F / Hour) - Dynamic Real-Time Admin Control
   const [miningRatePerHour, setMiningRatePerHour] = useState<number>(miningStats?.miningRatePerHour ?? 0.25);
 
@@ -368,27 +368,35 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
           return t || fallback;
         };
 
-        setSpin01Adsgram(sanitizeAdminAdId(dash.systemSettings.spin_01_adsgram, '54618'));
+        setSpin01Richads(sanitizeAdminAdId(dash.systemSettings.spin_01_richads, '410203'));
         setSpin02Monetag(sanitizeAdminAdId(dash.systemSettings.spin_02_monetag, '12044377'));
         setSpin03Onclicka(sanitizeAdminAdId(dash.systemSettings.spin_03_onclicka, '6153717'));
         setSpin04Richads(sanitizeAdminAdId(dash.systemSettings.spin_04_richads, '410203'));
-        setSpin05Adexora(sanitizeAdminAdId(dash.systemSettings.spin_05_adexora, '2217'));
+        setSpin05Monetag(sanitizeAdminAdId(dash.systemSettings.spin_05_monetag, '12044377'));
 
-        setBox01Adsgram(sanitizeAdminAdId(dash.systemSettings.box_01_adsgram, '54617'));
+        setBox01Richads(sanitizeAdminAdId(dash.systemSettings.box_01_richads, '410202'));
         setBox02Monetag(sanitizeAdminAdId(dash.systemSettings.box_02_monetag, '12044377'));
         setBox03Onclicka(sanitizeAdminAdId(dash.systemSettings.box_03_onclicka, '6153772'));
         setBox04Richads(sanitizeAdminAdId(dash.systemSettings.box_04_richads, '410202'));
-        setBox05Adexora(sanitizeAdminAdId(dash.systemSettings.box_05_adexora, '2217'));
+        setBox05Monetag(sanitizeAdminAdId(dash.systemSettings.box_05_monetag, '12044377'));
 
         // Mining Waterfall Gate Settings
-        if (dash.systemSettings.miningPrimaryNetwork) setMiningPrimaryNetwork(dash.systemSettings.miningPrimaryNetwork);
-        if (dash.systemSettings.miningSecondaryNetwork) setMiningSecondaryNetwork(dash.systemSettings.miningSecondaryNetwork);
+        if (dash.systemSettings.miningPrimaryNetwork === 'Monetag' || dash.systemSettings.miningPrimaryNetwork === 'OnClickA' || dash.systemSettings.miningPrimaryNetwork === 'RichAds') {
+          setMiningPrimaryNetwork(dash.systemSettings.miningPrimaryNetwork);
+        } else {
+          setMiningPrimaryNetwork('RichAds');
+        }
+        if (dash.systemSettings.miningSecondaryNetwork === 'Monetag' || dash.systemSettings.miningSecondaryNetwork === 'OnClickA' || dash.systemSettings.miningSecondaryNetwork === 'RichAds') {
+          setMiningSecondaryNetwork(dash.systemSettings.miningSecondaryNetwork);
+        } else {
+          setMiningSecondaryNetwork('Monetag');
+        }
         if (dash.systemSettings.miningWaterfallEnabled !== undefined) setMiningWaterfallEnabled(dash.systemSettings.miningWaterfallEnabled);
-        setMining01Adsgram(sanitizeAdminAdId(dash.systemSettings.mining_01_adsgram, '54597'));
+        setMining01Richads(sanitizeAdminAdId(dash.systemSettings.mining_01_richads, '410204'));
         setMining02Monetag(sanitizeAdminAdId(dash.systemSettings.mining_02_monetag, '12044377'));
         setMining03Onclicka(sanitizeAdminAdId(dash.systemSettings.mining_03_onclicka, '6153774'));
         setMining04Richads(sanitizeAdminAdId(dash.systemSettings.mining_04_richads, '410204'));
-        setMining05Adexora(sanitizeAdminAdId(dash.systemSettings.mining_05_adexora, '2217'));
+        setMining05Monetag(sanitizeAdminAdId(dash.systemSettings.mining_05_monetag, '12044377'));
         if (dash.systemSettings.miningRatePerHour !== undefined) setMiningRatePerHour(dash.systemSettings.miningRatePerHour);
       }
       if (anns?.announcements) setAnnouncements(anns.announcements);
@@ -425,25 +433,25 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
         monetagDirectLink: '',
         monetagZoneId: cleanAdId(monetagZoneId, '12044377'),
         monetagTelegramSdkEnabled,
-        spin_01_adsgram: /^\d+$/.test(spin01Adsgram.trim()) ? spin01Adsgram.trim() : '54618',
+        spin_01_richads: cleanAdId(spin01Richads, '410203'),
         spin_02_monetag: cleanAdId(spin02Monetag, '12044377'),
         spin_03_onclicka: cleanAdId(spin03Onclicka, '6153717'),
         spin_04_richads: cleanAdId(spin04Richads, '410203'),
-        spin_05_adexora: cleanAdId(spin05Adexora, '2217'),
-        box_01_adsgram: /^\d+$/.test(box01Adsgram.trim()) ? box01Adsgram.trim() : '54617',
+        spin_05_monetag: cleanAdId(spin05Monetag, '12044377'),
+        box_01_richads: cleanAdId(box01Richads, '410202'),
         box_02_monetag: cleanAdId(box02Monetag, '12044377'),
         box_03_onclicka: cleanAdId(box03Onclicka, '6153772'),
         box_04_richads: cleanAdId(box04Richads, '410202'),
-        box_05_adexora: cleanAdId(box05Adexora, '2217'),
+        box_05_monetag: cleanAdId(box05Monetag, '12044377'),
         // Mining Waterfall Gate Settings
         miningPrimaryNetwork,
         miningSecondaryNetwork,
         miningWaterfallEnabled,
-        mining_01_adsgram: /^\d+$/.test(mining01Adsgram.trim()) ? mining01Adsgram.trim() : '54597',
+        mining_01_richads: cleanAdId(mining01Richads, '410204'),
         mining_02_monetag: cleanAdId(mining02Monetag, '12044377'),
         mining_03_onclicka: cleanAdId(mining03Onclicka, '6153774'),
         mining_04_richads: cleanAdId(mining04Richads, '410204'),
-        mining_05_adexora: cleanAdId(mining05Adexora, '2217'),
+        mining_05_monetag: cleanAdId(mining05Monetag, '12044377'),
         miningRatePerHour: Number(miningRatePerHour),
       }, adminKey);
       addToast('Saved', 'Mining rate, ad network, durations & waterfall settings updated live!', 'success');
@@ -1090,14 +1098,14 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                         </label>
                         <span className="text-[10px] text-slate-400">Current: <span className="font-bold text-white font-mono">{miningPrimaryNetwork}</span></span>
                       </div>
-                      <div className="grid grid-cols-5 gap-1.5">
-                        {(['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora'] as const).map(net => (
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {(['RichAds', 'Monetag', 'OnClickA'] as const).map(net => (
                           <button
                             key={net}
                             onClick={() => {
                               setMiningPrimaryNetwork(net);
                               if (miningSecondaryNetwork === net) {
-                                const others = (['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora'] as const).filter(n => n !== net);
+                                const others = (['RichAds', 'Monetag', 'OnClickA'] as const).filter(n => n !== net);
                                 setMiningSecondaryNetwork(others[0]);
                               }
                             }}
@@ -1121,14 +1129,14 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                         </label>
                         <span className="text-[10px] text-slate-400">Fallback: <span className="font-bold text-white font-mono">{miningSecondaryNetwork}</span></span>
                       </div>
-                      <div className="grid grid-cols-5 gap-1.5">
-                        {(['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora'] as const).map(net => (
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {(['RichAds', 'Monetag', 'OnClickA'] as const).map(net => (
                           <button
                             key={net}
                             onClick={() => {
                               setMiningSecondaryNetwork(net);
                               if (miningPrimaryNetwork === net) {
-                                const others = (['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora'] as const).filter(n => n !== net);
+                                const others = (['RichAds', 'Monetag', 'OnClickA'] as const).filter(n => n !== net);
                                 setMiningPrimaryNetwork(others[0]);
                               }
                             }}
@@ -1156,7 +1164,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-400 max-w-sm">
-                          If Primary ad fails to show, automatically fallback to Secondary ad (and remaining networks in the 5-network waterfall chain: AdsGram → OnClickA → RichAds → Monetag → Adexora).
+                          If Primary ad fails to show, automatically fallback to Secondary ad (and remaining networks in the 5-network waterfall chain: RichAds → Monetag → OnClickA → RichAds → Monetag).
                         </p>
                       </div>
                       <button
@@ -1183,13 +1191,13 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                         <div>
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            1. AdsGram Block ID (mining_01_adsgram)
+                            1. RichAds Zone ID / Link (mining_01_richads)
                           </label>
                           <input
                             type="text"
-                            value={mining01Adsgram}
-                            onChange={e => setMining01Adsgram(e.target.value)}
-                            placeholder="e.g. mining_01_adsgram"
+                            value={mining01Richads}
+                            onChange={e => setMining01Richads(e.target.value)}
+                            placeholder="e.g. 410204"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1201,7 +1209,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={mining02Monetag}
                             onChange={e => setMining02Monetag(e.target.value)}
-                            placeholder="e.g. 12044377 (App ID 3534792)"
+                            placeholder="e.g. 12044377"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1213,7 +1221,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={mining03Onclicka}
                             onChange={e => setMining03Onclicka(e.target.value)}
-                            placeholder="e.g. mining_03_onclicka"
+                            placeholder="e.g. 6153774"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1225,19 +1233,19 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={mining04Richads}
                             onChange={e => setMining04Richads(e.target.value)}
-                            placeholder="e.g. mining_04_richads"
+                            placeholder="e.g. 410204"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
                         <div className="md:col-span-2">
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            5. Adexora Zone ID / Link (mining_05_adexora)
+                            5. Monetag Zone ID / Direct Link (mining_05_monetag)
                           </label>
                           <input
                             type="text"
-                            value={mining05Adexora}
-                            onChange={e => setMining05Adexora(e.target.value)}
-                            placeholder="e.g. mining_05_adexora"
+                            value={mining05Monetag}
+                            onChange={e => setMining05Monetag(e.target.value)}
+                            placeholder="e.g. 12044377"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1333,7 +1341,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                           <span>Waterfall Ad Logic Settings (Spin & Gift Box 1–5)</span>
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          Configure 10 Ad Block / Zone / App IDs. Waterfall chain: AdsGram → OnClickA → RichAds → Monetag → Adexora (Best Income Optimization).
+                          Configure 10 Ad Block / Zone / App IDs. Waterfall chain: RichAds → Monetag → OnClickA → RichAds → Monetag (Best Income Optimization).
                         </div>
                       </div>
                     </div>
@@ -1346,12 +1354,13 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                         <div>
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            1. AdsGram ID (spin_01_adsgram)
+                            1. RichAds ID (spin_01_richads)
                           </label>
                           <input
                             type="text"
-                            value={spin01Adsgram}
-                            onChange={e => setSpin01Adsgram(e.target.value)}
+                            value={spin01Richads}
+                            onChange={e => setSpin01Richads(e.target.value)}
+                            placeholder="e.g. 410203"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1363,6 +1372,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={spin02Monetag}
                             onChange={e => setSpin02Monetag(e.target.value)}
+                            placeholder="e.g. 12044377"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1374,6 +1384,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={spin03Onclicka}
                             onChange={e => setSpin03Onclicka(e.target.value)}
+                            placeholder="e.g. 6153717"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1385,17 +1396,19 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={spin04Richads}
                             onChange={e => setSpin04Richads(e.target.value)}
+                            placeholder="e.g. 410203"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
                         <div className="md:col-span-2">
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            5. Adexora ID (spin_05_adexora)
+                            5. Monetag ID (spin_05_monetag)
                           </label>
                           <input
                             type="text"
-                            value={spin05Adexora}
-                            onChange={e => setSpin05Adexora(e.target.value)}
+                            value={spin05Monetag}
+                            onChange={e => setSpin05Monetag(e.target.value)}
+                            placeholder="e.g. 12044377"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1452,12 +1465,13 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                         <div>
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            1. AdsGram ID (box_01_adsgram)
+                            1. RichAds ID (box_01_richads)
                           </label>
                           <input
                             type="text"
-                            value={box01Adsgram}
-                            onChange={e => setBox01Adsgram(e.target.value)}
+                            value={box01Richads}
+                            onChange={e => setBox01Richads(e.target.value)}
+                            placeholder="e.g. 410202"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1469,6 +1483,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={box02Monetag}
                             onChange={e => setBox02Monetag(e.target.value)}
+                            placeholder="e.g. 12044377"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1480,6 +1495,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={box03Onclicka}
                             onChange={e => setBox03Onclicka(e.target.value)}
+                            placeholder="e.g. 6153772"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
@@ -1491,17 +1507,19 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                             type="text"
                             value={box04Richads}
                             onChange={e => setBox04Richads(e.target.value)}
+                            placeholder="e.g. 410202"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>
                         <div className="md:col-span-2">
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            5. Adexora ID (box_05_adexora)
+                            5. Monetag ID (box_05_monetag)
                           </label>
                           <input
                             type="text"
-                            value={box05Adexora}
-                            onChange={e => setBox05Adexora(e.target.value)}
+                            value={box05Monetag}
+                            onChange={e => setBox05Monetag(e.target.value)}
+                            placeholder="e.g. 12044377"
                             className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono"
                           />
                         </div>

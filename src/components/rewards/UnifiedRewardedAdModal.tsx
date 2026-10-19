@@ -15,12 +15,9 @@ import {
 import { api } from '../../services/api';
 import { getAdTargetUrl, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
 import {
-  loadAdsgramScript,
-  showAdsgramAd,
   showOnclickaAd,
   showRichadsAd,
   showMonetagAd,
-  showAdexoraAd,
 } from '../../services/adWaterfall';
 import {
   SPIN_ADS,
@@ -28,49 +25,46 @@ import {
   MINING_ADS,
   AD_CODES,
   getAdCodesForPlacement,
-  sanitizeAdsgramBlockId,
   getNetworkViewCountToday,
   incrementNetworkViewCountToday,
   isNetworkCappedToday,
   MAX_DAILY_ADS_PER_NETWORK,
   buildIntraWaterfallTiers,
   IntraWaterfallTier,
-  getAdChain,
 } from '../../services/adCodes';
 
 // =========================================================================
-// 🎯 WATERFALL AD CONFIGURATION (15 REAL IDS MAPPED ACROSS MINING, SPIN & BOX)
-// Priority Sequence: AdsGram -> OnClickA -> RichAds -> Monetag -> Adexora
+// 🎯 WATERFALL AD CONFIGURATION (5 TIERS: RichAds, Monetag, OnClickA)
 // =========================================================================
-export let SPIN_01_ADSGRAM = '54618';
+export let SPIN_01_RICHADS = '410203';
 export let SPIN_02_MONETAG = '12044377';
 export let SPIN_03_ONCLICKA = '6153717';
 export let SPIN_04_RICHADS = '410203';
-export let SPIN_05_ADEXORA = '2217';
+export let SPIN_05_MONETAG = '12044377';
 
-export let BOX_01_ADSGRAM = '54617';
+export let BOX_01_RICHADS = '410202';
 export let BOX_02_MONETAG = '12044377';
 export let BOX_03_ONCLICKA = '6153772';
 export let BOX_04_RICHADS = '410202';
-export let BOX_05_ADEXORA = '2217';
+export let BOX_05_MONETAG = '12044377';
 
 // Mining Waterfall Ad Variables
-export let MINING_01_ADSGRAM = '54597';
+export let MINING_01_RICHADS = '410204';
 export let MINING_02_MONETAG = '12044377';
 export let MINING_03_ONCLICKA = '6153774';
 export let MINING_04_RICHADS = '410204';
-export let MINING_05_ADEXORA = '2217';
-export let MINING_PRIMARY_NETWORK: 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora' = 'AdsGram';
-export let MINING_SECONDARY_NETWORK: 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora' = 'OnClickA';
+export let MINING_05_MONETAG = '12044377';
+export let MINING_PRIMARY_NETWORK: 'RichAds' | 'Monetag' | 'OnClickA' = 'RichAds';
+export let MINING_SECONDARY_NETWORK: 'RichAds' | 'Monetag' | 'OnClickA' = 'Monetag';
 export let MINING_WATERFALL_ENABLED = true;
 
 export const RICHADS_PLACEMENTS = ['410202', '410203', '410204', '410260', '410261'];
 
-export { getAdChain };
+export const getAdChain = buildIntraWaterfallTiers;
 
 interface WaterfallTier {
   index: number;
-  provider: 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora';
+  provider: 'RichAds' | 'Monetag' | 'OnClickA';
   id: string;
   placementKey?: string;
   label: string;
@@ -148,23 +142,23 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         try {
           const pub = await api.getPublicSettings();
           if (pub) {
-            if ((pub as any).spin_01_adsgram) SPIN_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).spin_01_adsgram, '54618');
+            if ((pub as any).spin_01_richads) SPIN_01_RICHADS = (pub as any).spin_01_richads;
             if ((pub as any).spin_02_monetag) SPIN_02_MONETAG = (pub as any).spin_02_monetag;
             if ((pub as any).spin_03_onclicka) SPIN_03_ONCLICKA = (pub as any).spin_03_onclicka;
             if ((pub as any).spin_04_richads) SPIN_04_RICHADS = (pub as any).spin_04_richads;
-            if ((pub as any).spin_05_adexora) SPIN_05_ADEXORA = (pub as any).spin_05_adexora;
+            if ((pub as any).spin_05_monetag) SPIN_05_MONETAG = (pub as any).spin_05_monetag;
 
-            if ((pub as any).box_01_adsgram) BOX_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).box_01_adsgram, '54617');
+            if ((pub as any).box_01_richads) BOX_01_RICHADS = (pub as any).box_01_richads;
             if ((pub as any).box_02_monetag) BOX_02_MONETAG = (pub as any).box_02_monetag;
             if ((pub as any).box_03_onclicka) BOX_03_ONCLICKA = (pub as any).box_03_onclicka;
             if ((pub as any).box_04_richads) BOX_04_RICHADS = (pub as any).box_04_richads;
-            if ((pub as any).box_05_adexora) BOX_05_ADEXORA = (pub as any).box_05_adexora;
+            if ((pub as any).box_05_monetag) BOX_05_MONETAG = (pub as any).box_05_monetag;
 
-            if ((pub as any).mining_01_adsgram) MINING_01_ADSGRAM = sanitizeAdsgramBlockId((pub as any).mining_01_adsgram, '54597');
+            if ((pub as any).mining_01_richads) MINING_01_RICHADS = (pub as any).mining_01_richads;
             if ((pub as any).mining_02_monetag) MINING_02_MONETAG = (pub as any).mining_02_monetag;
             if ((pub as any).mining_03_onclicka) MINING_03_ONCLICKA = (pub as any).mining_03_onclicka;
             if ((pub as any).mining_04_richads) MINING_04_RICHADS = (pub as any).mining_04_richads;
-            if ((pub as any).mining_05_adexora) MINING_05_ADEXORA = (pub as any).mining_05_adexora;
+            if ((pub as any).mining_05_monetag) MINING_05_MONETAG = (pub as any).mining_05_monetag;
             if ((pub as any).miningPrimaryNetwork) MINING_PRIMARY_NETWORK = (pub as any).miningPrimaryNetwork;
             if ((pub as any).miningSecondaryNetwork) MINING_SECONDARY_NETWORK = (pub as any).miningSecondaryNetwork;
             if ((pub as any).miningWaterfallEnabled !== undefined) MINING_WATERFALL_ENABLED = (pub as any).miningWaterfallEnabled;
@@ -188,17 +182,11 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
         const isTg = typeof window !== 'undefined' && Boolean((window as any).Telegram?.WebApp?.initData);
 
-        // Build Distinct INTRA-FALLBACK Waterfall Tiers
-        // (Spin 1: 54111 -> next 54111 -> ... all AdsGram -> all Monetag -> all OnClickA -> all RichAds -> all Adexora)
+        // Build Distinct 5-Tier Waterfall (RichAds, Monetag, OnClickA)
         const computedTiers = buildIntraWaterfallTiers(actionType, targetId, userId, isTg);
 
         setTiers(computedTiers);
         setTierIndex(0);
-
-        // Preload AdsGram script only if running inside Telegram
-        if (isTg) {
-          loadAdsgramScript().catch(() => {});
-        }
 
         // Create authoritative backend session
         const session = await api.createUniversalAdSession(userId, actionType, targetId);
@@ -350,7 +338,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   };
 
   // 4. User Clicks "Watch Ad Now"
-  // Waterfall Chain: AdsGram -> OnClickA -> RichAds -> Monetag -> Adexora (with 4s timeout & infinite loop)
+  // Waterfall Chain: RichAds -> Monetag -> OnClickA -> RichAds -> Monetag (with 4s timeout & infinite loop)
   const handleWatchAdClick = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     if (!adSession || tiers.length === 0) return;
@@ -363,49 +351,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     api.logAdView(userId, currentTier.provider, placementName);
 
     // =========================================================
-    // 1. ADSGRAM FUNCTION (Native Telegram Mini App Video Ad)
-    // =========================================================
-    if (currentTier.provider === 'AdsGram') {
-      setStep('WATCHING');
-      const hardDefault = actionType === 'SPIN' ? '54618' : (actionType === 'GIFT_BOX' ? '54617' : '54597');
-      const safeBlockId = sanitizeAdsgramBlockId(currentTier.id, hardDefault);
-
-      const res = await showAdsgramAd(safeBlockId, 4000);
-      if (res.success && res.completed) {
-        incrementNetworkViewCountToday(userId, 'AdsGram');
-        handleClaimReward(`ADSGRAM_${safeBlockId}_COMPLETED`);
-        return;
-      }
-
-      // If AdsGram had No Fill in current region, immediately try Monetag in-app SDK!
-      const monetagRes = await showMonetagAd('12044377', 4000);
-      if (monetagRes.success && monetagRes.completed) {
-        incrementNetworkViewCountToday(userId, 'Monetag');
-        handleClaimReward(`MONETAG_12044377_COMPLETED`);
-        return;
-      }
-
-      advanceWaterfall(res.reason || 'AdsGram ad playback failed or timed out (4s)');
-      return;
-    }
-
-    // =========================================================
-    // 2. ONCLICKA FUNCTION (In-App Ad Stream & Zone Delivery)
-    // =========================================================
-    if (currentTier.provider === 'OnClickA') {
-      setStep('WATCHING');
-      const zoneId = currentTier.id || (actionType === 'SPIN' ? '6153717' : (actionType === 'GIFT_BOX' ? '6153772' : '6153774'));
-      const res = await showOnclickaAd(zoneId, 4000);
-      if (!res.success) {
-        advanceWaterfall(res.reason || 'OnClickA ad request failed or timed out (4s)');
-        return;
-      }
-      startAdWatchTimer();
-      return;
-    }
-
-    // =========================================================
-    // 3. RICHADS FUNCTION (In-App Ad Stream & Zone Delivery)
+    // 1. RICHADS FUNCTION (Slot 1 & Slot 4)
     // =========================================================
     if (currentTier.provider === 'RichAds') {
       setStep('WATCHING');
@@ -420,7 +366,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // =========================================================
-    // 4. MONETAG FUNCTION (In-App SDK with Zone 12044377 / In-App Overlay)
+    // 2. MONETAG FUNCTION (Slot 2 & Slot 5 - In-App Telegram SDK with Zone 12044377)
     // =========================================================
     if (currentTier.provider === 'Monetag') {
       setStep('WATCHING');
@@ -440,14 +386,14 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // =========================================================
-    // 5. ADEXORA FUNCTION (In-App Ad Stream & Zone Delivery)
+    // 3. ONCLICKA FUNCTION (In-App Ad Stream & Zone Delivery)
     // =========================================================
-    if (currentTier.provider === 'Adexora') {
+    if (currentTier.provider === 'OnClickA') {
       setStep('WATCHING');
-      const zoneId = currentTier.id || '2217';
-      const res = await showAdexoraAd(zoneId, 4000);
+      const zoneId = currentTier.id || (actionType === 'SPIN' ? '6153717' : (actionType === 'GIFT_BOX' ? '6153772' : '6153774'));
+      const res = await showOnclickaAd(zoneId, 4000);
       if (!res.success) {
-        advanceWaterfall(res.reason || 'Adexora ad request failed or timed out (4s)');
+        advanceWaterfall(res.reason || 'OnClickA ad request failed or timed out (4s)');
         return;
       }
       startAdWatchTimer();
@@ -589,7 +535,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
             >
               <Play className="w-4 h-4 fill-slate-950" />
               <span>
-                {currentTier?.provider === 'AdsGram'
+                {currentTier?.provider === 'Monetag'
                   ? 'Watch Video Ad'
                   : `Watch Video Ad (${targetWatchSeconds}s)`}
               </span>

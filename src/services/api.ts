@@ -789,9 +789,9 @@ export const api = {
       token: `tok_${Math.random().toString(36).slice(2)}`,
       actionType,
       targetId,
-      zoneId: '12044377',
+      zoneId: '410204',
       directLink: '',
-      provider: 'AdsGram',
+      provider: 'RichAds',
       serverTime: now,
       durationSeconds: 30,
     };
@@ -1362,8 +1362,8 @@ export const api = {
         { id: 6, label: '5.00 E4F', asset: 'E4F', amount: 5.00, color: '#F97316' },
         { id: 7, label: '2.00 USDT', asset: 'USDT', amount: 2.00, color: '#8B5CF6' },
       ],
-      zoneId: '12044377',
-      provider: 'AdsGram',
+      zoneId: '410202',
+      provider: 'RichAds',
     };
   },
 

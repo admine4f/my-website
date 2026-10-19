@@ -378,7 +378,7 @@ const systemSettings = {
   miningAdDurationSeconds: 30,
   spinAdDurationSeconds: 30,
   giftBoxAdDurationSeconds: 30,
-  adProvider: 'AdsGram' as any,
+  adProvider: 'RichAds' as any,
   adsterraDirectLink: 'https://beta.publishers.adsterra.com/direct-link-demo',
   monetagDirectLink: '',
   monetagZoneId: '12044377',
@@ -413,26 +413,26 @@ const systemSettings = {
   spinWheelPrizes: defaultSpinWheelPrizes,
   giftBoxesConfig: defaultGiftBoxesConfig,
   dailyCheckInRewards: defaultDailyCheckInRewards,
-  // Waterfall Ad Block / Zone ID / App IDs (15 Real IDs)
-  spin_01_adsgram: '54618',
+  // Waterfall Ad Block / Zone ID / App IDs (5 Tiers: RichAds, Monetag, OnClickA)
+  spin_01_richads: '410203',
   spin_02_monetag: '12044377',
   spin_03_onclicka: '6153717',
   spin_04_richads: '410203',
-  spin_05_adexora: '2217',
-  box_01_adsgram: '54617',
+  spin_05_monetag: '12044377',
+  box_01_richads: '410202',
   box_02_monetag: '12044377',
   box_03_onclicka: '6153772',
   box_04_richads: '410202',
-  box_05_adexora: '2217',
+  box_05_monetag: '12044377',
   // Mining Ad Gate & Waterfall Settings (Configurable from Admin without app updates)
-  miningPrimaryNetwork: 'AdsGram' as 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora',
-  miningSecondaryNetwork: 'OnClickA' as 'AdsGram' | 'OnClickA' | 'RichAds' | 'Monetag' | 'Adexora',
+  miningPrimaryNetwork: 'RichAds' as 'OnClickA' | 'RichAds' | 'Monetag',
+  miningSecondaryNetwork: 'Monetag' as 'OnClickA' | 'RichAds' | 'Monetag',
   miningWaterfallEnabled: true,
-  mining_01_adsgram: '54597',
+  mining_01_richads: '410204',
   mining_02_monetag: '12044377',
   mining_03_onclicka: '6153774',
   mining_04_richads: '410204',
-  mining_05_adexora: '2217',
+  mining_05_monetag: '12044377',
 };
 
 // Load persisted settings on startup if exists
@@ -448,21 +448,21 @@ try {
 
 // Guarantee 100% real IDs are present and no placeholder strings exist
 const REAL_DEFAULT_IDS: Record<string, string> = {
-  spin_01_adsgram: '54618',
+  spin_01_richads: '410203',
   spin_02_monetag: '12044377',
   spin_03_onclicka: '6153717',
   spin_04_richads: '410203',
-  spin_05_adexora: '2217',
-  box_01_adsgram: '54617',
+  spin_05_monetag: '12044377',
+  box_01_richads: '410202',
   box_02_monetag: '12044377',
   box_03_onclicka: '6153772',
   box_04_richads: '410202',
-  box_05_adexora: '2217',
-  mining_01_adsgram: '54597',
+  box_05_monetag: '12044377',
+  mining_01_richads: '410204',
   mining_02_monetag: '12044377',
   mining_03_onclicka: '6153774',
   mining_04_richads: '410204',
-  mining_05_adexora: '2217',
+  mining_05_monetag: '12044377',
   monetagZoneId: '12044377',
 };
 for (const [k, fallback] of Object.entries(REAL_DEFAULT_IDS)) {
@@ -1268,22 +1268,30 @@ function initializeServerState() {
         }
 
         const TARGET_REAL_IDS: Record<string, string> = {
-          spin_01_adsgram: '54618',
+          spin_01_richads: '410203',
           spin_02_monetag: '12044377',
           spin_03_onclicka: '6153717',
           spin_04_richads: '410203',
-          spin_05_adexora: '2217',
-          box_01_adsgram: '54617',
+          spin_05_monetag: '12044377',
+          box_01_richads: '410202',
           box_02_monetag: '12044377',
           box_03_onclicka: '6153772',
           box_04_richads: '410202',
-          box_05_adexora: '2217',
-          mining_01_adsgram: '54597',
+          box_05_monetag: '12044377',
+          mining_01_richads: '410204',
           mining_02_monetag: '12044377',
           mining_03_onclicka: '6153774',
           mining_04_richads: '410204',
-          mining_05_adexora: '2217',
+          mining_05_monetag: '12044377',
         };
+        // Clean out old deprecated ad networks
+        delete (systemSettings as any).spin_01_adsgram;
+        delete (systemSettings as any).spin_05_adexora;
+        delete (systemSettings as any).box_01_adsgram;
+        delete (systemSettings as any).box_05_adexora;
+        delete (systemSettings as any).mining_01_adsgram;
+        delete (systemSettings as any).mining_05_adexora;
+
         const OLD_PLACEHOLDERS = new Set(['54110', '54111', '410260']);
         let needsDbSync = false;
         for (const [key, targetVal] of Object.entries(TARGET_REAL_IDS)) {
@@ -2368,16 +2376,29 @@ app.get(['/api/system/public-settings', '/api/system/settings', '/system/public-
       const { data } = await supabase.from('system_settings').select('settings').eq('id', 'global_settings').maybeSingle();
       if (data && data.settings && typeof data.settings === 'object') {
         Object.assign(systemSettings, data.settings);
-        const OLD_IDS = new Set(['54110', '54111', '410260']);
-        if (!systemSettings.spin_01_adsgram || OLD_IDS.has(systemSettings.spin_01_adsgram)) systemSettings.spin_01_adsgram = '54618';
-        if (!systemSettings.box_01_adsgram || OLD_IDS.has(systemSettings.box_01_adsgram)) systemSettings.box_01_adsgram = '54617';
-        if (!systemSettings.mining_01_adsgram || OLD_IDS.has(systemSettings.mining_01_adsgram)) systemSettings.mining_01_adsgram = '54597';
-        if (!systemSettings.mining_03_onclicka || systemSettings.mining_03_onclicka === '6153717') systemSettings.mining_03_onclicka = '6153774';
-        if (!systemSettings.spin_03_onclicka || systemSettings.spin_03_onclicka === '6153772') systemSettings.spin_03_onclicka = '6153717';
-        if (!systemSettings.box_03_onclicka || systemSettings.box_03_onclicka === '6153774') systemSettings.box_03_onclicka = '6153772';
-        if (!systemSettings.mining_04_richads || systemSettings.mining_04_richads === '410260') systemSettings.mining_04_richads = '410204';
-        if (!systemSettings.spin_04_richads || systemSettings.spin_04_richads === '410260') systemSettings.spin_04_richads = '410203';
-        if (!systemSettings.box_04_richads || systemSettings.box_04_richads === '410260') systemSettings.box_04_richads = '410202';
+        const OLD_IDS = new Set(['54110', '54111', '410260', '54618', '54617', '54597', '2217']);
+        delete (systemSettings as any).spin_01_adsgram;
+        delete (systemSettings as any).spin_05_adexora;
+        delete (systemSettings as any).box_01_adsgram;
+        delete (systemSettings as any).box_05_adexora;
+        delete (systemSettings as any).mining_01_adsgram;
+        delete (systemSettings as any).mining_05_adexora;
+
+        if (!systemSettings.spin_01_richads || OLD_IDS.has(systemSettings.spin_01_richads)) systemSettings.spin_01_richads = '410203';
+        if (!systemSettings.spin_02_monetag) systemSettings.spin_02_monetag = '12044377';
+        if (!systemSettings.spin_03_onclicka) systemSettings.spin_03_onclicka = '6153717';
+        if (!systemSettings.spin_04_richads || OLD_IDS.has(systemSettings.spin_04_richads)) systemSettings.spin_04_richads = '410203';
+        if (!systemSettings.spin_05_monetag) systemSettings.spin_05_monetag = '12044377';
+        if (!systemSettings.box_01_richads || OLD_IDS.has(systemSettings.box_01_richads)) systemSettings.box_01_richads = '410202';
+        if (!systemSettings.box_02_monetag) systemSettings.box_02_monetag = '12044377';
+        if (!systemSettings.box_03_onclicka) systemSettings.box_03_onclicka = '6153772';
+        if (!systemSettings.box_04_richads || OLD_IDS.has(systemSettings.box_04_richads)) systemSettings.box_04_richads = '410202';
+        if (!systemSettings.box_05_monetag) systemSettings.box_05_monetag = '12044377';
+        if (!systemSettings.mining_01_richads || OLD_IDS.has(systemSettings.mining_01_richads)) systemSettings.mining_01_richads = '410204';
+        if (!systemSettings.mining_02_monetag) systemSettings.mining_02_monetag = '12044377';
+        if (!systemSettings.mining_03_onclicka) systemSettings.mining_03_onclicka = '6153774';
+        if (!systemSettings.mining_04_richads || OLD_IDS.has(systemSettings.mining_04_richads)) systemSettings.mining_04_richads = '410204';
+        if (!systemSettings.mining_05_monetag) systemSettings.mining_05_monetag = '12044377';
       }
     } catch {}
   }
@@ -2398,7 +2419,7 @@ app.get(['/api/system/public-settings', '/api/system/settings', '/system/public-
     referralBonusUSDT: systemSettings.referralBonusUSDT !== undefined ? systemSettings.referralBonusUSDT : 5.0,
     welcomeBonusUSDT: systemSettings.welcomeBonusUSDT !== undefined ? systemSettings.welcomeBonusUSDT : 25.0,
     welcomeBonusE4F: systemSettings.welcomeBonusE4F !== undefined ? systemSettings.welcomeBonusE4F : 10.0,
-    adProvider: systemSettings.adProvider || 'MONETAG',
+    adProvider: systemSettings.adProvider || 'RichAds',
     rewardedAdRequired: systemSettings.rewardedAdRequired !== false,
     adRequired: systemSettings.rewardedAdRequired !== false,
     adDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30,
@@ -2411,26 +2432,26 @@ app.get(['/api/system/public-settings', '/api/system/settings', '/system/public-
     monetagZoneId: systemSettings.monetagZoneId || '12044377',
     monetagDirectLink: '',
     adsterraDirectLink: systemSettings.adsterraDirectLink || 'https://beta.publishers.adsterra.com/direct-link-demo',
-    // Waterfall Ad IDs (15 Real IDs)
-    spin_01_adsgram: systemSettings.spin_01_adsgram || '54618',
+    // Waterfall Ad IDs (5 Tiers: RichAds, Monetag, OnClickA)
+    spin_01_richads: systemSettings.spin_01_richads || '410203',
     spin_02_monetag: systemSettings.spin_02_monetag || '12044377',
     spin_03_onclicka: systemSettings.spin_03_onclicka || '6153717',
     spin_04_richads: systemSettings.spin_04_richads || '410203',
-    spin_05_adexora: systemSettings.spin_05_adexora || '2217',
-    box_01_adsgram: systemSettings.box_01_adsgram || '54617',
+    spin_05_monetag: systemSettings.spin_05_monetag || '12044377',
+    box_01_richads: systemSettings.box_01_richads || '410202',
     box_02_monetag: systemSettings.box_02_monetag || '12044377',
     box_03_onclicka: systemSettings.box_03_onclicka || '6153772',
     box_04_richads: systemSettings.box_04_richads || '410202',
-    box_05_adexora: systemSettings.box_05_adexora || '2217',
+    box_05_monetag: systemSettings.box_05_monetag || '12044377',
     // Mining Ad Gate & Waterfall (Configurable by Admin without app updates)
-    miningPrimaryNetwork: systemSettings.miningPrimaryNetwork || 'AdsGram',
-    miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'OnClickA',
+    miningPrimaryNetwork: systemSettings.miningPrimaryNetwork || 'RichAds',
+    miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'Monetag',
     miningWaterfallEnabled: systemSettings.miningWaterfallEnabled !== false,
-    mining_01_adsgram: systemSettings.mining_01_adsgram || '54597',
+    mining_01_richads: systemSettings.mining_01_richads || '410204',
     mining_02_monetag: systemSettings.mining_02_monetag || '12044377',
     mining_03_onclicka: systemSettings.mining_03_onclicka || '6153774',
     mining_04_richads: systemSettings.mining_04_richads || '410204',
-    mining_05_adexora: systemSettings.mining_05_adexora || '2217',
+    mining_05_monetag: systemSettings.mining_05_monetag || '12044377',
   });
 });
 
@@ -2643,15 +2664,14 @@ app.get('/api/mining/:userId/status', async (req: Request, res: Response) => {
     miningAdDurationSeconds: systemSettings.miningAdDurationSeconds || systemSettings.adMiningDurationSeconds || 30,
     spinAdDurationSeconds: systemSettings.spinAdDurationSeconds || 30,
     giftBoxAdDurationSeconds: systemSettings.giftBoxAdDurationSeconds || 30,
-    adProvider: systemSettings.adProvider,
-    miningPrimaryNetwork: systemSettings.miningPrimaryNetwork || 'AdsGram',
-    miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'OnClickA',
+    miningPrimaryNetwork: systemSettings.miningPrimaryNetwork || 'RichAds',
+    miningSecondaryNetwork: systemSettings.miningSecondaryNetwork || 'Monetag',
     miningWaterfallEnabled: systemSettings.miningWaterfallEnabled !== false,
-    mining_01_adsgram: systemSettings.mining_01_adsgram || '54597',
+    mining_01_richads: systemSettings.mining_01_richads || '410204',
     mining_02_monetag: systemSettings.mining_02_monetag || '12044377',
     mining_03_onclicka: systemSettings.mining_03_onclicka || '6153774',
     mining_04_richads: systemSettings.mining_04_richads || '410204',
-    mining_05_adexora: systemSettings.mining_05_adexora || '2217',
+    mining_05_monetag: systemSettings.mining_05_monetag || '12044377',
     adsterraDirectLink: systemSettings.adsterraDirectLink,
     monetagDirectLink: systemSettings.monetagDirectLink,
     seasonEndDate: seasonEnd,
@@ -2743,7 +2763,7 @@ app.post('/api/ads/session/create', async (req: Request, res: Response) => {
       const placement = actionType + (targetId ? `_${targetId}` : '');
       Promise.resolve(supabase.from('e4f_ad_views').insert({
         user_id: userId,
-        network: systemSettings.adProvider || 'AdsGram',
+        network: systemSettings.adProvider || 'RichAds',
         placement,
         created_at: new Date().toISOString(),
       })).catch(() => {});
@@ -2862,12 +2882,6 @@ app.post('/api/ads/session/complete', (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Ad session has already been used' });
   }
 
-  const isAdsgram = typeof sdkSignal === 'string' && sdkSignal.includes('ADSGRAM');
-  if (isAdsgram) {
-    session.watchStarted = true;
-    if (!session.startedAt || session.startedAt === 0) session.startedAt = Date.now() - 30000;
-  }
-
   const now = Date.now();
 
   // Must have actually opened and started watching the ad
@@ -2901,7 +2915,7 @@ app.post('/api/ads/session/complete', (req: Request, res: Response) => {
   // Strictly enforce required duration (allow at most 1s clock drift tolerance)
   const minRequiredMs = Math.max(1000, (requiredSeconds - 1) * 1000);
 
-  if (!isAdsgram && elapsedMs < minRequiredMs) {
+  if (elapsedMs < minRequiredMs) {
     const remainingSeconds = Math.max(1, Math.ceil((requiredSeconds * 1000 - elapsedMs) / 1000));
     return res.status(400).json({
       success: false,
@@ -2911,10 +2925,9 @@ app.post('/api/ads/session/complete', (req: Request, res: Response) => {
     });
   }
 
-  // Official completion check: Either Monetag SDK completion signal, Adsgram, Waterfall, S2S confirmed, or timer completed
+  // Official completion check: Either Monetag SDK completion signal, Waterfall, S2S confirmed, or timer completed
   const isVerifiedSignal =
     sdkSignal === 'MONETAG_REWARDED_COMPLETED' ||
-    isAdsgram ||
     (typeof sdkSignal === 'string' && sdkSignal.includes('WATERFALL')) ||
     session.monetagS2SConfirmed === true ||
     systemSettings.adProvider === 'SIMULATOR' ||
@@ -2942,12 +2955,10 @@ app.post('/api/ads/session/complete', (req: Request, res: Response) => {
   if (supabase) {
     try {
       const placement = session.actionType + (session.targetId ? `_${session.targetId}` : '');
-      const net = typeof sdkSignal === 'string' && sdkSignal.includes('ADSGRAM') ? 'AdsGram'
-        : typeof sdkSignal === 'string' && sdkSignal.includes('MONETAG') ? 'Monetag'
+      const net = typeof sdkSignal === 'string' && sdkSignal.includes('MONETAG') ? 'Monetag'
         : typeof sdkSignal === 'string' && sdkSignal.includes('ONCLICKA') ? 'OnClickA'
         : typeof sdkSignal === 'string' && sdkSignal.includes('RICHADS') ? 'RichAds'
-        : typeof sdkSignal === 'string' && sdkSignal.includes('ADEXORA') ? 'Adexora'
-        : (systemSettings.adProvider || 'AdsGram');
+        : (systemSettings.adProvider || 'RichAds');
       Promise.resolve(supabase.from('e4f_ad_events').insert({
         user_id: session.userId,
         network: net,
@@ -5430,7 +5441,7 @@ app.post(['/api/admin/settings', '/admin/settings'], requireAdminAuth, async (re
   if (updates.miningWaterfallEnabled !== undefined) {
     updates.miningWaterfallEnabled = updates.miningWaterfallEnabled === true || updates.miningWaterfallEnabled === 'true';
   }
-  const validNetworks = ['AdsGram', 'Monetag', 'OnClickA', 'RichAds', 'Adexora'];
+  const validNetworks = ['RichAds', 'Monetag', 'OnClickA'];
   if (updates.miningPrimaryNetwork && validNetworks.includes(updates.miningPrimaryNetwork)) {
     updates.miningPrimaryNetwork = updates.miningPrimaryNetwork;
   }

@@ -171,7 +171,7 @@ export const MiningView: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4 pb-24 pt-2 px-4 max-w-md mx-auto">
-      {/* Rewarded Ad Modal with Dynamic Network & Waterfall (AdsGram, Monetag, OnClickA, RichAds, Adexora) */}
+      {/* Rewarded Ad Modal with Dynamic Network & Waterfall (RichAds, Monetag, OnClickA) */}
       {showAdModal && user && (
         <UnifiedRewardedAdModal
           userId={user.id}
