@@ -61,11 +61,8 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
       return;
     }
 
-    if (adRequired) {
-      setAdTargetBox(box);
-    } else {
-      executeOpenBox(box.id);
-    }
+    // Ad completion is strictly mandatory before any gift box can be opened or counted
+    setAdTargetBox(box);
   };
 
   const handleAdCompleted = (adSessionId: string, claimToken: string) => {
@@ -97,7 +94,7 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
       {/* Rewarded Ad Gate Modal */}
       {adTargetBox && user && (
         <UnifiedRewardedAdModal
@@ -112,7 +109,7 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
         />
       )}
 
-      <div className="relative w-full max-w-sm bg-[#0C1326] border border-amber-500/40 rounded-3xl p-6 text-center shadow-2xl">
+      <div className="relative w-full max-w-sm max-h-[92vh] overflow-y-auto my-auto bg-[#0C1326] border border-amber-500/40 rounded-3xl p-6 text-center shadow-2xl no-scrollbar">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white cursor-pointer"

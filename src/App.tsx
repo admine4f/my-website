@@ -46,7 +46,7 @@ const AppContent: React.FC = () => {
       <TopBar />
 
       {/* Active Tab View */}
-      <main className="flex-1 w-full max-w-md mx-auto pb-24 touch-pan-y">
+      <main className="flex-1 w-full max-w-md mx-auto pb-24">
         {activeTab === 'home' && <HomeView />}
         {activeTab === 'mining' && <MiningView />}
         {activeTab === 'market' && <MarketView />}

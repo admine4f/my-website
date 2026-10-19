@@ -182,8 +182,26 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
         const isTg = typeof window !== 'undefined' && Boolean((window as any).Telegram?.WebApp?.initData);
 
+        const dynamicSettings: Record<string, string> = {
+          box_01_richads: BOX_01_RICHADS,
+          box_02_monetag: BOX_02_MONETAG,
+          box_03_onclicka: BOX_03_ONCLICKA,
+          box_04_richads: BOX_04_RICHADS,
+          box_05_monetag: BOX_05_MONETAG,
+          spin_01_richads: SPIN_01_RICHADS,
+          spin_02_monetag: SPIN_02_MONETAG,
+          spin_03_onclicka: SPIN_03_ONCLICKA,
+          spin_04_richads: SPIN_04_RICHADS,
+          spin_05_monetag: SPIN_05_MONETAG,
+          mining_01_richads: MINING_01_RICHADS,
+          mining_02_monetag: MINING_02_MONETAG,
+          mining_03_onclicka: MINING_03_ONCLICKA,
+          mining_04_richads: MINING_04_RICHADS,
+          mining_05_monetag: MINING_05_MONETAG,
+        };
+
         // Build Distinct 5-Tier Waterfall (RichAds, Monetag, OnClickA)
-        const computedTiers = buildIntraWaterfallTiers(actionType, targetId, userId, isTg);
+        const computedTiers = buildIntraWaterfallTiers(actionType, targetId, userId, isTg, dynamicSettings);
 
         setTiers(computedTiers);
         setTierIndex(0);
@@ -465,8 +483,8 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-      <div className="relative w-full max-w-sm bg-[#0C1326] border border-amber-500/40 rounded-3xl p-6 text-center shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-sm max-h-[92vh] overflow-y-auto my-auto bg-[#0C1326] border border-amber-500/40 rounded-3xl p-6 text-center shadow-2xl no-scrollbar">
         {/* Ambient Top Glow */}
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-20 bg-amber-500/20 blur-2xl pointer-events-none" />
 

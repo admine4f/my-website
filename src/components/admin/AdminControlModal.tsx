@@ -840,7 +840,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md overflow-y-auto touch-pan-y">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-lg bg-[#0A0F1D] border border-amber-500/40 rounded-3xl p-5 text-slate-200 shadow-2xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -884,10 +884,6 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
             <p className="text-xs text-slate-400 max-w-xs mb-3">
               Enter Administrator Password to access authoritative controls.
             </p>
-            <div className="text-[10px] text-amber-300/90 font-mono bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl mb-4 text-center">
-              Passkey: <span className="font-bold text-amber-300">8827675419</span>, <span className="font-bold text-amber-300">E4F_DevAdmin_Secret_2028</span> or <span className="font-bold text-amber-300">admin</span>
-            </div>
-
             {authError && (
               <div className="w-full max-w-xs mb-4 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -898,14 +894,14 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
             <div className="w-full max-w-xs space-y-3">
               <div>
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block text-left mb-1">
-                  Administrator Password / Passkey
+                  Administrator Password
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={adminPassword}
                     onChange={e => setAdminPassword(e.target.value)}
-                    placeholder="Enter passkey or 8827675419"
+                    placeholder="Enter confidential password"
                     className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono tracking-wider"
                     autoComplete="off"
                     autoCorrect="off"
@@ -928,30 +924,6 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-lg transition-all cursor-pointer"
               >
                 {authenticating ? 'Authenticating...' : 'Unlock Admin Panel'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthenticating(true);
-                  api.adminLogin('8827675419')
-                    .then(res => {
-                      if (res.success) {
-                        setIsAuthenticated(true);
-                        if (res.token) {
-                          try { localStorage.setItem('e4f_admin_token', res.token); } catch {}
-                        }
-                        loadAdminData();
-                      }
-                    })
-                    .catch(err => setAuthError(err.message || 'Telegram auth failed'))
-                    .finally(() => setAuthenticating(false));
-                }}
-                disabled={authenticating}
-                className="w-full py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-[11px] transition-all cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Instant Telegram Admin Unlock (8827675419)</span>
               </button>
             </div>
           </form>

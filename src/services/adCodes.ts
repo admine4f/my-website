@@ -139,41 +139,85 @@ export interface IntraWaterfallTier {
 }
 
 /**
- * 5 Active Waterfall Tiers per Slot:
- * Slot 1: RichAds (Primary)
- * Slot 2: Monetag (Tier 2)
- * Slot 3: OnClickA (Tier 3)
- * Slot 4: RichAds (Tier 4)
- * Slot 5: Monetag (Tier 5)
+ * 5 Active Waterfall Tiers per Slot with Box-Specific Primary Network:
+ * Box 1 -> Slot 1: RichAds (410202) -> Monetag -> OnClickA -> RichAds -> Monetag
+ * Box 2 -> Slot 2: Monetag (12044377) -> OnClickA -> RichAds -> Monetag -> RichAds
+ * Box 3 -> Slot 3: OnClickA (6153772) -> RichAds -> Monetag -> RichAds -> Monetag
+ * Box 4 -> Slot 4: RichAds (410202) -> Monetag -> RichAds -> Monetag -> OnClickA
+ * Box 5 -> Slot 5: Monetag (12044377) -> RichAds -> Monetag -> OnClickA -> RichAds
  */
 export function buildIntraWaterfallTiers(
   actionType: 'MINING' | 'SPIN' | 'GIFT_BOX' | 'WITHDRAW' | 'SELL',
   targetId: number | undefined,
   _userId: string,
-  _isTelegram: boolean = true
+  _isTelegram: boolean = true,
+  dynamicSettings?: Record<string, string>
 ): IntraWaterfallTier[] {
-  const padIndex = String(Math.max(1, Math.min(5, Number(targetId) || 1))).padStart(2, '0');
-  const prefix = actionType === 'SPIN' ? 'spin' : actionType === 'GIFT_BOX' ? 'box' : 'mining';
-  const placementKey = `${prefix}_${padIndex}`;
+  const num = Math.max(1, Math.min(5, Number(targetId) || 1));
+  const startIndex = num - 1;
 
-  if (actionType === 'MINING' || actionType === 'WITHDRAW' || actionType === 'SELL') {
-    return [
-      { index: 1, provider: 'RichAds', id: MINING_ADS.mining.richads_1, placementKey: 'mining_01', label: 'RichAds (Primary)' },
-      { index: 2, provider: 'Monetag', id: MINING_ADS.mining.monetag_1, placementKey: 'mining_02', label: 'Monetag (Tier 2)' },
-      { index: 3, provider: 'OnClickA', id: MINING_ADS.mining.onclicka, placementKey: 'mining_03', label: 'OnClickA (Tier 3)' },
-      { index: 4, provider: 'RichAds', id: MINING_ADS.mining.richads_2, placementKey: 'mining_04', label: 'RichAds (Tier 4)' },
-      { index: 5, provider: 'Monetag', id: MINING_ADS.mining.monetag_2, placementKey: 'mining_05', label: 'Monetag (Tier 5)' },
+  if (actionType === 'GIFT_BOX') {
+    const box01 = dynamicSettings?.box_01_richads || BOX_ADS.box_01.richads_1 || '410202';
+    const box02 = dynamicSettings?.box_02_monetag || BOX_ADS.box_02.monetag_1 || '12044377';
+    const box03 = dynamicSettings?.box_03_onclicka || BOX_ADS.box_03.onclicka || '6153772';
+    const box04 = dynamicSettings?.box_04_richads || BOX_ADS.box_04.richads_2 || '410202';
+    const box05 = dynamicSettings?.box_05_monetag || BOX_ADS.box_05.monetag_2 || '12044377';
+
+    const baseTiers: IntraWaterfallTier[] = [
+      { index: 1, provider: 'RichAds', id: box01, placementKey: 'box_01', label: 'RichAds (Slot 1)' },
+      { index: 2, provider: 'Monetag', id: box02, placementKey: 'box_02', label: 'Monetag (Slot 2)' },
+      { index: 3, provider: 'OnClickA', id: box03, placementKey: 'box_03', label: 'OnClickA (Slot 3)' },
+      { index: 4, provider: 'RichAds', id: box04, placementKey: 'box_04', label: 'RichAds (Slot 4)' },
+      { index: 5, provider: 'Monetag', id: box05, placementKey: 'box_05', label: 'Monetag (Slot 5)' },
     ];
+
+    return [
+      ...baseTiers.slice(startIndex),
+      ...baseTiers.slice(0, startIndex),
+    ].map((tier, i) => ({
+      ...tier,
+      index: i + 1,
+      label: i === 0 ? `${tier.provider} (Primary)` : `${tier.provider} (Tier ${i + 1})`,
+    }));
   }
 
-  const adsMap = actionType === 'SPIN' ? SPIN_ADS : BOX_ADS;
-  const conf = adsMap[placementKey] || adsMap[`${prefix}_01`];
+  if (actionType === 'SPIN') {
+    const spin01 = dynamicSettings?.spin_01_richads || SPIN_ADS.spin_01.richads_1 || '410203';
+    const spin02 = dynamicSettings?.spin_02_monetag || SPIN_ADS.spin_02.monetag_1 || '12044377';
+    const spin03 = dynamicSettings?.spin_03_onclicka || SPIN_ADS.spin_03.onclicka || '6153717';
+    const spin04 = dynamicSettings?.spin_04_richads || SPIN_ADS.spin_04.richads_2 || '410203';
+    const spin05 = dynamicSettings?.spin_05_monetag || SPIN_ADS.spin_05.monetag_2 || '12044377';
+
+    const baseTiers: IntraWaterfallTier[] = [
+      { index: 1, provider: 'RichAds', id: spin01, placementKey: 'spin_01', label: 'RichAds (Slot 1)' },
+      { index: 2, provider: 'Monetag', id: spin02, placementKey: 'spin_02', label: 'Monetag (Slot 2)' },
+      { index: 3, provider: 'OnClickA', id: spin03, placementKey: 'spin_03', label: 'OnClickA (Slot 3)' },
+      { index: 4, provider: 'RichAds', id: spin04, placementKey: 'spin_04', label: 'RichAds (Slot 4)' },
+      { index: 5, provider: 'Monetag', id: spin05, placementKey: 'spin_05', label: 'Monetag (Slot 5)' },
+    ];
+
+    return [
+      ...baseTiers.slice(startIndex),
+      ...baseTiers.slice(0, startIndex),
+    ].map((tier, i) => ({
+      ...tier,
+      index: i + 1,
+      label: i === 0 ? `${tier.provider} (Primary)` : `${tier.provider} (Tier ${i + 1})`,
+    }));
+  }
+
+  // Mining / Withdraw / Sell
+  const mining01 = dynamicSettings?.mining_01_richads || MINING_ADS.mining.richads_1 || '410204';
+  const mining02 = dynamicSettings?.mining_02_monetag || MINING_ADS.mining.monetag_1 || '12044377';
+  const mining03 = dynamicSettings?.mining_03_onclicka || MINING_ADS.mining.onclicka || '6153774';
+  const mining04 = dynamicSettings?.mining_04_richads || MINING_ADS.mining.richads_2 || '410204';
+  const mining05 = dynamicSettings?.mining_05_monetag || MINING_ADS.mining.monetag_2 || '12044377';
 
   return [
-    { index: 1, provider: 'RichAds', id: conf.richads_1, placementKey, label: `RichAds (${actionType === 'SPIN' ? 'Spin' : 'Box'} #1)` },
-    { index: 2, provider: 'Monetag', id: conf.monetag_1, placementKey, label: `Monetag (${actionType === 'SPIN' ? 'Spin' : 'Box'} #2)` },
-    { index: 3, provider: 'OnClickA', id: conf.onclicka, placementKey, label: `OnClickA (${actionType === 'SPIN' ? 'Spin' : 'Box'} #3)` },
-    { index: 4, provider: 'RichAds', id: conf.richads_2, placementKey, label: `RichAds (${actionType === 'SPIN' ? 'Spin' : 'Box'} #4)` },
-    { index: 5, provider: 'Monetag', id: conf.monetag_2, placementKey, label: `Monetag (${actionType === 'SPIN' ? 'Spin' : 'Box'} #5)` },
+    { index: 1, provider: 'RichAds', id: mining01, placementKey: 'mining_01', label: 'RichAds (Primary)' },
+    { index: 2, provider: 'Monetag', id: mining02, placementKey: 'mining_02', label: 'Monetag (Tier 2)' },
+    { index: 3, provider: 'OnClickA', id: mining03, placementKey: 'mining_03', label: 'OnClickA (Tier 3)' },
+    { index: 4, provider: 'RichAds', id: mining04, placementKey: 'mining_04', label: 'RichAds (Tier 4)' },
+    { index: 5, provider: 'Monetag', id: mining05, placementKey: 'mining_05', label: 'Monetag (Tier 5)' },
   ];
 }

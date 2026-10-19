@@ -3732,12 +3732,12 @@ app.post(['/api/rewards/spin', '/api/rewards/spin/claim', '/rewards/spin', '/rew
     });
   }
 
-  // Strict Rewarded Ad Verification: Each of the 5 spins requires its own completed ad
-  if (systemSettings.rewardSpinAdRequired) {
+  // Strict Rewarded Ad Verification: Each of the 5 spins strictly requires its own completed ad
+  if (systemSettings.rewardSpinAdRequired !== false) {
     if (!adSessionId && !claimToken) {
       return res.status(403).json({
         success: false,
-        error: 'Spin locked. Rewarded ad completion is required for each spin.',
+        error: 'Spin locked. Rewarded ad completion is strictly required for each spin. No spin can count without watching an ad.',
       });
     }
 
@@ -3901,12 +3901,12 @@ app.post(['/api/rewards/gift-box/open', '/api/rewards/gift-box/claim', '/rewards
     });
   }
 
-  // Strict Rewarded Ad Verification: Each of the 5 gift boxes requires its own completed ad
-  if (systemSettings.giftBoxAdRequired) {
+  // Strict Rewarded Ad Verification: Each of the 5 gift boxes strictly requires its own completed ad
+  if (systemSettings.giftBoxAdRequired !== false) {
     if (!adSessionId && !claimToken) {
       return res.status(403).json({
         success: false,
-        error: 'Box locked. Rewarded ad completion is required to unlock this gift box.',
+        error: 'Box locked. Rewarded ad completion is strictly required to unlock this gift box. No box can open without watching an ad.',
       });
     }
 

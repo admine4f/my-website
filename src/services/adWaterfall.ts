@@ -81,24 +81,44 @@ export async function syncWaterfallSettings(): Promise<{
 }
 
 // 5 Tiers: RichAds -> Monetag -> OnClickA -> RichAds -> Monetag
-export function getSpinWaterfallTiers(): WaterfallTier[] {
-  return [
-    { index: 1, provider: 'RichAds', id: spin_01_richads, label: 'RichAds (Primary)' },
-    { index: 2, provider: 'Monetag', id: spin_02_monetag, label: 'Monetag (Tier 2)' },
-    { index: 3, provider: 'OnClickA', id: spin_03_onclicka, label: 'OnClickA (Tier 3)' },
-    { index: 4, provider: 'RichAds', id: spin_04_richads, label: 'RichAds (Tier 4)' },
-    { index: 5, provider: 'Monetag', id: spin_05_monetag, label: 'Monetag (Tier 5)' },
+export function getSpinWaterfallTiers(targetSpinNumber?: number): WaterfallTier[] {
+  const baseTiers: WaterfallTier[] = [
+    { index: 1, provider: 'RichAds', id: spin_01_richads, label: 'RichAds (Slot 1)' },
+    { index: 2, provider: 'Monetag', id: spin_02_monetag, label: 'Monetag (Slot 2)' },
+    { index: 3, provider: 'OnClickA', id: spin_03_onclicka, label: 'OnClickA (Slot 3)' },
+    { index: 4, provider: 'RichAds', id: spin_04_richads, label: 'RichAds (Slot 4)' },
+    { index: 5, provider: 'Monetag', id: spin_05_monetag, label: 'Monetag (Slot 5)' },
   ];
+  if (!targetSpinNumber || targetSpinNumber < 1) return baseTiers;
+  const startIndex = Math.max(0, Math.min(4, targetSpinNumber - 1));
+  return [
+    ...baseTiers.slice(startIndex),
+    ...baseTiers.slice(0, startIndex),
+  ].map((t, i) => ({
+    ...t,
+    index: i + 1,
+    label: i === 0 ? `${t.provider} (Primary)` : `${t.provider} (Tier ${i + 1})`,
+  }));
 }
 
-export function getBoxWaterfallTiers(): WaterfallTier[] {
-  return [
-    { index: 1, provider: 'RichAds', id: box_01_richads, label: 'RichAds (Primary)' },
-    { index: 2, provider: 'Monetag', id: box_02_monetag, label: 'Monetag (Tier 2)' },
-    { index: 3, provider: 'OnClickA', id: box_03_onclicka, label: 'OnClickA (Tier 3)' },
-    { index: 4, provider: 'RichAds', id: box_04_richads, label: 'RichAds (Tier 4)' },
-    { index: 5, provider: 'Monetag', id: box_05_monetag, label: 'Monetag (Tier 5)' },
+export function getBoxWaterfallTiers(targetBoxNumber?: number): WaterfallTier[] {
+  const baseTiers: WaterfallTier[] = [
+    { index: 1, provider: 'RichAds', id: box_01_richads, label: 'RichAds (Slot 1)' },
+    { index: 2, provider: 'Monetag', id: box_02_monetag, label: 'Monetag (Slot 2)' },
+    { index: 3, provider: 'OnClickA', id: box_03_onclicka, label: 'OnClickA (Slot 3)' },
+    { index: 4, provider: 'RichAds', id: box_04_richads, label: 'RichAds (Slot 4)' },
+    { index: 5, provider: 'Monetag', id: box_05_monetag, label: 'Monetag (Slot 5)' },
   ];
+  if (!targetBoxNumber || targetBoxNumber < 1) return baseTiers;
+  const startIndex = Math.max(0, Math.min(4, targetBoxNumber - 1));
+  return [
+    ...baseTiers.slice(startIndex),
+    ...baseTiers.slice(0, startIndex),
+  ].map((t, i) => ({
+    ...t,
+    index: i + 1,
+    label: i === 0 ? `${t.provider} (Primary)` : `${t.provider} (Tier ${i + 1})`,
+  }));
 }
 
 export function getMiningWaterfallTiers(): WaterfallTier[] {
