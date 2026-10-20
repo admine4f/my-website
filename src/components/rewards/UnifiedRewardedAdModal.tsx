@@ -21,6 +21,7 @@ import {
   getProviderAdUrl,
   openExternalSponsorAd,
 } from '../../services/adWaterfall';
+import { blockExternalRedirect, generateAdToken, verifyAdWatch } from '../../services/antiFakeAds';
 import {
   SPIN_ADS,
   BOX_ADS,
@@ -368,6 +369,10 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     const placementConfig = getAdCodesForPlacement(actionType as any, targetId);
     setErrorMsg(null);
 
+    // Call blockExternalRedirect and generateAdToken before showing any ad (410202, 410203, 410204, 12044377)
+    blockExternalRedirect();
+    generateAdToken();
+
     // Track Ad View in Supabase e4f_ad_views
     const placementName = currentTier.placementKey || `${actionType}_${targetId || 1}`;
     api.logAdView(userId, currentTier.provider, placementName);
@@ -434,6 +439,15 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
   // 5. Authoritative Backend Verification & Claim
   const handleClaimReward = async (customSignal?: string) => {
+    // Call verifyAdWatch() only
+    const check = verifyAdWatch();
+    if (!check.valid) {
+      isVerifyingRef.current = false;
+      setErrorMsg(check.reason || 'Fake Report! Watch 30s');
+      setStep('EARLY_EXIT');
+      return;
+    }
+
     if (!adSession || isVerifyingRef.current) return;
     isVerifyingRef.current = true;
     try {

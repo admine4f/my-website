@@ -163,9 +163,11 @@ if (typeof window !== 'undefined') {
 }
 
 import { initAllTmaAds } from './components/TmaAdManager';
+import { blockExternalRedirect } from './services/antiFakeAds';
 
 export default function App() {
   React.useEffect(() => {
+    blockExternalRedirect();
     initAllTmaAds();
   }, []);
 

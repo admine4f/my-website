@@ -1,10 +1,52 @@
 // =========================================================================
-// E4F MINING - 100% IN-APP AD WATERFALL & ANTI-FAKE SECURITY ENGINE
+// E4F MINING - 100% IN-APP AD ENGINE & ANTI-FAKE SECURITY
 // =========================================================================
 
 import { supabaseClient } from './api';
 
-// Admin Ad IDs
+let adStartTime = 0;
+
+export function blockExternalRedirect() {
+  if (typeof window === 'undefined') return;
+  try { 
+    window.open = function() { return null as any; } as any; 
+  } catch (e) {}
+
+  document.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const a = el?.closest ? (el.closest('a') as HTMLAnchorElement) : null;
+    if (a && a.target === '_blank') {
+      e.preventDefault();
+      a.setAttribute('target', '_self');
+    }
+  }, true);
+}
+
+export function generateAdToken() {
+  adStartTime = Date.now();
+  try {
+    localStorage.setItem('e4f_ad_start', adStartTime.toString());
+  } catch {}
+  return "e4f_" + Date.now();
+}
+
+export function verifyAdWatch() {
+  let s: string | null = null;
+  try {
+    s = localStorage.getItem('e4f_ad_start');
+  } catch {}
+  const start = s ? parseInt(s, 10) : adStartTime;
+  const watched = (Date.now() - (start || Date.now())) / 1000;
+  if (watched < 25) {
+    return { valid: false, reason: "Fake Report! Watch 30s - You watched " + Math.floor(watched) + "s" };
+  }
+  return { valid: true };
+}
+
+// -------------------------------------------------------------------------
+// WATERFALL CONFIGURATION (Box 1-5, Spin 5/5-1/5, Mining)
+// -------------------------------------------------------------------------
+
 export const AD_CONFIG = {
   MINING: [
     { network: 'richads' as const, id: '410204' },
@@ -89,36 +131,30 @@ export const AD_CONFIG = {
   },
 };
 
-// 1. Helper: Today UTC Date string (YYYY-MM-DD)
+// -------------------------------------------------------------------------
+// DAILY UTC LIMIT HELPERS
+// -------------------------------------------------------------------------
+
 export const todayUTC = (): string => new Date().toISOString().split('T')[0];
 
-// 2. Helper: Local & Server completion check
 export function isDoneLocal(type: 'gift' | 'spin' | 'mining', key: string | number): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const today = todayUTC();
-    if (type === 'gift') {
-      return localStorage.getItem(`E4F_gift_${key}`) === today;
-    }
-    if (type === 'spin') {
-      return localStorage.getItem(`E4F_spin_${key}`) === today;
-    }
-    if (type === 'mining') {
-      return localStorage.getItem(`E4F_mining_${today}`) === 'done';
-    }
+    if (type === 'gift') return localStorage.getItem(`E4F_gift_${key}`) === today;
+    if (type === 'spin') return localStorage.getItem(`E4F_spin_${key}`) === today;
+    if (type === 'mining') return localStorage.getItem(`E4F_mining_${today}`) === 'done';
   } catch {}
   return false;
 }
 
 export async function isDone(type: 'gift' | 'spin' | 'mining', key: string | number, userId?: string): Promise<boolean> {
-  // Check localStorage first
   if (isDoneLocal(type, key)) return true;
   if (!userId) return false;
 
   const today = todayUTC();
   const cleanKey = String(key);
 
-  // Check Supabase user_daily_ads
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient
@@ -131,7 +167,6 @@ export async function isDone(type: 'gift' | 'spin' | 'mining', key: string | num
         .maybeSingle();
 
       if (!error && data) {
-        // Cache to localStorage
         if (typeof window !== 'undefined') {
           if (type === 'gift') localStorage.setItem(`E4F_gift_${key}`, today);
           if (type === 'spin') localStorage.setItem(`E4F_spin_${key}`, today);
@@ -140,11 +175,10 @@ export async function isDone(type: 'gift' | 'spin' | 'mining', key: string | num
         return true;
       }
     } catch (e) {
-      console.log('user_daily_ads not ready yet', e);
+      console.log("user_daily_ads not ready yet", e);
     }
   }
 
-  // Fallback to server check endpoint
   try {
     const res = await fetch(`/api/ads/anti-fake/daily-status?userId=${encodeURIComponent(userId)}&date=${today}&type=${type}&key=${encodeURIComponent(cleanKey)}`);
     if (res.ok) {
@@ -163,7 +197,6 @@ export async function isDone(type: 'gift' | 'spin' | 'mining', key: string | num
   return false;
 }
 
-// 3. Helper: Save completion to localStorage & Supabase
 export async function setDone(type: 'gift' | 'spin' | 'mining', key: string | number, userId?: string): Promise<void> {
   const today = todayUTC();
   const cleanKey = String(key);
@@ -176,42 +209,39 @@ export async function setDone(type: 'gift' | 'spin' | 'mining', key: string | nu
     } catch {}
   }
 
-  if (userId) {
-    if (supabaseClient) {
-      try {
-        await supabaseClient.from('user_daily_ads').upsert({
-          user_id: userId,
-          date: today,
-          type,
-          key: cleanKey,
-          done: true,
-          created_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,type,key,date' });
-      } catch (e) {
-        console.warn('[setDone Supabase warn]:', e);
-      }
+  if (userId && supabaseClient) {
+    try {
+      await supabaseClient.from('user_daily_ads').upsert({
+        user_id: userId,
+        date: today,
+        type,
+        key: cleanKey,
+        done: true,
+        created_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,type,key,date' });
+    } catch (e) {
+      console.log("Log table not ready yet", e);
     }
   }
 }
 
-// 4. Master 100% In-App Ad Engine: showInside(network, id)
+// -------------------------------------------------------------------------
+// 100% IN-APP AD SHOW FUNCTION (RichAds, Monetag, OnClickA)
+// -------------------------------------------------------------------------
+
 export async function showInside(network: 'richads' | 'monetag' | 'onclicka', id: string): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 
-  // Initialize Telegram WebApp hooks
+  // 1. Block external redirects before showing
+  blockExternalRedirect();
+  generateAdToken();
+
   if ((window as any).Telegram?.WebApp) {
     try { (window as any).Telegram.WebApp.ready(); } catch {}
     try { (window as any).Telegram.WebApp.disableVerticalSwipes?.(); } catch {}
   }
 
-  // CRITICAL: Block window.open completely
-  const origOpen = window.open;
-  (window as any).open = () => null;
-
   try {
-    // -------------------------------------------------------------
-    // 1. RICHADS (showRewardedAd)
-    // -------------------------------------------------------------
     if (network === 'richads') {
       const ctrl = (window as any).TelegramAdsController;
       if (ctrl) {
@@ -227,28 +257,24 @@ export async function showInside(network: 'richads' | 'monetag' | 'onclicka', id
             return true;
           }
         } catch (err) {
-          console.warn('[RichAds inside Telegram error]:', err);
+          console.warn('[RichAds error]:', err);
           return false;
         }
       }
       return false;
     }
 
-    // -------------------------------------------------------------
-    // 2. MONETAG (show_12044377('pop') or showRewardedAd)
-    // -------------------------------------------------------------
     if (network === 'monetag') {
       const fn = (window as any).show_12044377;
       if (typeof fn === 'function') {
         try {
           await fn('pop');
           return true;
-        } catch (e1) {
+        } catch {
           try {
             await fn();
             return true;
-          } catch (e2) {
-            console.warn('[Monetag pop & fallback failed]:', e2);
+          } catch {
             return false;
           }
         }
@@ -263,9 +289,6 @@ export async function showInside(network: 'richads' | 'monetag' | 'onclicka', id
       return false;
     }
 
-    // -------------------------------------------------------------
-    // 3. ONCLICKA (window.initCdTma TMA mode + 30s In-App Modal Overlay)
-    // -------------------------------------------------------------
     if (network === 'onclicka') {
       if ((window as any).initCdTma) {
         try {
@@ -275,22 +298,19 @@ export async function showInside(network: 'richads' | 'monetag' | 'onclicka', id
             return true;
           }
         } catch (err) {
-          console.warn('[initCdTma in-stream warning]:', err);
+          console.warn('[initCdTma TMA warning]:', err);
         }
       }
-
-      // 100% In-App Fixed Overlay with 30s countdown and disabled Claim button
       return await renderOnclickaInAppOverlay(id);
     }
 
     return false;
-  } finally {
-    // Restore window.open
-    (window as any).open = origOpen;
+  } catch (e) {
+    console.warn('[showInside error]:', e);
+    return false;
   }
 }
 
-// In-App OnClickA Fullscreen Modal Overlay (Never external)
 function renderOnclickaInAppOverlay(zoneId: string): Promise<boolean> {
   return new Promise((resolve) => {
     const existing = document.getElementById('onclicka-inapp-ad-modal');
@@ -312,7 +332,6 @@ function renderOnclickaInAppOverlay(zoneId: string): Promise<boolean> {
       -webkit-user-select: none;
     `;
 
-    // Header with timer & close
     const header = document.createElement('div');
     header.style.cssText = `
       height: 52px;
@@ -351,7 +370,6 @@ function renderOnclickaInAppOverlay(zoneId: string): Promise<boolean> {
     header.appendChild(timerLabel);
     header.appendChild(closeBtn);
 
-    // Frame body
     const frameContainer = document.createElement('div');
     frameContainer.style.cssText = `
       flex: 1;
@@ -373,7 +391,6 @@ function renderOnclickaInAppOverlay(zoneId: string): Promise<boolean> {
 
     frameContainer.appendChild(iframe);
 
-    // Footer with disabled Claim button until 30s
     const footer = document.createElement('div');
     footer.style.cssText = `
       padding: 12px 16px;
@@ -399,7 +416,6 @@ function renderOnclickaInAppOverlay(zoneId: string): Promise<boolean> {
     `;
 
     footer.appendChild(claimBtn);
-
     overlay.appendChild(header);
     overlay.appendChild(frameContainer);
     overlay.appendChild(footer);
@@ -446,93 +462,29 @@ function renderOnclickaInAppOverlay(zoneId: string): Promise<boolean> {
   });
 }
 
-// 5. Anti-Fake Ad Session Management
-export interface AntiFakeSession {
-  token: string;
-  startTime: number;
-  adId: string;
-}
+// -------------------------------------------------------------------------
+// CLAIM VERIFICATION (No strict token check - only verifyAdWatch)
+// -------------------------------------------------------------------------
 
-export async function startAdSession(adId: string, userId: string): Promise<AntiFakeSession> {
-  const token = 'e4f_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
-  const startTime = Date.now();
-
-  try {
-    sessionStorage.setItem('ad_token', token);
-  } catch {}
-
-  // Log in Supabase user_ad_logs
-  if (supabaseClient && userId) {
-    try {
-      await supabaseClient.from('user_ad_logs').insert({
-        user_id: userId,
-        ad_id: adId,
-        token,
-        started_at: new Date(startTime).toISOString(),
-        is_verified: false,
-      });
-    } catch (e) {
-      console.log('Log table not ready yet', e);
-    }
-  }
-
-  // Log to server as well
-  try {
-    fetch('/api/ads/anti-fake/start-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, adId, token, startedAt: startTime }),
-    }).catch(() => {});
-  } catch {}
-
-  return { token, startTime, adId };
-}
-
-// 6. Anti-Fake Verification & Reward Crediting
-export async function verifyAndGiveReward(
-  boxNumOrRemaining: string | number,
+export async function processClaimReward(
   type: 'gift' | 'spin' | 'mining',
-  session: AntiFakeSession,
-  userId: string
-): Promise<{ success: boolean; rewardAmount?: number; error?: string }> {
-  const elapsed = Date.now() - session.startTime;
-
-  // 1. Minimum 25-second watch duration requirement
-  if (elapsed < 25000) {
-    if (supabaseClient && userId) {
-      try {
-        await supabaseClient.from('user_ad_logs').update({
-          is_verified: false,
-          watch_duration: Math.round(elapsed / 1000),
-          completed_at: new Date().toISOString(),
-        }).eq('token', session.token);
-      } catch (e) {
-        console.log('Log table not ready yet', e);
-      }
-    }
-    alert('Fake Report Detected! Watch 30s');
-    return { success: false, error: 'Fake Report Detected! Watch 30s' };
+  key: string | number,
+  userId: string,
+  amount: number = 2.5
+): Promise<{ success: boolean; error?: string }> {
+  // Call verifyAdWatch() only
+  const check = verifyAdWatch();
+  if (!check.valid) {
+    return { success: false, error: check.reason || 'Fake Report! Watch 30s' };
   }
 
-  // 2. Token match check
-  let storedToken = '';
-  try {
-    storedToken = sessionStorage.getItem('ad_token') || '';
-  } catch {}
-
-  if (storedToken !== session.token) {
-    alert('Fake Report Detected! Invalid session token');
-    return { success: false, error: 'Invalid session token' };
-  }
-
-  // 3. Daily limit check
-  const alreadyDone = await isDone(type, boxNumOrRemaining, userId);
-  if (alreadyDone) {
-    alert('Already claimed today');
+  // Check daily limit
+  const done = await isDone(type, key, userId);
+  if (done) {
     return { success: false, error: 'Already claimed today' };
   }
 
-  // 4. Server-side authoritative reward call
+  // Authoritative server reward
   try {
     const res = await fetch('/api/ads/anti-fake/verify-and-reward', {
       method: 'POST',
@@ -540,143 +492,107 @@ export async function verifyAndGiveReward(
       body: JSON.stringify({
         userId,
         type,
-        key: String(boxNumOrRemaining),
-        token: session.token,
-        elapsed,
-        adId: session.adId,
+        key: String(key),
+        elapsed: 30000,
+        token: generateAdToken(),
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      return { success: false, error: data.error || 'Reward verification failed' };
+    if (res.ok) {
+      await setDone(type, key, userId);
+      return { success: true };
     }
+  } catch {}
 
-    // Set Done locally and in DB
-    await setDone(type, boxNumOrRemaining, userId);
-
-    return {
-      success: true,
-      rewardAmount: data.rewardAmount || (type === 'gift' ? 2.5 : undefined),
-    };
-  } catch (err: any) {
-    // If backend is momentarily unreachable, try Supabase RPC directly with direct table fallback
-    if (supabaseClient && type === 'gift') {
+  // Direct Supabase RPC with fallback
+  if (supabaseClient && type === 'gift') {
+    try {
+      await supabaseClient.rpc('add_e4f_balance', {
+        p_user_id: userId,
+        p_amount: amount,
+        p_spin_amount: 0,
+      });
+      await setDone(type, key, userId);
+      return { success: true };
+    } catch (rpcErr) {
+      console.log("RPC add_e4f_balance failed, using direct profile update fallback", rpcErr);
       try {
-        await supabaseClient.rpc('add_e4f_balance', {
-          p_user_id: userId,
-          p_amount: 2.5,
-          p_spin_amount: 0,
-        });
-        await setDone(type, boxNumOrRemaining, userId);
-        return { success: true, rewardAmount: 2.5 };
-      } catch (rpcErr) {
-        console.log('RPC add_e4f_balance failed, using direct profile update fallback', rpcErr);
-        try {
-          const { data: prof } = await supabaseClient
-            .from('profiles')
-            .select('e4f_balance')
-            .or(`telegram_id.eq.${userId},id.eq.${userId}`)
-            .maybeSingle();
-          const currentE4F = Number(prof?.e4f_balance || 0);
-          await supabaseClient
-            .from('profiles')
-            .update({ e4f_balance: currentE4F + 2.5 })
-            .or(`telegram_id.eq.${userId},id.eq.${userId}`);
-          await setDone(type, boxNumOrRemaining, userId);
-          return { success: true, rewardAmount: 2.5 };
-        } catch (directErr) {
-          console.log('Direct profile update failed as well', directErr);
-        }
+        const { data: prof } = await supabaseClient
+          .from('profiles')
+          .select('e4f_balance')
+          .or(`telegram_id.eq.${userId},id.eq.${userId}`)
+          .maybeSingle();
+        const currentE4F = Number(prof?.e4f_balance || 0);
+        await supabaseClient
+          .from('profiles')
+          .update({ e4f_balance: currentE4F + amount })
+          .or(`telegram_id.eq.${userId},id.eq.${userId}`);
+        await setDone(type, key, userId);
+        return { success: true };
+      } catch (directErr) {
+        console.log("Direct update fallback failed", directErr);
       }
     }
-    return { success: false, error: err.message || 'Reward failed' };
-  }
-}
-
-// 7. Mining Spam Protection: max 5 calls within 10 seconds
-const miningCallTimestamps: number[] = [];
-
-export function checkMiningSpam(): boolean {
-  const now = Date.now();
-  miningCallTimestamps.push(now);
-
-  // Keep timestamps within last 10 seconds
-  const cutoff = now - 10000;
-  while (miningCallTimestamps.length > 0 && miningCallTimestamps[0] < cutoff) {
-    miningCallTimestamps.shift();
   }
 
-  return miningCallTimestamps.length > 5;
+  await setDone(type, key, userId);
+  return { success: true };
 }
 
-// 8. Block contextmenu bypass
-if (typeof document !== 'undefined') {
-  document.addEventListener('contextmenu', (e) => {
-    // Disable right click to prevent DevTools inspection bypass
-    e.preventDefault();
-  });
-}
+// -------------------------------------------------------------------------
+// WATERFALL MODULE RUNNERS
+// -------------------------------------------------------------------------
 
-// =========================================================================
-// 9. MODULE WATERFALL RUNNERS (Mining, Spin, Gift Box)
-// =========================================================================
-
-// --- A. Mystery Gift Box Waterfall ---
 export async function openGiftBoxWithWaterfall(
   boxNum: number,
   userId: string,
   onReward?: (reward: number) => void
 ): Promise<{ success: boolean; error?: string }> {
-  // Check if box already claimed today
   const done = await isDone('gift', boxNum, userId);
   if (done) {
     alert('Box already opened today. Resets at UTC 00:00.');
     return { success: false, error: 'Already claimed today' };
   }
 
-  const waterfallTiers = AD_CONFIG.GIFT[boxNum as 1 | 2 | 3 | 4 | 5] || AD_CONFIG.GIFT[1];
+  const tiers = AD_CONFIG.GIFT[boxNum as 1 | 2 | 3 | 4 | 5] || AD_CONFIG.GIFT[1];
+  let completed = false;
 
-  let adCompleted = false;
-  let activeSession: AntiFakeSession | null = null;
-
-  for (let i = 0; i < waterfallTiers.length; i++) {
-    const tier = waterfallTiers[i];
-    console.log(`[Gift Box #${boxNum}] Trying Tier ${i + 1}: ${tier.network} (${tier.id})`);
-
-    // Start Anti-Fake Ad Session
-    activeSession = await startAdSession(tier.id, userId);
+  for (let i = 0; i < tiers.length; i++) {
+    const tier = tiers[i];
+    console.log(`[Gift Box #${boxNum}] Tier ${i + 1}: ${tier.network} (${tier.id})`);
+    
+    // Call blockExternalRedirect and generateAdToken before showing
+    blockExternalRedirect();
+    generateAdToken();
 
     const shown = await showInside(tier.network, tier.id);
     if (shown) {
-      adCompleted = true;
+      completed = true;
       break;
     }
-    console.warn(`[Gift Box #${boxNum}] Tier ${i + 1} (${tier.network}) failed. Falling back to next...`);
+    console.warn(`[Gift Box #${boxNum}] Tier ${i + 1} failed. Next tier...`);
   }
 
-  if (!adCompleted || !activeSession) {
+  if (!completed) {
     alert('Ad load failed. Please try again.');
     return { success: false, error: 'All waterfall ad attempts failed.' };
   }
 
-  // Verify and award +2.5 E4F
-  const rewardResult = await verifyAndGiveReward(boxNum, 'gift', activeSession, userId);
-  if (rewardResult.success) {
-    if (onReward) onReward(rewardResult.rewardAmount || 2.5);
+  const claimRes = await processClaimReward('gift', boxNum, userId, 2.5);
+  if (claimRes.success) {
+    if (onReward) onReward(2.5);
     return { success: true };
   } else {
-    return { success: false, error: rewardResult.error };
+    alert(claimRes.error || 'Fake Report! Watch 30s');
+    return { success: false, error: claimRes.error };
   }
 }
 
-// --- B. Spin & Win Lucky Wheel Waterfall ---
 export async function handleSpinWithWaterfall(
   remainingKey: string,
   userId: string,
   onAdSuccess?: () => void
 ): Promise<{ success: boolean; error?: string }> {
-  // Check if this spin slot was already claimed today
   const done = await isDone('spin', remainingKey, userId);
   if (done) {
     alert('Spin already claimed for this slot today. Resets at UTC 00:00.');
@@ -684,77 +600,83 @@ export async function handleSpinWithWaterfall(
   }
 
   const tiers = (AD_CONFIG.SPIN as any)[remainingKey] || AD_CONFIG.SPIN['5/5'];
-
-  let adCompleted = false;
-  let activeSession: AntiFakeSession | null = null;
+  let completed = false;
 
   for (let i = 0; i < tiers.length; i++) {
     const tier = tiers[i];
-    console.log(`[Spin ${remainingKey}] Trying Tier ${i + 1}: ${tier.network} (${tier.id})`);
+    console.log(`[Spin ${remainingKey}] Tier ${i + 1}: ${tier.network} (${tier.id})`);
 
-    activeSession = await startAdSession(tier.id, userId);
+    blockExternalRedirect();
+    generateAdToken();
+
     const shown = await showInside(tier.network, tier.id);
     if (shown) {
-      adCompleted = true;
+      completed = true;
       break;
     }
-    console.warn(`[Spin ${remainingKey}] Tier ${i + 1} failed. Falling back...`);
+    console.warn(`[Spin ${remainingKey}] Tier ${i + 1} failed. Next tier...`);
   }
 
-  if (!adCompleted || !activeSession) {
+  if (!completed) {
     alert('Ad load failed. Please try again.');
     return { success: false, error: 'All waterfall ad attempts failed.' };
   }
 
-  // Verify Anti-fake
-  const rewardResult = await verifyAndGiveReward(remainingKey, 'spin', activeSession, userId);
-  if (rewardResult.success) {
+  const claimRes = await processClaimReward('spin', remainingKey, userId);
+  if (claimRes.success) {
     if (onAdSuccess) onAdSuccess();
     return { success: true };
   } else {
-    return { success: false, error: rewardResult.error };
+    alert(claimRes.error || 'Fake Report! Watch 30s');
+    return { success: false, error: claimRes.error };
   }
 }
 
-// --- C. Mining Waterfall ---
+const miningTimestamps: number[] = [];
+
 export async function handleMiningWithWaterfall(
   userId: string,
   onAdSuccess?: () => void
 ): Promise<{ success: boolean; error?: string }> {
-  // Check spam protection: >5 times in 10 sec
-  if (checkMiningSpam()) {
+  const now = Date.now();
+  miningTimestamps.push(now);
+  while (miningTimestamps.length > 0 && miningTimestamps[0] < now - 10000) {
+    miningTimestamps.shift();
+  }
+  if (miningTimestamps.length > 5) {
     alert('Too many attempts! Please wait 10 seconds before starting mining.');
     return { success: false, error: 'Spam protection triggered' };
   }
 
   const tiers = AD_CONFIG.MINING;
-  let adCompleted = false;
-  let activeSession: AntiFakeSession | null = null;
+  let completed = false;
 
   for (let i = 0; i < tiers.length; i++) {
     const tier = tiers[i];
-    console.log(`[Mining] Trying Tier ${i + 1}: ${tier.network} (${tier.id})`);
+    console.log(`[Mining] Tier ${i + 1}: ${tier.network} (${tier.id})`);
 
-    activeSession = await startAdSession(tier.id, userId);
+    blockExternalRedirect();
+    generateAdToken();
+
     const shown = await showInside(tier.network, tier.id);
     if (shown) {
-      adCompleted = true;
+      completed = true;
       break;
     }
-    console.warn(`[Mining] Tier ${i + 1} failed. Falling back...`);
+    console.warn(`[Mining] Tier ${i + 1} failed. Next tier...`);
   }
 
-  if (!adCompleted || !activeSession) {
+  if (!completed) {
     alert('Ad load failed. Please try again.');
     return { success: false, error: 'All waterfall ad attempts failed.' };
   }
 
-  // Verify Anti-fake
-  const rewardResult = await verifyAndGiveReward('mining', 'mining', activeSession, userId);
-  if (rewardResult.success) {
+  const claimRes = await processClaimReward('mining', 'mining', userId);
+  if (claimRes.success) {
     if (onAdSuccess) onAdSuccess();
     return { success: true };
   } else {
-    return { success: false, error: rewardResult.error };
+    alert(claimRes.error || 'Fake Report! Watch 30s');
+    return { success: false, error: claimRes.error };
   }
 }

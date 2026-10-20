@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ShieldCheck, CheckCircle2, AlertTriangle, X, Play, Loader2, Clock, ExternalLink } from 'lucide-react';
 import { api } from '../../services/api';
-import { getAdTargetUrl, openAdDirectly, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
+import { getAdTargetUrl, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
+import { blockExternalRedirect, generateAdToken, verifyAdWatch } from '../../services/antiFakeAds';
 
 declare global {
   interface Window {
@@ -146,6 +147,10 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     if (!sessionData) return;
     setErrorMsg(null);
 
+    // Block external redirects & initialize token
+    blockExternalRedirect();
+    generateAdToken();
+
     const now = Date.now();
     currentBurstStartTimeRef.current = now;
 
@@ -172,14 +177,8 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
             if (timerRef.current) clearInterval(timerRef.current);
             setStep('COMPLETED');
             triggerAutoVerifyRef.current();
-          } else {
-            openAdDirectly(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
           }
-        }).catch(() => {
-          openAdDirectly(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
-        });
-      } else {
-        openAdDirectly(sessionData.directLink, sessionData.zoneId || DEFAULT_ZONE_ID);
+        }).catch(() => {});
       }
     }
 
@@ -208,6 +207,14 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
 
   // Verify and unlock mining
   const handleVerify = async () => {
+    const check = verifyAdWatch();
+    if (!check.valid) {
+      isVerifyingRef.current = false;
+      setStep('EARLY_EXIT');
+      setErrorMsg(check.reason || 'Fake Report! Watch 30s');
+      return;
+    }
+
     if (!sessionData || isVerifyingRef.current) return;
     isVerifyingRef.current = true;
     setStep('VERIFYING');

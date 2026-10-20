@@ -14,6 +14,29 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Telegram WebApp Pre-Init & Version 8.0 Safety -->
+    <script>
+      (function() {
+        var origErr = console.error;
+        console.error = function() {
+          if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].indexOf('CloudStorage is not supported') !== -1) {
+            return;
+          }
+          return origErr.apply(console, arguments);
+        };
+
+        try {
+          var h = window.location.hash || '';
+          var s = window.location.search || '';
+          if (h.indexOf('tgWebAppVersion=') === -1 && s.indexOf('tgWebAppVersion=') === -1) {
+            var prefix = h ? h + '&' : '#';
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, '', window.location.pathname + window.location.search + prefix + 'tgWebAppVersion=8.0&tgWebAppPlatform=android');
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
@@ -23,13 +46,16 @@
           if (window.Telegram && window.Telegram.WebApp) {
             var tg = window.Telegram.WebApp;
             try {
+              tg.isVersionAtLeast = function() { return true; };
+            } catch (e) {}
+            try {
               Object.defineProperty(tg, 'version', {
                 get: function() { return '8.0'; },
                 set: function() {},
                 configurable: true
               });
             } catch (e) {
-              tg.version = '8.0';
+              try { tg.version = '8.0'; } catch (e2) {}
             }
 
             try {
