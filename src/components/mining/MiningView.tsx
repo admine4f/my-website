@@ -3,6 +3,7 @@ import { Pickaxe, Clock, AlertCircle, CheckCircle2, History, Calendar, Shield, P
 import { useApp } from '../../context/AppContext';
 import { MiningCoin3D } from './MiningCoin3D';
 import { UnifiedRewardedAdModal } from '../rewards/UnifiedRewardedAdModal';
+import { handleMiningWithWaterfall } from '../../services/antiFakeAds';
 import { api } from '../../services/api';
 
 export const MiningView: React.FC = () => {
@@ -119,8 +120,14 @@ export const MiningView: React.FC = () => {
       return;
     }
 
-    // Mining Ad is ON -> Open UnifiedRewardedAdModal (with admin Primary, Secondary & Waterfall)
-    setShowAdModal(true);
+    // Run 100% In-App Mining Waterfall with Anti-Fake verification
+    const res = await handleMiningWithWaterfall(user.id, () => {
+      executeStartMining();
+    });
+
+    if (!res.success && res.error && res.error !== 'Already claimed today') {
+      addToast('Mining Ad', res.error, 'error');
+    }
   };
 
   // Called once Ad is verified by server callback

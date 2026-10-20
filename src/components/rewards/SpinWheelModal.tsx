@@ -3,6 +3,7 @@ import { X, Play, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { UnifiedRewardedAdModal } from './UnifiedRewardedAdModal';
+import { handleSpinWithWaterfall, isDone } from '../../services/antiFakeAds';
 
 interface SpinWheelModalProps {
   onClose: () => void;
@@ -22,6 +23,7 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({ onClose }) => {
   } | null>(null);
 
   const [showAdModal, setShowAdModal] = useState<boolean>(false);
+  const [isAllDoneToday, setIsAllDoneToday] = useState<boolean>(false);
 
   const defaultPrizes = [
     { id: 0, label: '0.25 E4F', asset: 'E4F', amount: 0.25, color: '#3B82F6' },
@@ -40,19 +42,31 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({ onClose }) => {
 
   useEffect(() => {
     if (user?.id) {
-      api.getSpinStatus(user.id).then(setSpinStatus).catch(() => {});
+      api.getSpinStatus(user.id).then(status => {
+        setSpinStatus(status);
+        if (status && status.spinsRemainingToday <= 0) {
+          setIsAllDoneToday(true);
+        }
+      }).catch(() => {});
     }
   }, [user]);
 
-  const handleInitiateSpin = () => {
+  const handleInitiateSpin = async () => {
     if (!user || spinning) return;
-    if (spinStatus && spinStatus.spinsRemainingToday <= 0) {
-      addToast('Daily Limit Reached', 'You have used all 5 spins for today. Resets tomorrow.', 'info');
+    const remaining = spinStatus?.spinsRemainingToday ?? 5;
+    if (remaining <= 0) {
+      addToast('Daily Limit Reached', 'You have used all 5 spins for today. Resets tomorrow at 00:00 UTC.', 'info');
       return;
     }
 
-    // Each spin strictly requires a completed rewarded ad - never count or spin without ad
-    setShowAdModal(true);
+    const remainingKey = `${remaining}/5`;
+    const res = await handleSpinWithWaterfall(remainingKey, user.id, () => {
+      executeSpin();
+    });
+
+    if (!res.success && res.error && res.error !== 'Already claimed today') {
+      addToast('Ad Notice', res.error, 'error');
+    }
   };
 
   const handleAdCompleted = (adSessionId: string, claimToken: string) => {
@@ -200,19 +214,22 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({ onClose }) => {
           </div>
         )}
 
-        <button
-          onClick={handleInitiateSpin}
-          disabled={spinning || (spinStatus !== null && spinStatus.spinsRemainingToday <= 0)}
-          className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 disabled:opacity-50 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 active:scale-95 transition-transform cursor-pointer"
-        >
-          {spinning
-            ? 'Spinning Wheel...'
-            : spinStatus !== null && spinStatus.spinsRemainingToday <= 0
-            ? 'Daily Limit Reached'
-            : (spinStatus?.adRequired ?? true)
-            ? 'WATCH AD & SPIN'
-            : 'SPIN NOW'}
-        </button>
+        {isAllDoneToday || (spinStatus !== null && spinStatus.spinsRemainingToday <= 0) ? (
+          <button
+            disabled
+            className="w-full py-3 rounded-2xl text-amber-400 font-black text-sm bg-amber-500/10 border border-amber-500/30 opacity-50 cursor-not-allowed"
+          >
+            Claimed Today - Reset UTC 00:00
+          </button>
+        ) : (
+          <button
+            onClick={handleInitiateSpin}
+            disabled={spinning}
+            className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 disabled:opacity-50 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 active:scale-95 transition-transform cursor-pointer"
+          >
+            {spinning ? 'Spinning Wheel...' : 'WATCH AD & SPIN'}
+          </button>
+        )}
 
         <div className="text-[10px] text-slate-500 mt-2 flex items-center justify-center gap-1">
           <ShieldCheck className="w-3 h-3 text-amber-400" />

@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { GiftBox } from '../../types';
 import { UnifiedRewardedAdModal } from './UnifiedRewardedAdModal';
+import { isDone, openGiftBoxWithWaterfall } from '../../services/antiFakeAds';
 
 interface GiftBoxesModalProps {
   onClose: () => void;
@@ -24,9 +25,20 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
   const [boxesRemainingToday, setBoxesRemainingToday] = useState<number>(5);
   const [maxDailyBoxes, setMaxDailyBoxes] = useState<number>(5);
   const [adRequired, setAdRequired] = useState<boolean>(true);
+  const [doneBoxMap, setDoneBoxMap] = useState<Record<number, boolean>>({});
 
   // Selected box waiting for Rewarded Ad completion
   const [adTargetBox, setAdTargetBox] = useState<GiftBox | null>(null);
+
+  const checkDailyDoneBoxes = async () => {
+    if (!user) return;
+    const map: Record<number, boolean> = {};
+    for (let i = 1; i <= 5; i++) {
+      const finished = await isDone('gift', i, user.id);
+      map[i] = finished;
+    }
+    setDoneBoxMap(map);
+  };
 
   const fetchBoxes = async () => {
     if (!user) return;
@@ -47,22 +59,46 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
     } catch {
       // Keep default boxes
     }
+    await checkDailyDoneBoxes();
   };
 
   useEffect(() => {
     fetchBoxes();
   }, [user]);
 
-  const handleBoxClick = (box: GiftBox) => {
-    if (!user || openingId || box.isOpened) return;
+  const handleOpenGiftBox = async (boxNum: number) => {
+    if (!user || openingId) return;
 
-    if (boxesRemainingToday <= 0) {
-      addToast('Daily Limit', 'You have opened all 5 gift boxes for today. Resets tomorrow at 00:00 UTC.', 'info');
+    if (doneBoxMap[boxNum]) {
+      addToast('Already Claimed', `Gift Box #${boxNum} was already claimed today. Resets at UTC 00:00.`, 'info');
       return;
     }
 
-    // Ad completion is strictly mandatory before any gift box can be opened or counted
-    setAdTargetBox(box);
+    setOpeningId(boxNum);
+    try {
+      const result = await openGiftBoxWithWaterfall(boxNum, user.id, async (rewardAmount) => {
+        addToast(
+          'Box Unlocked!',
+          `You received +${rewardAmount} E4F! Credited to your wallet.`,
+          'success'
+        );
+        setDoneBoxMap(prev => ({ ...prev, [boxNum]: true }));
+        await refreshProfile();
+        await fetchBoxes();
+      });
+
+      if (!result.success && result.error && result.error !== 'Already claimed today') {
+        addToast('Box Locked', result.error, 'error');
+      }
+    } catch (err: any) {
+      addToast('Error', err.message || 'Ad error', 'error');
+    } finally {
+      setOpeningId(null);
+    }
+  };
+
+  const handleBoxClick = (box: GiftBox) => {
+    handleOpenGiftBox(box.boxNumber || box.id);
   };
 
   const handleAdCompleted = (adSessionId: string, claimToken: string) => {
@@ -149,18 +185,22 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
               <div className="text-xs font-bold text-white mb-0.5">Box {box.boxNumber}</div>
               <div className="text-[10px] text-slate-400 mb-2">{box.name}</div>
 
-              {box.isOpened ? (
-                <div className="text-[10px] font-bold text-emerald-400 flex items-center justify-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Opened (+{box.rewardAmount} {box.rewardAsset})</span>
-                </div>
+              {doneBoxMap[box.boxNumber] || box.isOpened ? (
+                <button
+                  data-gift={box.boxNumber}
+                  disabled
+                  className="w-full py-1.5 px-1 rounded-xl text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 opacity-50 cursor-not-allowed"
+                >
+                  Claimed Today - Reset UTC 00:00
+                </button>
               ) : (
                 <button
-                  onClick={() => handleBoxClick(box)}
-                  disabled={openingId === box.id || boxesRemainingToday <= 0}
+                  data-gift={box.boxNumber}
+                  onClick={() => handleOpenGiftBox(box.boxNumber)}
+                  disabled={openingId === box.boxNumber || boxesRemainingToday <= 0}
                   className="w-full py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 disabled:opacity-50 text-slate-950 text-xs font-bold shadow transition-transform active:scale-95 cursor-pointer"
                 >
-                  {openingId === box.id ? 'Opening...' : adRequired ? 'Watch Ad & Open' : 'Open Box'}
+                  {openingId === box.boxNumber ? 'Opening...' : 'Watch Video Ad (30s)'}
                 </button>
               )}
             </div>

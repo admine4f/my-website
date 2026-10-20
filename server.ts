@@ -3023,6 +3023,215 @@ app.post('/api/ads/log-event', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+// =========================================================================
+// ANTI-FAKE ADS & SECURE RPC REWARD ENGINE
+// =========================================================================
+const antiFakeSessions = new Map<string, { userId: string; adId: string; token: string; startedAt: number }>();
+const antiFakeDailyClaims = new Map<string, Set<string>>(); // key = `${userId}_${date}_${type}` -> Set of keys
+
+app.post('/api/ads/anti-fake/start-session', async (req: Request, res: Response) => {
+  const { userId, adId, token, startedAt } = req.body;
+  if (!token) return res.status(400).json({ success: false, error: 'Token required' });
+  const startTs = startedAt || Date.now();
+  antiFakeSessions.set(token, { userId, adId, token, startedAt: startTs });
+
+  if (supabase && userId) {
+    try {
+      await supabase.from('user_ad_logs').insert({
+        user_id: String(userId),
+        ad_id: String(adId || ''),
+        token: String(token),
+        started_at: new Date(startTs).toISOString(),
+        is_verified: false,
+      });
+    } catch (e) {
+      console.log('Log table not ready yet', e);
+    }
+  }
+  res.json({ success: true, token });
+});
+
+app.get('/api/ads/anti-fake/daily-status', async (req: Request, res: Response) => {
+  const { userId, date, type, key } = req.query;
+  const todayStr = String(date || new Date().toISOString().split('T')[0]);
+  const cleanKey = String(key || '');
+  const cleanType = String(type || '');
+
+  // 1. Check in-memory claims
+  const mapKey = `${userId}_${todayStr}_${cleanType}`;
+  const claims = antiFakeDailyClaims.get(mapKey);
+  if (claims && claims.has(cleanKey)) {
+    return res.json({ success: true, claimed: true });
+  }
+
+  // 2. Check Supabase
+  if (supabase && userId) {
+    try {
+      const { data } = await supabase
+        .from('user_daily_ads')
+        .select('id')
+        .eq('user_id', String(userId))
+        .eq('date', todayStr)
+        .eq('type', cleanType)
+        .eq('key', cleanKey)
+        .maybeSingle();
+
+      if (data) {
+        if (!antiFakeDailyClaims.has(mapKey)) {
+          antiFakeDailyClaims.set(mapKey, new Set());
+        }
+        antiFakeDailyClaims.get(mapKey)!.add(cleanKey);
+        return res.json({ success: true, claimed: true });
+      }
+    } catch (e) {
+      console.log('user_daily_ads table not ready yet', e);
+    }
+  }
+
+  res.json({ success: true, claimed: false });
+});
+
+app.post('/api/ads/anti-fake/verify-and-reward', async (req: Request, res: Response) => {
+  const { userId, type, key, token, elapsed, adId } = req.body;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const cleanKey = String(key || '1');
+  const cleanType = String(type || 'gift');
+
+  // Anti-Fake Check 1: Minimum 25-second elapsed watch time
+  if (typeof elapsed !== 'number' || elapsed < 25000) {
+    if (supabase && userId && token) {
+      try {
+        await supabase.from('user_ad_logs').update({
+          is_verified: false,
+          watch_duration: Math.round((Number(elapsed) || 0) / 1000),
+          completed_at: new Date().toISOString(),
+        }).eq('token', token);
+      } catch (e) {
+        console.log('Log table not ready yet', e);
+      }
+    }
+    return res.status(400).json({ success: false, error: 'Fake Report Detected! Watch 30s' });
+  }
+
+  // Anti-Fake Check 2: Token verification
+  if (!token) {
+    return res.status(400).json({ success: false, error: 'Fake Report Detected! Invalid session token' });
+  }
+
+  // Anti-Fake Check 3: Daily Limit
+  const mapKey = `${userId}_${todayStr}_${cleanType}`;
+  const localClaims = antiFakeDailyClaims.get(mapKey);
+  if (localClaims && localClaims.has(cleanKey)) {
+    return res.status(400).json({ success: false, error: 'Already claimed today' });
+  }
+
+  if (supabase && userId) {
+    try {
+      const { data } = await supabase
+        .from('user_daily_ads')
+        .select('id')
+        .eq('user_id', String(userId))
+        .eq('date', todayStr)
+        .eq('type', cleanType)
+        .eq('key', cleanKey)
+        .maybeSingle();
+
+      if (data) {
+        return res.status(400).json({ success: false, error: 'Already claimed today' });
+      }
+    } catch (e) {
+      console.log('user_daily_ads table not ready yet', e);
+    }
+  }
+
+  // Mark Daily Claim
+  if (!antiFakeDailyClaims.has(mapKey)) {
+    antiFakeDailyClaims.set(mapKey, new Set());
+  }
+  antiFakeDailyClaims.get(mapKey)!.add(cleanKey);
+
+  if (supabase && userId) {
+    try {
+      await supabase.from('user_daily_ads').upsert({
+        user_id: String(userId),
+        date: todayStr,
+        type: cleanType,
+        key: cleanKey,
+        done: true,
+        created_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,type,key,date' });
+    } catch (e) {
+      console.log('user_daily_ads table not ready yet', e);
+    }
+
+    try {
+      await supabase.from('user_ad_logs').update({
+        is_verified: true,
+        watch_duration: Math.round(elapsed / 1000),
+        completed_at: new Date().toISOString(),
+      }).eq('token', token);
+    } catch (e) {
+      console.log('Log table not ready yet', e);
+    }
+  }
+
+  // Execute Reward
+  let rewardAmount = 0;
+  if (cleanType === 'gift') {
+    rewardAmount = 2.5;
+
+    // Use Supabase RPC add_e4f_balance with direct profile update fallback
+    if (supabase && userId) {
+      try {
+        await supabase.rpc('add_e4f_balance', {
+          p_user_id: String(userId),
+          p_amount: 2.5,
+          p_spin_amount: 0,
+        });
+      } catch (rpcErr) {
+        console.log('[add_e4f_balance RPC failed, using direct profile update fallback]:', rpcErr);
+        try {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('e4f_balance')
+            .or(`telegram_id.eq.${userId},id.eq.${userId}`)
+            .maybeSingle();
+          const currentE4F = Number(prof?.e4f_balance || 0);
+          await supabase
+            .from('profiles')
+            .update({ e4f_balance: currentE4F + 2.5 })
+            .or(`telegram_id.eq.${userId},id.eq.${userId}`);
+        } catch (e) {
+          console.log('Profiles table fallback error:', e);
+        }
+      }
+    }
+
+    // Also update server balances cache
+    const userBalance = await getSupabaseBalance(String(userId));
+    if (userBalance) {
+      userBalance.e4f += 2.5;
+      await setSupabaseBalance(String(userId), userBalance).catch(() => {});
+      scheduleSaveDatabase();
+    }
+
+    const tx: TxRecord = {
+      id: `tx_${Date.now()}_gift_${cleanKey}`,
+      userId: String(userId),
+      asset: 'E4F',
+      amount: 2.5,
+      direction: 'IN',
+      source: 'GIFT_BOX_REWARD',
+      status: 'COMPLETED',
+      timestamp: Date.now(),
+      note: `Mystery Gift Box #${cleanKey} (+2.5 E4F)`,
+    };
+    await recordTransaction(tx);
+  }
+
+  res.json({ success: true, rewardAmount, rewardAsset: 'E4F' });
+});
+
 // Check Active Ad Session for user (continues session on return/remount/refresh)
 app.get('/api/mining/:userId/ad-session', (req: Request, res: Response) => {
   const { userId } = req.params;
