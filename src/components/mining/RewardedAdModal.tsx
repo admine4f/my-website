@@ -3,6 +3,38 @@ import { ShieldCheck, CheckCircle2, AlertTriangle, X, Play, Loader2, Clock, Exte
 import { api } from '../../services/api';
 import { getAdTargetUrl, DEFAULT_ZONE_ID, DEFAULT_DIRECT_LINK } from '../../services/monetagSdk';
 import { blockExternalRedirect, generateAdToken, verifyAdWatch } from '../../services/antiFakeAds';
+import AdInside from '../AdInside';
+import AdWaterfall from '../AdWaterfall';
+
+function getMiningAdScript(provider?: string, zoneId?: string | number): string {
+  const z = String(zoneId || '410204');
+  if (provider === 'RichAds' || z.startsWith('4102')) {
+    return `<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script>
+<script>
+  try {
+    if (window.TelegramAdsController) window.TelegramAdsController.showRewardedAd(${z});
+  } catch(e) {}
+</script>
+<div style="padding: 24px 16px; text-align: center; color: #fff; font-family: sans-serif;">
+  <div style="font-size: 16px; font-weight: 800; color: #F59E0B; margin-bottom: 8px;">RichAds In-App Mining Sponsor</div>
+  <div style="font-size: 12px; color: #94A3B8;">Zone ID: ${z} • 100% In-App</div>
+</div>`;
+  }
+  if (provider === 'Monetag' || z === '12044377') {
+    return `<script src="//gizokraijaw.net/400/12044377.js" async></script>
+<script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script>
+<script>
+  try {
+    if (window.show_12044377) window.show_12044377("pop");
+  } catch(e) {}
+</script>
+<div style="padding: 24px 16px; text-align: center; color: #fff; font-family: sans-serif;">
+  <div style="font-size: 16px; font-weight: 800; color: #38BDF8; margin-bottom: 8px;">Monetag In-App Mining Sponsor</div>
+  <div style="font-size: 12px; color: #94A3B8;">Zone ID: 12044377 • 100% In-App</div>
+</div>`;
+  }
+  return `<iframe src="https://highperformanceformat.com/${z}" style="width:100%;height:380px;border:none;"></iframe>`;
+}
 
 declare global {
   interface Window {
@@ -346,33 +378,10 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               </p>
             </div>
 
-            {/* Informative Card (NO IFRAME) */}
-            <div className="w-full py-4 px-3 rounded-xl bg-slate-950 border border-slate-800/80 flex flex-col items-center justify-center text-center gap-1.5 shadow-inner mt-2">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-                <span>Real Ad will open externally</span>
-              </div>
-              <p className="text-[11px] text-slate-400 max-w-[240px]">
-                Click below to view the official sponsor ad while your 60-second mining timer runs.
-              </p>
+            {/* 100% In-App Sandboxed Ad Container - NO EXTERNAL REDIRECT */}
+            <div className="w-full rounded-xl overflow-hidden border border-slate-800 bg-black mt-2">
+              <AdWaterfall house="mining" onAdLoaded={() => {}} />
             </div>
-
-            {adUrl && (
-              <button
-                type="button"
-                onClick={() => {
-                  if ((window as any).Telegram?.WebApp?.openLink) {
-                    (window as any).Telegram.WebApp.openLink(adUrl);
-                  } else {
-                    window.open(adUrl, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <ExternalLink className="w-4 h-4 stroke-[2.5]" />
-                <span>Open & View Sponsor Ad</span>
-              </button>
-            )}
           </div>
         )}
 

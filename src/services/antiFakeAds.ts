@@ -4,43 +4,35 @@
 
 import { supabaseClient } from './api';
 
-let adStartTime = 0;
-
-export function blockExternalRedirect() {
-  if (typeof window === 'undefined') return;
-  try { 
-    window.open = function() { return null as any; } as any; 
-  } catch (e) {}
-
-  document.addEventListener('click', (e) => {
-    const el = e.target as HTMLElement;
-    const a = el?.closest ? (el.closest('a') as HTMLAnchorElement) : null;
-    if (a && a.target === '_blank') {
-      e.preventDefault();
-      a.setAttribute('target', '_self');
-    }
-  }, true);
-}
-
+let adStartTime = Date.now();
 export function generateAdToken() {
   adStartTime = Date.now();
   try {
     localStorage.setItem('e4f_ad_start', adStartTime.toString());
-  } catch {}
-  return "e4f_" + Date.now();
+  } catch (e) {}
+  return 'e4f_'+Date.now();
 }
-
 export function verifyAdWatch() {
-  let s: string | null = null;
-  try {
-    s = localStorage.getItem('e4f_ad_start');
-  } catch {}
+  const s = (typeof localStorage !== 'undefined') ? localStorage.getItem('e4f_ad_start') : null;
   const start = s ? parseInt(s, 10) : adStartTime;
-  const watched = (Date.now() - (start || Date.now())) / 1000;
-  if (watched < 25) {
-    return { valid: false, reason: "Fake Report! Watch 30s - You watched " + Math.floor(watched) + "s" };
+  const watched = (Date.now() - start) / 1000;
+  if (watched < 25) return { valid:false, reason: 'Fake Report! Watch 30s - You watched '+Math.floor(watched)+'s' };
+  return { valid:true };
+}
+export function blockExternalRedirect() {
+  try { (window as any).open = () => null; } catch(e){}
+  if (typeof document !== 'undefined') {
+    try {
+      document.addEventListener('click', (e) => {
+        const el = e.target as HTMLElement;
+        const a = el?.closest ? (el.closest('a') as HTMLAnchorElement) : null;
+        if (a && a.target === '_blank') {
+          e.preventDefault();
+          a.setAttribute('target', '_self');
+        }
+      }, true);
+    } catch (e) {}
   }
-  return { valid: true };
 }
 
 // -------------------------------------------------------------------------
