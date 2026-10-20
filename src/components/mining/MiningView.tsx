@@ -120,14 +120,8 @@ export const MiningView: React.FC = () => {
       return;
     }
 
-    // Run 100% In-App Mining Waterfall with Anti-Fake verification
-    const res = await handleMiningWithWaterfall(user.id, () => {
-      executeStartMining();
-    });
-
-    if (!res.success && res.error && res.error !== 'Already claimed today') {
-      addToast('Mining Ad', res.error, 'error');
-    }
+    // Open 100% In-App Mining Waterfall Ad Modal inside Telegram
+    setShowAdModal(true);
   };
 
   // Called once Ad is verified by server callback

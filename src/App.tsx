@@ -116,47 +116,30 @@ if (typeof window !== 'undefined') {
     try {
       const fn = (window as any).show_12044377;
       if (typeof fn !== 'function') return resolve(false);
-      await fn('pop');
+      await fn();
       resolve(true);
     } catch (e) {
-      try {
-        await (window as any).show_12044377();
-        resolve(true);
-      } catch (e2) {
-        resolve(false);
-      }
+      resolve(false);
     }
   });
 
   window.showRichAdsInTelegram = async (richadsId?: string | number) => {
-    console.log('Attempt RichAds', richadsId);
+    console.log('Attempt RichAds in-app', richadsId);
     return new Promise((resolve) => {
-      let resolved = false;
-      const safeResolve = (val: boolean) => {
-        if (!resolved) {
-          resolved = true;
-          resolve(val);
-        }
-      };
-
       try {
         const ctrl = (window as any).TelegramAdsController;
         if (ctrl) {
           const idStr = String(richadsId || '410204');
-          if (typeof ctrl.show === 'function') {
-            try { ctrl.show({ id: idStr, zone: idStr, placement: idStr }); } catch (e) {}
-          } else if (typeof ctrl.showAd === 'function') {
-            try { ctrl.showAd({ id: idStr, zone: idStr }); } catch (e) {}
-          } else if (typeof ctrl.showInterstitial === 'function') {
-            try { ctrl.showInterstitial(); } catch (e) {}
-          } else if (typeof ctrl.showVideo === 'function') {
-            try { ctrl.showVideo(); } catch (e) {}
+          if (typeof ctrl.showRewardedAd === 'function') {
+            try { ctrl.showRewardedAd(idStr); } catch (e) {}
+          } else if (typeof ctrl.showInApp === 'function') {
+            try { ctrl.showInApp({ id: idStr }); } catch (e) {}
           }
         }
-        setTimeout(() => safeResolve(true), 30000); // 30s watch duration reward fallback
+        resolve(true);
       } catch (e) {
         console.error('RichAds error:', e);
-        safeResolve(false);
+        resolve(false);
       }
     });
   };

@@ -25,7 +25,7 @@ function getMiningAdScript(provider?: string, zoneId?: string | number): string 
 <script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script>
 <script>
   try {
-    if (window.show_12044377) window.show_12044377("pop");
+    if (window.show_12044377) window.show_12044377();
   } catch(e) {}
 </script>
 <div style="padding: 24px 16px; text-align: center; color: #fff; font-family: sans-serif;">

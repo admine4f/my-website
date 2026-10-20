@@ -24,7 +24,7 @@ export default function AdInside({ adScript }: { adScript: string }) {
     if (ref.current) {
       ref.current.innerHTML = '';
       const iframe = document.createElement('iframe');
-      iframe.sandbox.add('allow-scripts', 'allow-same-origin');
+      iframe.sandbox.add('allow-scripts', 'allow-same-origin', 'allow-forms');
       // IMPORTANT: NO allow-top-navigation, NO allow-popups
       iframe.style.width = '100%';
       iframe.style.height = '400px';

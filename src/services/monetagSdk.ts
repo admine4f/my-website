@@ -89,22 +89,14 @@ export async function showMonetagAd(zoneId: string = DEFAULT_ZONE_ID): Promise<b
 
   if (typeof showFn === 'function') {
     try {
-      const res = showFn('pop');
+      const res = showFn();
       if (res && typeof res.then === 'function') {
         await res;
       }
       return true;
     } catch (err) {
-      try {
-        const res2 = showFn();
-        if (res2 && typeof res2.then === 'function') {
-          await res2;
-        }
-        return true;
-      } catch (err2) {
-        console.warn('[Monetag SDK Error]:', err2);
-        return false;
-      }
+      console.warn('[Monetag SDK Error]:', err);
+      return false;
     }
   }
 
@@ -142,10 +134,8 @@ export function openAdDirectly(_directLink?: string, zoneId: string = DEFAULT_ZO
     }
     if (typeof window.show_12044377 === 'function') {
       try {
-        window.show_12044377('pop');
-      } catch {
         window.show_12044377();
-      }
+      } catch {}
       return true;
     }
   }

@@ -200,19 +200,13 @@
             if (ctrl) {
               console.log('RichAds controller available for:', richadsId);
               var idStr = String(richadsId || '410204');
-              if (typeof ctrl.show === 'function') {
-                try { ctrl.show({ id: idStr, zone: idStr, placement: idStr }); } catch (e) {}
-              } else if (typeof ctrl.showAd === 'function') {
-                try { ctrl.showAd({ id: idStr, zone: idStr }); } catch (e) {}
-              } else if (typeof ctrl.showInterstitial === 'function') {
-                try { ctrl.showInterstitial(); } catch (e) {}
-              } else if (typeof ctrl.showVideo === 'function') {
-                try { ctrl.showVideo(); } catch (e) {}
+              if (typeof ctrl.showRewardedAd === 'function') {
+                try { ctrl.showRewardedAd(idStr); } catch (e) {}
+              } else if (typeof ctrl.showInApp === 'function') {
+                try { ctrl.showInApp({ id: idStr }); } catch (e) {}
               }
             }
-            setTimeout(function() {
-              safeResolve(true);
-            }, 30000); // 30s watch duration reward fallback
+            safeResolve(true);
           } catch (e) {
             console.error('RichAds invoke error:', e);
             safeResolve(false);
@@ -242,41 +236,20 @@
     <!-- OnClickA TMA In-Stream Ad Manager (window.initCdTma) -->
     <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
     <script>
-      // Immediate In-App Monetag Telegram Bridge
+      // Immediate In-App Monetag Telegram Bridge (Never opens external browser)
       window.showMonetagInsideTelegram = function() {
         return new Promise(function(resolve) {
           try {
             var fn = window.show_12044377;
             if (typeof fn !== 'function') return resolve(false);
-            var res = fn('pop');
+            var res = fn();
             if (res && typeof res.then === 'function') {
-              res.then(function() { resolve(true); }).catch(function() {
-                try {
-                  var res2 = fn();
-                  if (res2 && typeof res2.then === 'function') {
-                    res2.then(function() { resolve(true); }).catch(function() { resolve(false); });
-                  } else {
-                    resolve(true);
-                  }
-                } catch (e2) { resolve(false); }
-              });
+              res.then(function() { resolve(true); }).catch(function() { resolve(false); });
             } else {
               resolve(true);
             }
           } catch (e) {
-            try {
-              var fn2 = window.show_12044377;
-              if (typeof fn2 === 'function') {
-                var res3 = fn2();
-                if (res3 && typeof res3.then === 'function') {
-                  res3.then(function() { resolve(true); }).catch(function() { resolve(false); });
-                } else {
-                  resolve(true);
-                }
-              } else {
-                resolve(false);
-              }
-            } catch (e3) { resolve(false); }
+            resolve(false);
           }
         });
       };

@@ -4,39 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { GiftBox } from '../../types';
 import { UnifiedRewardedAdModal } from './UnifiedRewardedAdModal';
-import { isDone, openGiftBoxWithWaterfall, verifyAdWatch, setDone } from '../../services/antiFakeAds';
-import AdInside from '../AdInside';
-
-function getBoxAdScript(boxNum: number): string {
-  if (boxNum === 2 || boxNum === 5) {
-    return `<script src="//gizokraijaw.net/400/12044377.js" async></script>
-<script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script>
-<script>
-  try {
-    if (window.show_12044377) window.show_12044377("pop");
-  } catch(e) {}
-</script>
-<div style="padding: 24px 16px; text-align: center; color: #fff; font-family: sans-serif;">
-  <div style="font-size: 16px; font-weight: 800; color: #38BDF8; margin-bottom: 8px;">Monetag Verified In-App Sponsor</div>
-  <div style="font-size: 12px; color: #94A3B8;">Zone ID: 12044377 • 100% In-App Delivery</div>
-</div>`;
-  }
-  if (boxNum === 3) {
-    return `<iframe src="https://highperformanceformat.com/6153772E4F" style="width:100%;height:380px;border:none;"></iframe>`;
-  }
-  return `<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script>
-<script>
-  try {
-    if (window.TelegramAdsController) {
-      window.TelegramAdsController.showRewardedAd(410202);
-    }
-  } catch(e) {}
-</script>
-<div style="padding: 24px 16px; text-align: center; color: #fff; font-family: sans-serif;">
-  <div style="font-size: 16px; font-weight: 800; color: #F59E0B; margin-bottom: 8px;">RichAds Verified In-App Sponsor</div>
-  <div style="font-size: 12px; color: #94A3B8;">Zone ID: 410202 • 100% In-App Delivery</div>
-</div>`;
-}
+import { isDone, setDone } from '../../services/antiFakeAds';
 
 interface GiftBoxesModalProps {
   onClose: () => void;
@@ -61,7 +29,6 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
 
   // Selected box waiting for Rewarded Ad completion
   const [adTargetBox, setAdTargetBox] = useState<GiftBox | null>(null);
-  const [activeWaterfallBox, setActiveWaterfallBox] = useState<number | null>(null);
 
   const checkDailyDoneBoxes = async () => {
     if (!user) return;
@@ -107,8 +74,17 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
       return;
     }
 
-    // Opens waterfall ad for this specific box: box1, box2, box3, box4, box5
-    setActiveWaterfallBox(boxNum);
+    const targetBox = boxes.find((b) => (b.boxNumber || b.id) === boxNum) || boxes[boxNum - 1] || defaultGiftBoxes[boxNum - 1] || {
+      id: boxNum,
+      boxNumber: boxNum,
+      name: `Mystery Box #${boxNum}`,
+      rewardAsset: boxNum % 2 === 0 ? 'USDT' : 'E4F',
+      rewardAmount: boxNum === 1 ? 2.5 : boxNum === 2 ? 1.5 : boxNum === 3 ? 5.0 : boxNum === 4 ? 3.0 : 10.0,
+      color: '#38BDF8',
+      isOpened: false,
+    };
+
+    setAdTargetBox(targetBox);
   };
 
   const handleBoxClick = (box: GiftBox) => {
@@ -117,7 +93,7 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
 
   const handleAdCompleted = (adSessionId: string, claimToken: string) => {
     if (!adTargetBox) return;
-    const boxId = adTargetBox.id;
+    const boxId = adTargetBox.boxNumber || adTargetBox.id;
     setAdTargetBox(null);
     executeOpenBox(boxId, adSessionId, claimToken);
   };
@@ -133,8 +109,12 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
           `You received +${res.rewardAmount} ${res.rewardAsset}! Credited to your wallet.`,
           'success'
         );
+        setDoneBoxMap(prev => ({ ...prev, [boxId]: true }));
+        await setDone('gift', boxId, user.id);
         await fetchBoxes();
         await refreshProfile();
+      } else {
+        addToast('Box Locked', (res as any).error || 'Could not open box.', 'error');
       }
     } catch (err: any) {
       addToast('Box Locked', err.message || 'Could not open box.', 'error');
@@ -145,69 +125,16 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      {/* 100% In-App House AdWaterfall Modal (Box 1-5) */}
-      {activeWaterfallBox && user && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="relative w-full max-w-sm bg-[#0C1326] border border-amber-500/40 rounded-3xl p-5 text-center shadow-2xl">
-            <button
-              onClick={() => setActiveWaterfallBox(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <div className="text-base font-extrabold text-amber-400 mb-1">
-              Mystery Gift Box #{activeWaterfallBox}
-            </div>
-            <p className="text-xs text-slate-400 mb-3">Complete 30s ad to unlock reward</p>
-
-            <div className="rounded-2xl overflow-hidden border border-slate-800 bg-black mb-4">
-              <AdInside adScript={getBoxAdScript(activeWaterfallBox)} />
-            </div>
-
-            <button
-              onClick={async () => {
-                const res = verifyAdWatch();
-                if (!res.valid) {
-                  alert(res.reason);
-                  return;
-                }
-                const bId = activeWaterfallBox;
-                setActiveWaterfallBox(null);
-                setOpeningId(bId);
-                try {
-                  const claimRes = await api.openGiftBox(user.id, bId);
-                  if (claimRes.success) {
-                    addToast('Box Unlocked!', `You received +${claimRes.rewardAmount} ${claimRes.rewardAsset}!`, 'success');
-                    setDoneBoxMap(prev => ({ ...prev, [bId]: true }));
-                    await setDone('gift', bId, user.id);
-                    await refreshProfile();
-                    await fetchBoxes();
-                  } else {
-                    addToast('Error', (claimRes as any).error || 'Claim failed', 'error');
-                  }
-                } catch (e: any) {
-                  addToast('Error', e.message || 'Claim failed', 'error');
-                } finally {
-                  setOpeningId(null);
-                }
-              }}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg active:scale-95 cursor-pointer"
-            >
-              Claim Box #{activeWaterfallBox} Reward
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Rewarded Ad Gate Modal */}
+      {/* Dedicated In-App Rewarded Ad Gate Modal (Box 1-5, 30s In-App, 0% External Redirect) */}
       {adTargetBox && user && (
         <UnifiedRewardedAdModal
           userId={user.id}
           actionType="GIFT_BOX"
           targetId={adTargetBox.boxNumber || adTargetBox.id}
-          title={`Unlock Mystery Gift Box #${adTargetBox.boxNumber}`}
-          description="Complete the official rewarded ad to open this mystery box."
+          title={`Unlock Mystery Gift Box #${adTargetBox.boxNumber || adTargetBox.id}`}
+          description="Complete 30s ad to unlock reward"
           rewardHint={`+${adTargetBox.rewardAmount} ${adTargetBox.rewardAsset}`}
+          durationSeconds={30}
           onComplete={handleAdCompleted}
           onCancel={() => setAdTargetBox(null)}
         />

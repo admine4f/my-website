@@ -260,15 +260,10 @@ export async function showInside(network: 'richads' | 'monetag' | 'onclicka', id
       const fn = (window as any).show_12044377;
       if (typeof fn === 'function') {
         try {
-          await fn('pop');
+          await fn();
           return true;
         } catch {
-          try {
-            await fn();
-            return true;
-          } catch {
-            return false;
-          }
+          return false;
         }
       } else if (typeof (window as any).showRewardedAd === 'function') {
         try {

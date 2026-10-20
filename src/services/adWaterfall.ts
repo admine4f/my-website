@@ -214,13 +214,11 @@ export async function showMonetagAd(
       const showFn = (window as any).show_12044377 || window.showMonetagAd || sdkShowMonetagAd;
       if (typeof showFn === 'function') {
         try {
-          const res = showFn('pop');
+          const res = showFn();
           if (res && typeof res.then === 'function') await res;
           return { success: true, completed: true, adUrl };
         } catch {
-          const res2 = showFn();
-          if (res2 && typeof res2.then === 'function') await res2;
-          return { success: true, completed: true, adUrl };
+          return { success: false, completed: false, adUrl, reason: 'Monetag in-app ad failed' };
         }
       }
     }
@@ -276,7 +274,7 @@ export const WATERFALL = {
     { network: 'richads', tag: '410202', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410202);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410202</p></div>' },
   ],
   box2: [
-    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
+    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377();}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
   ],
   box3: [
     { network: 'onclicka', tag: '6153772E4F', code: '<iframe src="https://highperformanceformat.com/6153772E4F" style="width:100%;height:380px;border:none;"></iframe>' },
@@ -285,17 +283,17 @@ export const WATERFALL = {
     { network: 'richads', tag: '410202', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410202);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410202</p></div>' },
   ],
   box5: [
-    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
+    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377();}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
   ],
   spin: [
     { network: 'richads', tag: '410203', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410203);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410203</p></div>' },
   ],
   mining: [
     { network: 'richads', tag: '410204', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410204);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410204</p></div>' },
-    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
+    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377();}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
     { network: 'onclicka', tag: '6153774E4F', code: '<iframe src="https://highperformanceformat.com/6153774E4F" style="width:100%;height:380px;border:none;"></iframe>' },
     { network: 'richads', tag: '410204', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410204);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410204</p></div>' },
-    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
+    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377();}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
   ]
 };
 

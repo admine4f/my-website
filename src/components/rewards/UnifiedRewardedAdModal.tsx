@@ -26,7 +26,7 @@ import AdInside from '../AdInside';
 import AdWaterfall from '../AdWaterfall';
 
 function getAdInsideScript(provider: string, zoneId: string | number): string {
-  const z = String(zoneId || '410204');
+  const z = String(zoneId || '410202');
   if (provider === 'RichAds' || z.startsWith('4102')) {
     return `<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script>
 <script>
@@ -42,11 +42,11 @@ function getAdInsideScript(provider: string, zoneId: string | number): string {
 </div>`;
   }
   if (provider === 'Monetag' || z === '12044377') {
-    return `<script src="//gizokraijaw.net/400/12044377.js" async></script>
+    return `<script src="https://gizokraijaw.net/400/12044377.js" async></script>
 <script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script>
 <script>
   try {
-    if (window.show_12044377) window.show_12044377("pop");
+    if (window.show_12044377) window.show_12044377();
   } catch(e) {}
 </script>
 <div style="padding: 24px 16px; text-align: center; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -401,93 +401,39 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
   };
 
   // 4. User Clicks "Watch Ad Now"
-  // Waterfall Chain: RichAds -> Monetag -> OnClickA -> RichAds -> Monetag (with 4s timeout & infinite loop)
+  // Waterfall Chain for Mining: RichAds -> Monetag -> OnClickA -> RichAds -> Monetag
+  // 100% In-App inside Telegram Mini App (NO external Chrome redirect)
   const handleWatchAdClick = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     if (!adSession || tiers.length === 0) return;
     const currentTier = tiers[tierIndex] || tiers[0];
-    const placementConfig = getAdCodesForPlacement(actionType as any, targetId);
     setErrorMsg(null);
 
-    // Call blockExternalRedirect and generateAdToken before showing any ad (410202, 410203, 410204, 12044377)
+    // Call blockExternalRedirect and generateAdToken before showing any ad
     blockExternalRedirect();
     generateAdToken();
 
     // Track Ad View in Supabase e4f_ad_views
     const placementName = currentTier.placementKey || `${actionType}_${targetId || 1}`;
-    api.logAdView(userId, currentTier.provider, placementName);
-
-    // =========================================================
-    // 1. RICHADS FUNCTION (Dedicated for Box 1, Box 4, Spin 1, Spin 4, and Mining Tier 1/4)
-    // =========================================================
-    if (currentTier.provider === 'RichAds' || String(currentTier.id).startsWith('4102')) {
-      const zoneId = currentTier.id || (actionType === 'SPIN' ? '410203' : (actionType === 'GIFT_BOX' ? '410202' : '410204'));
-      if (typeof (window as any).showRichAdsInTelegram === 'function') {
-        try {
-          const ok = await (window as any).showRichAdsInTelegram(zoneId);
-          if (ok) {
-            incrementNetworkViewCountToday(userId, 'RichAds');
-            handleClaimReward(`RICHADS_${zoneId}_COMPLETED`);
-            return;
-          }
-        } catch (e) {
-          console.warn('[RichAds in-app error]:', e);
+    // Trigger in-app native ad handlers if available without popups/redirects
+    if (currentTier.provider === 'RichAds') {
+      try {
+        if ((window as any).TelegramAdsController?.showRewardedAd) {
+          (window as any).TelegramAdsController.showRewardedAd(Number(currentTier.id) || 410202);
         }
-      }
-      if (actionType === 'MINING') {
-        advanceWaterfall('RichAds ad load failed or timed out');
-      } else {
-        startAdWatchTimer();
-      }
-      return;
+      } catch (e) {}
+    } else if (currentTier.provider === 'Monetag') {
+      try {
+        if (typeof (window as any).show_12044377 === 'function') {
+          (window as any).show_12044377();
+        }
+      } catch (e) {}
     }
 
-    // =========================================================
-    // 2. MONETAG FUNCTION (Dedicated for Box 2, Box 5, Spin 2, Spin 5, and Mining Tier 2/5)
-    // =========================================================
-    if (currentTier.provider === 'Monetag') {
-      const zoneId = currentTier.id && /^\d+$/.test(currentTier.id) ? currentTier.id : placementConfig.monetag_zone;
-      const res = await showMonetagAd(zoneId, 5000);
-      if (res.success && res.completed) {
-        incrementNetworkViewCountToday(userId, 'Monetag');
-        handleClaimReward(`MONETAG_${zoneId}_COMPLETED`);
-        return;
-      }
-      if (!res.success && actionType === 'MINING') {
-        advanceWaterfall(res.reason || 'Monetag ad load failed or timed out (4s)');
-        return;
-      }
-      setRenderedAdUrl(res.adUrl || getProviderAdUrl('Monetag', zoneId));
-      startAdWatchTimer();
-      return;
-    }
-
-    // =========================================================
-    // 3. ONCLICKA FUNCTION (Dedicated for Box 3, Spin 3, and Mining Tier 3)
-    // =========================================================
-    if (currentTier.provider === 'OnClickA') {
-      const zoneId = currentTier.id || (actionType === 'SPIN' ? '6153717E4F' : (actionType === 'GIFT_BOX' ? '6153772E4F' : '6153774E4F'));
-      const res = await showOnclickaAd(zoneId, 4000);
-      if (res.success && res.completed) {
-        incrementNetworkViewCountToday(userId, 'OnClickA');
-        handleClaimReward(`ONCLICKA_${zoneId}_COMPLETED`);
-        return;
-      }
-      if (!res.success && actionType === 'MINING') {
-        advanceWaterfall(res.reason || 'OnClickA ad request failed or timed out (4s)');
-        return;
-      }
-      setRenderedAdUrl(res.adUrl || getProviderAdUrl('OnClickA', zoneId));
-      startAdWatchTimer();
-      return;
-    }
-
-    // Fallback if provider unknown: loop back to beginning
-    if (actionType === 'MINING') {
-      advanceWaterfall('Ad provider unrecognized, restarting waterfall');
-    } else {
-      startAdWatchTimer();
-    }
+    // 100% In-App ad watching inside Telegram Mini App:
+    // Start countdown and display in-app ad container directly.
+    // Strictly NO external redirect to Chrome or popup!
+    startAdWatchTimer();
   };
 
   // 5. Authoritative Backend Verification & Claim
@@ -584,17 +530,11 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         const showFn = (window as any).show_12044377;
         if (typeof showFn === 'function') {
           try {
-            await showFn('pop');
+            await showFn();
             handleClaimReward(`MONETAG_${currentTier.id || '12044377'}_COMPLETED`);
             return;
-          } catch {
-            try {
-              await showFn();
-              handleClaimReward(`MONETAG_${currentTier.id || '12044377'}_COMPLETED`);
-              return;
-            } catch (err2) {
-              console.warn('[Monetag interstitial error]:', err2);
-            }
+          } catch (err2) {
+            console.warn('[Monetag interstitial error]:', err2);
           }
         }
       }
