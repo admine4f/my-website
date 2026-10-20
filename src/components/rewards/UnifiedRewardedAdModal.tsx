@@ -296,11 +296,17 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     };
   }, [handleCancel]);
 
-  // Waterfall Fallback Trigger: Called whenever an ad network fails or times out (4 seconds)
-  // "৫ নং Ad ও ফেল করলে আবার ১ নং Ad থেকে শুরু হবে। মানে লুপ চলতেই থাকবে, কখনো ফাঁকা যাবে না।"
+  // Waterfall Fallback Trigger: Called whenever an ad network fails or times out
+  // Strict requirement: Waterfall logic is ONLY for Mining! (Gift Box and Spin have dedicated ads, NO waterfall)
   const advanceWaterfall = useCallback(
     (reason: string) => {
       if (!isMountedRef.current) return;
+      if (actionType !== 'MINING') {
+        console.log(`[UnifiedRewardedAdModal] Waterfall disabled for ${actionType}. Retrying dedicated ad.`);
+        setStep('WATCHING');
+        startAdWatchTimer();
+        return;
+      }
       if (timerRef.current) clearInterval(timerRef.current);
 
       const nextIndex = tiers.length > 0 ? (tierIndex + 1) % tiers.length : 0;
@@ -320,7 +326,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         if (isMountedRef.current) setTierFailReason(null);
       }, 2500);
     },
-    [tierIndex, tiers]
+    [tierIndex, tiers, actionType]
   );
 
   // Monitor Tab Visibility / App Minimize - Strict Pause on Switch
@@ -412,23 +418,32 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     api.logAdView(userId, currentTier.provider, placementName);
 
     // =========================================================
-    // 1. RICHADS FUNCTION (Slot 1 & Slot 4)
+    // 1. RICHADS FUNCTION (Dedicated for Box 1, Box 4, Spin 1, Spin 4, and Mining Tier 1/4)
     // =========================================================
     if (currentTier.provider === 'RichAds' || String(currentTier.id).startsWith('4102')) {
       const zoneId = currentTier.id || (actionType === 'SPIN' ? '410203' : (actionType === 'GIFT_BOX' ? '410202' : '410204'));
-      const ok = await (window as any).showRichAdsInTelegram?.(zoneId);
-      if (ok) {
-        incrementNetworkViewCountToday(userId, 'RichAds');
-        handleClaimReward(`RICHADS_${zoneId}_COMPLETED`);
-        return;
-      } else {
-        advanceWaterfall('RichAds ad load failed or timed out');
-        return;
+      if (typeof (window as any).showRichAdsInTelegram === 'function') {
+        try {
+          const ok = await (window as any).showRichAdsInTelegram(zoneId);
+          if (ok) {
+            incrementNetworkViewCountToday(userId, 'RichAds');
+            handleClaimReward(`RICHADS_${zoneId}_COMPLETED`);
+            return;
+          }
+        } catch (e) {
+          console.warn('[RichAds in-app error]:', e);
+        }
       }
+      if (actionType === 'MINING') {
+        advanceWaterfall('RichAds ad load failed or timed out');
+      } else {
+        startAdWatchTimer();
+      }
+      return;
     }
 
     // =========================================================
-    // 2. MONETAG FUNCTION (Slot 2 & Slot 5 - In-App Telegram SDK with Zone 12044377)
+    // 2. MONETAG FUNCTION (Dedicated for Box 2, Box 5, Spin 2, Spin 5, and Mining Tier 2/5)
     // =========================================================
     if (currentTier.provider === 'Monetag') {
       const zoneId = currentTier.id && /^\d+$/.test(currentTier.id) ? currentTier.id : placementConfig.monetag_zone;
@@ -438,7 +453,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         handleClaimReward(`MONETAG_${zoneId}_COMPLETED`);
         return;
       }
-      if (!res.success) {
+      if (!res.success && actionType === 'MINING') {
         advanceWaterfall(res.reason || 'Monetag ad load failed or timed out (4s)');
         return;
       }
@@ -448,7 +463,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // =========================================================
-    // 3. ONCLICKA FUNCTION (In-App Ad Stream & Zone Delivery)
+    // 3. ONCLICKA FUNCTION (Dedicated for Box 3, Spin 3, and Mining Tier 3)
     // =========================================================
     if (currentTier.provider === 'OnClickA') {
       const zoneId = currentTier.id || (actionType === 'SPIN' ? '6153717E4F' : (actionType === 'GIFT_BOX' ? '6153772E4F' : '6153774E4F'));
@@ -458,7 +473,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
         handleClaimReward(`ONCLICKA_${zoneId}_COMPLETED`);
         return;
       }
-      if (!res.success) {
+      if (!res.success && actionType === 'MINING') {
         advanceWaterfall(res.reason || 'OnClickA ad request failed or timed out (4s)');
         return;
       }
@@ -468,7 +483,11 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     }
 
     // Fallback if provider unknown: loop back to beginning
-    advanceWaterfall('Ad provider unrecognized, restarting waterfall');
+    if (actionType === 'MINING') {
+      advanceWaterfall('Ad provider unrecognized, restarting waterfall');
+    } else {
+      startAdWatchTimer();
+    }
   };
 
   // 5. Authoritative Backend Verification & Claim
@@ -697,10 +716,13 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
 
               {/* 100% In-App Sandboxed Ad Container - NO EXTERNAL REDIRECT */}
               <div className="w-full rounded-xl overflow-hidden border border-slate-800 bg-black">
-                <AdWaterfall
-                  house={actionType === 'SPIN' ? 'spin' : actionType === 'MINING' ? 'mining' : `box${targetId || 1}`}
-                  onAdLoaded={() => {}}
-                />
+                {actionType === 'MINING' ? (
+                  <AdWaterfall house="mining" onAdLoaded={() => {}} />
+                ) : actionType === 'SPIN' ? (
+                  <AdInside adScript={getAdInsideScript(currentTier?.provider || 'RichAds', currentTier?.id || '410203')} />
+                ) : (
+                  <AdInside adScript={getAdInsideScript(currentTier?.provider || (targetId === 2 || targetId === 5 ? 'Monetag' : targetId === 3 ? 'OnClickA' : 'RichAds'), currentTier?.id || (targetId === 2 || targetId === 5 ? '12044377' : targetId === 3 ? '6153772E4F' : '410202'))} />
+                )}
               </div>
 
               {/* Watch Timer & Progress */}
@@ -728,13 +750,15 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               </div>
             </div>
 
-            {/* Manual next network fallback if stuck */}
-            <button
-              onClick={() => advanceWaterfall('User requested next ad stream')}
-              className="text-[10px] text-slate-500 hover:text-amber-400 transition-colors cursor-pointer mt-1"
-            >
-              Ad blocked or not loading? Skip to next network
-            </button>
+            {/* Manual next network fallback only for MINING waterfall */}
+            {actionType === 'MINING' && (
+              <button
+                onClick={() => advanceWaterfall('User requested next ad stream')}
+                className="text-[10px] text-slate-500 hover:text-amber-400 transition-colors cursor-pointer mt-1"
+              >
+                Ad blocked or not loading? Skip to next network
+              </button>
+            )}
           </div>
         )}
 
@@ -764,12 +788,14 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               <span>Continue Watching Ad ({remainingSeconds}s remaining)</span>
             </button>
 
-            <button
-              onClick={() => advanceWaterfall('Ad playback incomplete')}
-              className="text-[10px] text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
-            >
-              Try next network
-            </button>
+            {actionType === 'MINING' && (
+              <button
+                onClick={() => advanceWaterfall('Ad playback incomplete')}
+                className="text-[10px] text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
+              >
+                Try next network
+              </button>
+            )}
           </div>
         )}
 

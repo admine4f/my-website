@@ -80,45 +80,35 @@ export async function syncWaterfallSettings(): Promise<{
   };
 }
 
-// 5 Tiers: RichAds -> Monetag -> OnClickA -> RichAds -> Monetag
+// Spin 1-5 Dedicated Ads (Waterfall Logic Removed: Each Spin Has Dedicated Ad)
 export function getSpinWaterfallTiers(targetSpinNumber?: number): WaterfallTier[] {
-  const baseTiers: WaterfallTier[] = [
-    { index: 1, provider: 'RichAds', id: spin_01_richads, label: 'RichAds (Slot 1)' },
-    { index: 2, provider: 'Monetag', id: spin_02_monetag, label: 'Monetag (Slot 2)' },
-    { index: 3, provider: 'OnClickA', id: spin_03_onclicka, label: 'OnClickA (Slot 3)' },
-    { index: 4, provider: 'RichAds', id: spin_04_richads, label: 'RichAds (Slot 4)' },
-    { index: 5, provider: 'Monetag', id: spin_05_monetag, label: 'Monetag (Slot 5)' },
-  ];
-  if (!targetSpinNumber || targetSpinNumber < 1) return baseTiers;
-  const startIndex = Math.max(0, Math.min(4, targetSpinNumber - 1));
-  return [
-    ...baseTiers.slice(startIndex),
-    ...baseTiers.slice(0, startIndex),
-  ].map((t, i) => ({
-    ...t,
-    index: i + 1,
-    label: i === 0 ? `${t.provider} (Primary)` : `${t.provider} (Tier ${i + 1})`,
-  }));
+  const num = Math.max(1, Math.min(5, Number(targetSpinNumber) || 1));
+  const spinMap: Record<number, WaterfallTier> = {
+    1: { index: 1, provider: 'RichAds', id: spin_01_richads || '410203', label: 'RichAds (Spin 1)' },
+    2: { index: 1, provider: 'Monetag', id: spin_02_monetag || '12044377', label: 'Monetag (Spin 2)' },
+    3: { index: 1, provider: 'OnClickA', id: spin_03_onclicka || '6153717E4F', label: 'OnClickA (Spin 3)' },
+    4: { index: 1, provider: 'RichAds', id: spin_04_richads || '410203', label: 'RichAds (Spin 4)' },
+    5: { index: 1, provider: 'Monetag', id: spin_05_monetag || '12044377', label: 'Monetag (Spin 5)' },
+  };
+  return [spinMap[num] || spinMap[1]];
 }
 
+// Gift Box 1-5 Dedicated Ads (Waterfall Logic Removed: Box Number = Dedicated Network)
+// Box 1 -> RichAds (410202)
+// Box 2 -> Monetag (12044377)
+// Box 3 -> OnClickA (6153772E4F)
+// Box 4 -> RichAds (410202)
+// Box 5 -> Monetag (12044377)
 export function getBoxWaterfallTiers(targetBoxNumber?: number): WaterfallTier[] {
-  const baseTiers: WaterfallTier[] = [
-    { index: 1, provider: 'RichAds', id: box_01_richads, label: 'RichAds (Slot 1)' },
-    { index: 2, provider: 'Monetag', id: box_02_monetag, label: 'Monetag (Slot 2)' },
-    { index: 3, provider: 'OnClickA', id: box_03_onclicka, label: 'OnClickA (Slot 3)' },
-    { index: 4, provider: 'RichAds', id: box_04_richads, label: 'RichAds (Slot 4)' },
-    { index: 5, provider: 'Monetag', id: box_05_monetag, label: 'Monetag (Slot 5)' },
-  ];
-  if (!targetBoxNumber || targetBoxNumber < 1) return baseTiers;
-  const startIndex = Math.max(0, Math.min(4, targetBoxNumber - 1));
-  return [
-    ...baseTiers.slice(startIndex),
-    ...baseTiers.slice(0, startIndex),
-  ].map((t, i) => ({
-    ...t,
-    index: i + 1,
-    label: i === 0 ? `${t.provider} (Primary)` : `${t.provider} (Tier ${i + 1})`,
-  }));
+  const num = Math.max(1, Math.min(5, Number(targetBoxNumber) || 1));
+  const boxMap: Record<number, WaterfallTier> = {
+    1: { index: 1, provider: 'RichAds', id: box_01_richads || '410202', label: 'RichAds (Box 1)' },
+    2: { index: 1, provider: 'Monetag', id: box_02_monetag || '12044377', label: 'Monetag (Box 2)' },
+    3: { index: 1, provider: 'OnClickA', id: box_03_onclicka || '6153772E4F', label: 'OnClickA (Box 3)' },
+    4: { index: 1, provider: 'RichAds', id: box_04_richads || '410202', label: 'RichAds (Box 4)' },
+    5: { index: 1, provider: 'Monetag', id: box_05_monetag || '12044377', label: 'Monetag (Box 5)' },
+  };
+  return [boxMap[num] || boxMap[1]];
 }
 
 export function getMiningWaterfallTiers(): WaterfallTier[] {
@@ -164,19 +154,8 @@ export function getProviderAdUrl(provider: 'RichAds' | 'Monetag' | 'OnClickA', z
  */
 export function openExternalSponsorAd(url: string) {
   if (!url || typeof window === 'undefined') return;
-  try {
-    if ((window as any).Telegram?.WebApp?.openLink) {
-      (window as any).Telegram.WebApp.openLink(url);
-      return;
-    }
-  } catch (err) {
-    console.warn('[Telegram openLink warn]:', err);
-  }
-  try {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  } catch (err) {
-    console.warn('[window.open warn]:', err);
-  }
+  // 100% inside Telegram Mini App - external redirect blocked
+  console.log('[openExternalSponsorAd] Displayed in-app inside Telegram Mini App:', url);
 }
 
 // =========================================================================
@@ -288,44 +267,35 @@ export async function showOnclickaAd(
 }
 
 // =========================================================================
-// HOUSE WATERFALL CONFIGURATION (EACH HOUSE SHOWS ITS OWN AD FIRST)
+// HOUSE AD CONFIGURATION: DEDICATED ADS FOR BOX & SPIN (NO WATERFALL)
+// WATERFALL LOGIC ACTIVE EXCLUSIVELY ON MINING!
 // =========================================================================
 
 export const WATERFALL = {
   box1: [
     { network: 'richads', tag: '410202', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410202);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410202</p></div>' },
-    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
-    { network: 'onclicka', tag: '6153772E4F', code: '<iframe src="https://highperformanceformat.com/6153772E4F" style="width:100%;height:380px;border:none;"></iframe>' },
   ],
   box2: [
     { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
-    { network: 'onclicka', tag: '6153772E4F', code: '<iframe src="https://highperformanceformat.com/6153772E4F" style="width:100%;height:380px;border:none;"></iframe>' },
-    { network: 'richads', tag: '410202', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410202);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410202</p></div>' },
   ],
   box3: [
     { network: 'onclicka', tag: '6153772E4F', code: '<iframe src="https://highperformanceformat.com/6153772E4F" style="width:100%;height:380px;border:none;"></iframe>' },
-    { network: 'richads', tag: '410202', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410202);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410202</p></div>' },
-    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
   ],
   box4: [
     { network: 'richads', tag: '410202', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410202);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410202</p></div>' },
-    { network: 'onclicka', tag: '6153772E4F', code: '<iframe src="https://highperformanceformat.com/6153772E4F" style="width:100%;height:380px;border:none;"></iframe>' },
-    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
   ],
   box5: [
     { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
-    { network: 'richads', tag: '410202', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410202);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410202</p></div>' },
-    { network: 'onclicka', tag: '6153772E4F', code: '<iframe src="https://highperformanceformat.com/6153772E4F" style="width:100%;height:380px;border:none;"></iframe>' },
   ],
   spin: [
     { network: 'richads', tag: '410203', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410203);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410203</p></div>' },
-    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
-    { network: 'onclicka', tag: '6153717E4F', code: '<iframe src="https://highperformanceformat.com/6153717E4F" style="width:100%;height:380px;border:none;"></iframe>' },
   ],
   mining: [
     { network: 'richads', tag: '410204', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410204);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410204</p></div>' },
     { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
     { network: 'onclicka', tag: '6153774E4F', code: '<iframe src="https://highperformanceformat.com/6153774E4F" style="width:100%;height:380px;border:none;"></iframe>' },
+    { network: 'richads', tag: '410204', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410204);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410204</p></div>' },
+    { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377("pop");}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
   ]
 };
 
@@ -333,6 +303,9 @@ export type HouseType = 'box1' | 'box2' | 'box3' | 'box4' | 'box5' | 'spin' | 'm
 
 export function getAdForHouse(house: HouseType | string, attempt: number) {
   const list = (WATERFALL as any)[house] || WATERFALL.mining;
-  return list[attempt] || list[0];
+  if (house !== 'mining') {
+    return list[0]; // ONLY dedicated ad for box1..box5 & spin (NO waterfall!)
+  }
+  return list[attempt % list.length] || list[0]; // Waterfall rotation ONLY for mining!
 }
 

@@ -59,13 +59,10 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({ onClose }) => {
       return;
     }
 
-    const remainingKey = `${remaining}/5`;
-    const res = await handleSpinWithWaterfall(remainingKey, user.id, () => {
+    if (spinStatus?.adRequired !== false) {
+      setShowAdModal(true);
+    } else {
       executeSpin();
-    });
-
-    if (!res.success && res.error && res.error !== 'Already claimed today') {
-      addToast('Ad Notice', res.error, 'error');
     }
   };
 

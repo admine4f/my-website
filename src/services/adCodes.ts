@@ -157,53 +157,25 @@ export function buildIntraWaterfallTiers(
   const startIndex = num - 1;
 
   if (actionType === 'GIFT_BOX') {
-    const box01 = dynamicSettings?.box_01_richads || BOX_ADS.box_01.richads_1 || '410202';
-    const box02 = dynamicSettings?.box_02_monetag || BOX_ADS.box_02.monetag_1 || '12044377';
-    const box03 = dynamicSettings?.box_03_onclicka || BOX_ADS.box_03.onclicka || '6153772E4F';
-    const box04 = dynamicSettings?.box_04_richads || BOX_ADS.box_04.richads_2 || '410202';
-    const box05 = dynamicSettings?.box_05_monetag || BOX_ADS.box_05.monetag_2 || '12044377';
-
-    const baseTiers: IntraWaterfallTier[] = [
-      { index: 1, provider: 'RichAds', id: box01, placementKey: 'box_01', label: 'RichAds (Slot 1)' },
-      { index: 2, provider: 'Monetag', id: box02, placementKey: 'box_02', label: 'Monetag (Slot 2)' },
-      { index: 3, provider: 'OnClickA', id: box03, placementKey: 'box_03', label: 'OnClickA (Slot 3)' },
-      { index: 4, provider: 'RichAds', id: box04, placementKey: 'box_04', label: 'RichAds (Slot 4)' },
-      { index: 5, provider: 'Monetag', id: box05, placementKey: 'box_05', label: 'Monetag (Slot 5)' },
-    ];
-
-    return [
-      ...baseTiers.slice(startIndex),
-      ...baseTiers.slice(0, startIndex),
-    ].map((tier, i) => ({
-      ...tier,
-      index: i + 1,
-      label: i === 0 ? `${tier.provider} (Primary)` : `${tier.provider} (Tier ${i + 1})`,
-    }));
+    const boxMap: Record<number, IntraWaterfallTier> = {
+      1: { index: 1, provider: 'RichAds', id: dynamicSettings?.box_01_richads || '410202', placementKey: 'box_01', label: 'RichAds (Box 1)' },
+      2: { index: 1, provider: 'Monetag', id: dynamicSettings?.box_02_monetag || '12044377', placementKey: 'box_02', label: 'Monetag (Box 2)' },
+      3: { index: 1, provider: 'OnClickA', id: dynamicSettings?.box_03_onclicka || '6153772E4F', placementKey: 'box_03', label: 'OnClickA (Box 3)' },
+      4: { index: 1, provider: 'RichAds', id: dynamicSettings?.box_04_richads || '410202', placementKey: 'box_04', label: 'RichAds (Box 4)' },
+      5: { index: 1, provider: 'Monetag', id: dynamicSettings?.box_05_monetag || '12044377', placementKey: 'box_05', label: 'Monetag (Box 5)' },
+    };
+    return [boxMap[num] || boxMap[1]];
   }
 
   if (actionType === 'SPIN') {
-    const spin01 = dynamicSettings?.spin_01_richads || SPIN_ADS.spin_01.richads_1 || '410203';
-    const spin02 = dynamicSettings?.spin_02_monetag || SPIN_ADS.spin_02.monetag_1 || '12044377';
-    const spin03 = dynamicSettings?.spin_03_onclicka || SPIN_ADS.spin_03.onclicka || '6153717E4F';
-    const spin04 = dynamicSettings?.spin_04_richads || SPIN_ADS.spin_04.richads_2 || '410203';
-    const spin05 = dynamicSettings?.spin_05_monetag || SPIN_ADS.spin_05.monetag_2 || '12044377';
-
-    const baseTiers: IntraWaterfallTier[] = [
-      { index: 1, provider: 'RichAds', id: spin01, placementKey: 'spin_01', label: 'RichAds (Slot 1)' },
-      { index: 2, provider: 'Monetag', id: spin02, placementKey: 'spin_02', label: 'Monetag (Slot 2)' },
-      { index: 3, provider: 'OnClickA', id: spin03, placementKey: 'spin_03', label: 'OnClickA (Slot 3)' },
-      { index: 4, provider: 'RichAds', id: spin04, placementKey: 'spin_04', label: 'RichAds (Slot 4)' },
-      { index: 5, provider: 'Monetag', id: spin05, placementKey: 'spin_05', label: 'Monetag (Slot 5)' },
-    ];
-
-    return [
-      ...baseTiers.slice(startIndex),
-      ...baseTiers.slice(0, startIndex),
-    ].map((tier, i) => ({
-      ...tier,
-      index: i + 1,
-      label: i === 0 ? `${tier.provider} (Primary)` : `${tier.provider} (Tier ${i + 1})`,
-    }));
+    const spinMap: Record<number, IntraWaterfallTier> = {
+      1: { index: 1, provider: 'RichAds', id: dynamicSettings?.spin_01_richads || '410203', placementKey: 'spin_01', label: 'RichAds (Spin 1)' },
+      2: { index: 1, provider: 'Monetag', id: dynamicSettings?.spin_02_monetag || '12044377', placementKey: 'spin_02', label: 'Monetag (Spin 2)' },
+      3: { index: 1, provider: 'OnClickA', id: dynamicSettings?.spin_03_onclicka || '6153717E4F', placementKey: 'spin_03', label: 'OnClickA (Spin 3)' },
+      4: { index: 1, provider: 'RichAds', id: dynamicSettings?.spin_04_richads || '410203', placementKey: 'spin_04', label: 'RichAds (Spin 4)' },
+      5: { index: 1, provider: 'Monetag', id: dynamicSettings?.spin_05_monetag || '12044377', placementKey: 'spin_05', label: 'Monetag (Spin 5)' },
+    };
+    return [spinMap[num] || spinMap[1]];
   }
 
   // Mining / Withdraw / Sell

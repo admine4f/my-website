@@ -5,7 +5,38 @@ import { api } from '../../services/api';
 import { GiftBox } from '../../types';
 import { UnifiedRewardedAdModal } from './UnifiedRewardedAdModal';
 import { isDone, openGiftBoxWithWaterfall, verifyAdWatch, setDone } from '../../services/antiFakeAds';
-import AdWaterfall from '../AdWaterfall';
+import AdInside from '../AdInside';
+
+function getBoxAdScript(boxNum: number): string {
+  if (boxNum === 2 || boxNum === 5) {
+    return `<script src="//gizokraijaw.net/400/12044377.js" async></script>
+<script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script>
+<script>
+  try {
+    if (window.show_12044377) window.show_12044377("pop");
+  } catch(e) {}
+</script>
+<div style="padding: 24px 16px; text-align: center; color: #fff; font-family: sans-serif;">
+  <div style="font-size: 16px; font-weight: 800; color: #38BDF8; margin-bottom: 8px;">Monetag Verified In-App Sponsor</div>
+  <div style="font-size: 12px; color: #94A3B8;">Zone ID: 12044377 • 100% In-App Delivery</div>
+</div>`;
+  }
+  if (boxNum === 3) {
+    return `<iframe src="https://highperformanceformat.com/6153772E4F" style="width:100%;height:380px;border:none;"></iframe>`;
+  }
+  return `<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script>
+<script>
+  try {
+    if (window.TelegramAdsController) {
+      window.TelegramAdsController.showRewardedAd(410202);
+    }
+  } catch(e) {}
+</script>
+<div style="padding: 24px 16px; text-align: center; color: #fff; font-family: sans-serif;">
+  <div style="font-size: 16px; font-weight: 800; color: #F59E0B; margin-bottom: 8px;">RichAds Verified In-App Sponsor</div>
+  <div style="font-size: 12px; color: #94A3B8;">Zone ID: 410202 • 100% In-App Delivery</div>
+</div>`;
+}
 
 interface GiftBoxesModalProps {
   onClose: () => void;
@@ -130,7 +161,7 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
             <p className="text-xs text-slate-400 mb-3">Complete 30s ad to unlock reward</p>
 
             <div className="rounded-2xl overflow-hidden border border-slate-800 bg-black mb-4">
-              <AdWaterfall house={`box${activeWaterfallBox}`} onAdLoaded={() => {}} />
+              <AdInside adScript={getBoxAdScript(activeWaterfallBox)} />
             </div>
 
             <button

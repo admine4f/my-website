@@ -1382,18 +1382,18 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                       <div>
                         <div className="font-extrabold text-white text-sm flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-                          <span>Waterfall Ad Logic Settings (Spin & Gift Box 1–5)</span>
+                          <span>Direct In-App Ad Settings (Spin & Gift Box 1–5)</span>
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          Configure 10 Ad Block / Zone / App IDs. Waterfall chain: RichAds → Monetag → OnClickA → RichAds → Monetag (Best Income Optimization).
+                          Configure dedicated in-app Ad Zone IDs for Spin and each individual Gift Box. 100% Inside Telegram with no waterfall cascade.
                         </div>
                       </div>
                     </div>
 
-                    {/* SPIN WATERFALL SECTION */}
+                    {/* SPIN DIRECT ADS SECTION */}
                     <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                       <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wide">
-                        <span>🎡 Spin 1–5 Waterfall IDs</span>
+                        <span>🎡 Spin Wheel Dedicated Ad IDs</span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                         <div>
@@ -1501,15 +1501,15 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                       </div>
                     </div>
 
-                    {/* GIFT BOX WATERFALL SECTION */}
+                    {/* GIFT BOX DEDICATED ADS SECTION */}
                     <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                       <div className="text-xs font-bold text-sky-400 flex items-center gap-1.5 uppercase tracking-wide">
-                        <span>🎁 Gift Box 1–5 Waterfall IDs</span>
+                        <span>🎁 Gift Box 1–5 Dedicated Ad IDs (Each Box Shows Its Own Ad)</span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                         <div>
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            1. RichAds ID (box_01_richads)
+                            Box #1 RichAds ID (box_01_richads)
                           </label>
                           <input
                             type="text"
@@ -1521,7 +1521,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                         </div>
                         <div>
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            2. Monetag ID (box_02_monetag)
+                            Box #2 Monetag ID (box_02_monetag)
                           </label>
                           <input
                             type="text"
@@ -1533,7 +1533,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                         </div>
                         <div>
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            3. OnClickA ID (box_03_onclicka)
+                            Box #3 OnClickA ID (box_03_onclicka)
                           </label>
                           <input
                             type="text"
@@ -1545,7 +1545,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                         </div>
                         <div>
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            4. RichAds ID (box_04_richads)
+                            Box #4 RichAds ID (box_04_richads)
                           </label>
                           <input
                             type="text"
@@ -1557,7 +1557,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                         </div>
                         <div className="md:col-span-2">
                           <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">
-                            5. Monetag ID (box_05_monetag)
+                            Box #5 Monetag ID (box_05_monetag)
                           </label>
                           <input
                             type="text"
@@ -1617,7 +1617,7 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({ onClose })
                       disabled={loading}
                       className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {loading ? 'Saving...' : 'Save All Ad Waterfall IDs & Durations (Instant Live Update)'}
+                      {loading ? 'Saving...' : 'Save Ad IDs & Durations (Instant Live Update)'}
                     </button>
                   </div>
                 </div>

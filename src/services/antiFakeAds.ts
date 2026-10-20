@@ -535,6 +535,22 @@ export async function processClaimReward(
 // WATERFALL MODULE RUNNERS
 // -------------------------------------------------------------------------
 
+function safeNotify(msg: string) {
+  try {
+    if (typeof (window as any)?.Telegram?.WebApp?.showAlert === 'function') {
+      (window as any).Telegram.WebApp.showAlert(msg);
+      return;
+    }
+  } catch {}
+  try {
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      window.alert(msg);
+      return;
+    }
+  } catch {}
+  console.warn('[Ad Notification]:', msg);
+}
+
 export async function openGiftBoxWithWaterfall(
   boxNum: number,
   userId: string,
@@ -542,32 +558,25 @@ export async function openGiftBoxWithWaterfall(
 ): Promise<{ success: boolean; error?: string }> {
   const done = await isDone('gift', boxNum, userId);
   if (done) {
-    alert('Box already opened today. Resets at UTC 00:00.');
+    safeNotify('Box already opened today. Resets at UTC 00:00.');
     return { success: false, error: 'Already claimed today' };
   }
 
-  const tiers = AD_CONFIG.GIFT[boxNum as 1 | 2 | 3 | 4 | 5] || AD_CONFIG.GIFT[1];
-  let completed = false;
+  // Direct dedicated In-App Ad without waterfall cascade
+  const targetTier = (boxNum === 2 || boxNum === 5)
+    ? { network: 'monetag' as const, id: '12044377' }
+    : boxNum === 3
+    ? { network: 'onclicka' as const, id: '6153772E4F' }
+    : { network: 'richads' as const, id: '410202' };
 
-  for (let i = 0; i < tiers.length; i++) {
-    const tier = tiers[i];
-    console.log(`[Gift Box #${boxNum}] Tier ${i + 1}: ${tier.network} (${tier.id})`);
-    
-    // Call blockExternalRedirect and generateAdToken before showing
-    blockExternalRedirect();
-    generateAdToken();
+  console.log(`[Gift Box #${boxNum}] Direct In-App Ad: ${targetTier.network} (${targetTier.id})`);
+  blockExternalRedirect();
+  generateAdToken();
 
-    const shown = await showInside(tier.network, tier.id);
-    if (shown) {
-      completed = true;
-      break;
-    }
-    console.warn(`[Gift Box #${boxNum}] Tier ${i + 1} failed. Next tier...`);
-  }
-
-  if (!completed) {
-    alert('Ad load failed. Please try again.');
-    return { success: false, error: 'All waterfall ad attempts failed.' };
+  const shown = await showInside(targetTier.network, targetTier.id);
+  if (!shown) {
+    safeNotify('Ad load failed. Please try again.');
+    return { success: false, error: 'Ad attempt failed.' };
   }
 
   const claimRes = await processClaimReward('gift', boxNum, userId, 2.5);
@@ -575,7 +584,7 @@ export async function openGiftBoxWithWaterfall(
     if (onReward) onReward(2.5);
     return { success: true };
   } else {
-    alert(claimRes.error || 'Fake Report! Watch 30s');
+    safeNotify(claimRes.error || 'Fake Report! Watch 30s');
     return { success: false, error: claimRes.error };
   }
 }
@@ -587,31 +596,21 @@ export async function handleSpinWithWaterfall(
 ): Promise<{ success: boolean; error?: string }> {
   const done = await isDone('spin', remainingKey, userId);
   if (done) {
-    alert('Spin already claimed for this slot today. Resets at UTC 00:00.');
+    safeNotify('Spin already claimed for this slot today. Resets at UTC 00:00.');
     return { success: false, error: 'Already claimed today' };
   }
 
-  const tiers = (AD_CONFIG.SPIN as any)[remainingKey] || AD_CONFIG.SPIN['5/5'];
-  let completed = false;
+  // Direct dedicated Spin Ad (RichAds 410203) without waterfall cascade
+  const targetTier = { network: 'richads' as const, id: '410203' };
+  console.log(`[Spin ${remainingKey}] Direct In-App Ad: ${targetTier.network} (${targetTier.id})`);
 
-  for (let i = 0; i < tiers.length; i++) {
-    const tier = tiers[i];
-    console.log(`[Spin ${remainingKey}] Tier ${i + 1}: ${tier.network} (${tier.id})`);
+  blockExternalRedirect();
+  generateAdToken();
 
-    blockExternalRedirect();
-    generateAdToken();
-
-    const shown = await showInside(tier.network, tier.id);
-    if (shown) {
-      completed = true;
-      break;
-    }
-    console.warn(`[Spin ${remainingKey}] Tier ${i + 1} failed. Next tier...`);
-  }
-
-  if (!completed) {
-    alert('Ad load failed. Please try again.');
-    return { success: false, error: 'All waterfall ad attempts failed.' };
+  const shown = await showInside(targetTier.network, targetTier.id);
+  if (!shown) {
+    safeNotify('Ad load failed. Please try again.');
+    return { success: false, error: 'Ad attempt failed.' };
   }
 
   const claimRes = await processClaimReward('spin', remainingKey, userId);
@@ -619,7 +618,7 @@ export async function handleSpinWithWaterfall(
     if (onAdSuccess) onAdSuccess();
     return { success: true };
   } else {
-    alert(claimRes.error || 'Fake Report! Watch 30s');
+    safeNotify(claimRes.error || 'Fake Report! Watch 30s');
     return { success: false, error: claimRes.error };
   }
 }
@@ -636,7 +635,7 @@ export async function handleMiningWithWaterfall(
     miningTimestamps.shift();
   }
   if (miningTimestamps.length > 5) {
-    alert('Too many attempts! Please wait 10 seconds before starting mining.');
+    safeNotify('Too many attempts! Please wait 10 seconds before starting mining.');
     return { success: false, error: 'Spam protection triggered' };
   }
 
@@ -659,7 +658,7 @@ export async function handleMiningWithWaterfall(
   }
 
   if (!completed) {
-    alert('Ad load failed. Please try again.');
+    safeNotify('Ad load failed. Please try again.');
     return { success: false, error: 'All waterfall ad attempts failed.' };
   }
 
@@ -668,7 +667,7 @@ export async function handleMiningWithWaterfall(
     if (onAdSuccess) onAdSuccess();
     return { success: true };
   } else {
-    alert(claimRes.error || 'Fake Report! Watch 30s');
+    safeNotify(claimRes.error || 'Fake Report! Watch 30s');
     return { success: false, error: claimRes.error };
   }
 }
