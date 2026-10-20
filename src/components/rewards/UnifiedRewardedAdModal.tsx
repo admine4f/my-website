@@ -698,7 +698,7 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               {/* 100% In-App Sandboxed Ad Container - NO EXTERNAL REDIRECT */}
               <div className="w-full rounded-xl overflow-hidden border border-slate-800 bg-black">
                 <AdWaterfall
-                  house={actionType === 'SPIN' ? 'spin' : actionType === 'MINING' ? 'mining' : (targetId === 2 ? 'box2' : 'box1')}
+                  house={actionType === 'SPIN' ? 'spin' : actionType === 'MINING' ? 'mining' : `box${targetId || 1}`}
                   onAdLoaded={() => {}}
                 />
               </div>

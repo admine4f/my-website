@@ -4,7 +4,8 @@ import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { GiftBox } from '../../types';
 import { UnifiedRewardedAdModal } from './UnifiedRewardedAdModal';
-import { isDone, openGiftBoxWithWaterfall } from '../../services/antiFakeAds';
+import { isDone, openGiftBoxWithWaterfall, verifyAdWatch, setDone } from '../../services/antiFakeAds';
+import AdWaterfall from '../AdWaterfall';
 
 interface GiftBoxesModalProps {
   onClose: () => void;
@@ -29,6 +30,7 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
 
   // Selected box waiting for Rewarded Ad completion
   const [adTargetBox, setAdTargetBox] = useState<GiftBox | null>(null);
+  const [activeWaterfallBox, setActiveWaterfallBox] = useState<number | null>(null);
 
   const checkDailyDoneBoxes = async () => {
     if (!user) return;
@@ -66,7 +68,7 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
     fetchBoxes();
   }, [user]);
 
-  const handleOpenGiftBox = async (boxNum: number) => {
+  const handleOpenGiftBox = (boxNum: number) => {
     if (!user || openingId) return;
 
     if (doneBoxMap[boxNum]) {
@@ -74,27 +76,8 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
       return;
     }
 
-    setOpeningId(boxNum);
-    try {
-      const result = await openGiftBoxWithWaterfall(boxNum, user.id, async (rewardAmount) => {
-        addToast(
-          'Box Unlocked!',
-          `You received +${rewardAmount} E4F! Credited to your wallet.`,
-          'success'
-        );
-        setDoneBoxMap(prev => ({ ...prev, [boxNum]: true }));
-        await refreshProfile();
-        await fetchBoxes();
-      });
-
-      if (!result.success && result.error && result.error !== 'Already claimed today') {
-        addToast('Box Locked', result.error, 'error');
-      }
-    } catch (err: any) {
-      addToast('Error', err.message || 'Ad error', 'error');
-    } finally {
-      setOpeningId(null);
-    }
+    // Opens waterfall ad for this specific box: box1, box2, box3, box4, box5
+    setActiveWaterfallBox(boxNum);
   };
 
   const handleBoxClick = (box: GiftBox) => {
@@ -131,6 +114,60 @@ export const GiftBoxesModal: React.FC<GiftBoxesModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+      {/* 100% In-App House AdWaterfall Modal (Box 1-5) */}
+      {activeWaterfallBox && user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative w-full max-w-sm bg-[#0C1326] border border-amber-500/40 rounded-3xl p-5 text-center shadow-2xl">
+            <button
+              onClick={() => setActiveWaterfallBox(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="text-base font-extrabold text-amber-400 mb-1">
+              Mystery Gift Box #{activeWaterfallBox}
+            </div>
+            <p className="text-xs text-slate-400 mb-3">Complete 30s ad to unlock reward</p>
+
+            <div className="rounded-2xl overflow-hidden border border-slate-800 bg-black mb-4">
+              <AdWaterfall house={`box${activeWaterfallBox}`} onAdLoaded={() => {}} />
+            </div>
+
+            <button
+              onClick={async () => {
+                const res = verifyAdWatch();
+                if (!res.valid) {
+                  alert(res.reason);
+                  return;
+                }
+                const bId = activeWaterfallBox;
+                setActiveWaterfallBox(null);
+                setOpeningId(bId);
+                try {
+                  const claimRes = await api.openGiftBox(user.id, bId);
+                  if (claimRes.success) {
+                    addToast('Box Unlocked!', `You received +${claimRes.rewardAmount} ${claimRes.rewardAsset}!`, 'success');
+                    setDoneBoxMap(prev => ({ ...prev, [bId]: true }));
+                    await setDone('gift', bId, user.id);
+                    await refreshProfile();
+                    await fetchBoxes();
+                  } else {
+                    addToast('Error', (claimRes as any).error || 'Claim failed', 'error');
+                  }
+                } catch (e: any) {
+                  addToast('Error', e.message || 'Claim failed', 'error');
+                } finally {
+                  setOpeningId(null);
+                }
+              }}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs shadow-lg active:scale-95 cursor-pointer"
+            >
+              Claim Box #{activeWaterfallBox} Reward
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Rewarded Ad Gate Modal */}
       {adTargetBox && user && (
         <UnifiedRewardedAdModal
