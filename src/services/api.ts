@@ -1046,7 +1046,14 @@ export const api = {
         if (data.balances) saveLocalBalances(data.balances);
         return data;
       }
-    } catch {}
+      if (data && data.error) {
+        throw new Error(data.error);
+      }
+    } catch (e: any) {
+      if (e?.message && e.message !== 'Failed to fetch') {
+        throw e;
+      }
+    }
 
     const prizes = [
       { id: 0, label: '0.25 E4F', asset: 'E4F' as const, amount: 0.25, color: '#3B82F6' },

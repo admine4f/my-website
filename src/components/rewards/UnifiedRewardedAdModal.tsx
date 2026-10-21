@@ -54,7 +54,19 @@ function getAdInsideScript(provider: string, zoneId: string | number): string {
   <div style="font-size: 12px; color: #94A3B8;">Zone ID: 12044377 • 100% In-App Delivery</div>
 </div>`;
   }
-  return `<iframe src="https://highperformanceformat.com/${z}" style="width:100%;height:380px;border:none;"></iframe>`;
+  return `<script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
+<script>
+  try {
+    if (window.initCdTma) {
+      window.initCdTma({ id: '${z}' }).then(function(show) { if (typeof show === 'function') show(); });
+    }
+  } catch(e) {}
+</script>
+<div style="padding: 24px 16px; text-align: center; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <div style="font-size: 16px; font-weight: 800; color: #A855F7; margin-bottom: 8px;">OnClickA Verified In-App Sponsor</div>
+  <div style="font-size: 12px; color: #94A3B8;">Spot ID: ${z} • 100% In-App Delivery</div>
+</div>
+<iframe src="https://highperformanceformat.com/${z}" style="width:100%;height:300px;border:none;"></iframe>`;
 }
 import {
   SPIN_ADS,
@@ -419,13 +431,21 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
     if (currentTier.provider === 'RichAds') {
       try {
         if ((window as any).TelegramAdsController?.showRewardedAd) {
-          (window as any).TelegramAdsController.showRewardedAd(Number(currentTier.id) || 410202);
+          (window as any).TelegramAdsController.showRewardedAd(Number(currentTier.id) || (actionType === 'SPIN' ? 410203 : 410202));
         }
       } catch (e) {}
     } else if (currentTier.provider === 'Monetag') {
       try {
         if (typeof (window as any).show_12044377 === 'function') {
           (window as any).show_12044377();
+        }
+      } catch (e) {}
+    } else if (currentTier.provider === 'OnClickA') {
+      try {
+        if (typeof (window as any).initCdTma === 'function') {
+          (window as any).initCdTma({ id: String(currentTier.id || (actionType === 'SPIN' ? '6153717E4F' : '6153772E4F')) }).then((show: any) => {
+            if (typeof show === 'function') show();
+          }).catch(() => {});
         }
       } catch (e) {}
     }
@@ -647,10 +667,22 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
               <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
                 <div className="flex items-center gap-1.5 font-bold text-amber-300">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                  <span>{currentTier?.provider} Real Ad</span>
+                  <span>
+                    {actionType === 'SPIN'
+                      ? (targetId === 2 || targetId === 5 ? 'Monetag' : targetId === 3 ? 'OnClickA' : 'RichAds')
+                      : actionType === 'GIFT_BOX'
+                      ? (targetId === 2 || targetId === 5 ? 'Monetag' : targetId === 3 ? 'OnClickA' : 'RichAds')
+                      : currentTier?.provider}{' '}
+                    Real Ad
+                  </span>
                 </div>
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono text-[10px] font-semibold border border-slate-700">
-                  Zone: {currentTier?.id || 'Active'}
+                  Zone:{' '}
+                  {actionType === 'SPIN'
+                    ? (targetId === 2 || targetId === 5 ? '12044377' : targetId === 3 ? '6153717E4F' : '410203')
+                    : actionType === 'GIFT_BOX'
+                    ? (targetId === 2 || targetId === 5 ? '12044377' : targetId === 3 ? '6153772E4F' : '410202')
+                    : currentTier?.id || 'Active'}
                 </span>
               </div>
 
@@ -659,9 +691,19 @@ export const UnifiedRewardedAdModal: React.FC<UnifiedRewardedAdModalProps> = ({
                 {actionType === 'MINING' ? (
                   <AdWaterfall house="mining" onAdLoaded={() => {}} />
                 ) : actionType === 'SPIN' ? (
-                  <AdInside adScript={getAdInsideScript(currentTier?.provider || 'RichAds', currentTier?.id || '410203')} />
+                  <AdInside
+                    adScript={getAdInsideScript(
+                      currentTier?.provider || (targetId === 2 || targetId === 5 ? 'Monetag' : targetId === 3 ? 'OnClickA' : 'RichAds'),
+                      currentTier?.id || (targetId === 2 || targetId === 5 ? '12044377' : targetId === 3 ? '6153717E4F' : '410203')
+                    )}
+                  />
                 ) : (
-                  <AdInside adScript={getAdInsideScript(currentTier?.provider || (targetId === 2 || targetId === 5 ? 'Monetag' : targetId === 3 ? 'OnClickA' : 'RichAds'), currentTier?.id || (targetId === 2 || targetId === 5 ? '12044377' : targetId === 3 ? '6153772E4F' : '410202'))} />
+                  <AdInside
+                    adScript={getAdInsideScript(
+                      currentTier?.provider || (targetId === 2 || targetId === 5 ? 'Monetag' : targetId === 3 ? 'OnClickA' : 'RichAds'),
+                      currentTier?.id || (targetId === 2 || targetId === 5 ? '12044377' : targetId === 3 ? '6153772E4F' : '410202')
+                    )}
+                  />
                 )}
               </div>
 

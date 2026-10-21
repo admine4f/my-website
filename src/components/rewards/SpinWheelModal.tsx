@@ -3,7 +3,6 @@ import { X, Play, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { UnifiedRewardedAdModal } from './UnifiedRewardedAdModal';
-import { handleSpinWithWaterfall, isDone } from '../../services/antiFakeAds';
 
 interface SpinWheelModalProps {
   onClose: () => void;
@@ -39,6 +38,10 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({ onClose }) => {
   const prizes = spinStatus?.prizes && spinStatus.prizes.length > 0
     ? spinStatus.prizes
     : defaultPrizes;
+
+  // Track exact spin slot 1..5 for dedicated ad network mapping
+  const spinsUsedCount = spinStatus?.spinsUsed ?? (spinStatus ? Math.max(0, (spinStatus.maxSpins || 5) - spinStatus.spinsRemainingToday) : 0);
+  const currentSpinNumber = Math.min(5, Math.max(1, spinsUsedCount + 1));
 
   useEffect(() => {
     if (user?.id) {
@@ -100,15 +103,16 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      {/* Rewarded Ad Gate Modal */}
+      {/* Dedicated In-App Rewarded Ad Gate Modal (Spin 1-5, 30s In-App, 0% External Redirect) */}
       {showAdModal && user && (
         <UnifiedRewardedAdModal
           userId={user.id}
           actionType="SPIN"
-          targetId={Math.min(5, Math.max(1, (5 - (spinStatus?.spinsRemainingToday ?? 5)) + 1))}
-          title="Rewarded Spin Gate"
-          description="Watch the official sponsored rewarded ad to unlock this spin."
+          targetId={currentSpinNumber}
+          title={`Lucky Spin #${currentSpinNumber}`}
+          description={`Complete 30s ad to unlock Lucky Spin #${currentSpinNumber}`}
           rewardHint="1 Free Lucky Wheel Spin (E4F / USDT)"
+          durationSeconds={30}
           onComplete={handleAdCompleted}
           onCancel={() => setShowAdModal(false)}
         />
@@ -224,7 +228,7 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({ onClose }) => {
             disabled={spinning}
             className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 disabled:opacity-50 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 active:scale-95 transition-transform cursor-pointer"
           >
-            {spinning ? 'Spinning Wheel...' : 'WATCH AD & SPIN'}
+            {spinning ? 'Spinning Wheel...' : `WATCH AD & SPIN #${currentSpinNumber} (30s)`}
           </button>
         )}
 

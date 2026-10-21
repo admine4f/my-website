@@ -288,6 +288,21 @@ export const WATERFALL = {
   spin: [
     { network: 'richads', tag: '410203', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410203);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410203</p></div>' },
   ],
+  spin1: [
+    { network: 'richads', tag: '410203', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410203);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410203</p></div>' },
+  ],
+  spin2: [
+    { network: 'monetag', tag: '12044377', code: '<script src="https://gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377();}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
+  ],
+  spin3: [
+    { network: 'onclicka', tag: '6153717E4F', code: '<iframe src="https://highperformanceformat.com/6153717E4F" style="width:100%;height:380px;border:none;"></iframe>' },
+  ],
+  spin4: [
+    { network: 'richads', tag: '410203', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410203);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410203</p></div>' },
+  ],
+  spin5: [
+    { network: 'monetag', tag: '12044377', code: '<script src="https://gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377();}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
+  ],
   mining: [
     { network: 'richads', tag: '410204', code: '<script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js?pubId=1025839&appId=9319"></script><script>try{window.TelegramAdsController && window.TelegramAdsController.showRewardedAd(410204);}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>RichAds In-App Sponsor</h3><p>Zone: 410204</p></div>' },
     { network: 'monetag', tag: '12044377', code: '<script src="//gizokraijaw.net/400/12044377.js" async></script><script src="https://libtl.com/sdk.js" data-zone="12044377" data-sdk="show_12044377"></script><script>try{window.show_12044377 && window.show_12044377();}catch(e){}</script><div style="padding:24px;text-align:center;color:#fff;font-family:sans-serif;"><h3>Monetag In-App Sponsor</h3><p>Zone: 12044377</p></div>' },
@@ -297,7 +312,7 @@ export const WATERFALL = {
   ]
 };
 
-export type HouseType = 'box1' | 'box2' | 'box3' | 'box4' | 'box5' | 'spin' | 'mining';
+export type HouseType = 'box1' | 'box2' | 'box3' | 'box4' | 'box5' | 'spin' | 'spin1' | 'spin2' | 'spin3' | 'spin4' | 'spin5' | 'mining';
 
 export function getAdForHouse(house: HouseType | string, attempt: number) {
   const list = (WATERFALL as any)[house] || WATERFALL.mining;
